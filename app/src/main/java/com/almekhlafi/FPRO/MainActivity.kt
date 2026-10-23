@@ -163,8 +163,7 @@ class MainActivity : ComponentActivity() {
                         }
                         BackHandler { smartBack() }
                         LaunchedEffect(Unit) {
-                            delay(1800)
-                            splash = false
+                            // Begin network/bootstrap immediately, underneath the splash.
                             web.post {
                                 if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) {
                                     web.loadUrl("https://m.facebook.com/")
@@ -172,12 +171,17 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         LaunchedEffect(Unit) {
-                            delay(2400)
+                            delay(600)
+                            splash = false
+                        }
+                        LaunchedEffect(Unit) {
+                            delay(1200)
                             while (true) {
-                                if (Navigation.isFacebook(web.url.orEmpty())) {
+                                if (!settings && web.hasWindowFocus() && Navigation.isFacebook(web.url.orEmpty())) {
                                     web.evaluateJavascript(pageInfoQuery) { updateHomeControls(it) }
                                 } else homeControls = false
-                                delay(650)
+                                // Player routes do not need frequent header-logo queries.
+                                delay(if (homeControls) 650 else 1200)
                             }
                         }
                         // Native watchdog: it must NOT wait for a JavaScript callback to
@@ -381,7 +385,7 @@ class MainActivity : ComponentActivity() {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 18 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 19 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {

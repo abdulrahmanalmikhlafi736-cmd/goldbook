@@ -339,10 +339,11 @@
  function scan() {
   if(cfg.enhance===false)return;
   hidingPass=new Set();
-  const labels = document.querySelectorAll('a,span,abbr,strong,b,button,[role="button"],div[dir="auto"],[role="heading"],[aria-label]');
+  const filtering=cfg.appBanner||Object.keys(words).some(key=>cfg[key]);
+  const labels = filtering?document.querySelectorAll('a,span,abbr,strong,b,button,[role="button"],div[dir="auto"],[role="heading"],[aria-label]'):[];
   for (let i=0;i<Math.min(labels.length,2400);i++) {
    const label=labels[i]; if(label.closest('.fpro-video-tools')) continue;
-   const text=norm(label.getAttribute('aria-label') || label.innerText || label.textContent);
+   const text=norm(label.getAttribute('aria-label') || label.textContent);
    const appText=text.replace(/^(facebook|فيسبوك|f)\s*/,'').replace(/\s*(facebook|فيسبوك|f)$/,'');
    if(cfg.appBanner && ['open app','open in app','get the app','get facebook for android and browse faster','حمل تطبيق فيسبوك','فتح التطبيق','افتح التطبيق','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق'].includes(appText)) appBanner(label,true);
    if(!text || text.length>100) continue;
@@ -436,7 +437,7 @@
   const events=['timeupdate','durationchange','loadedmetadata','seeking','ended','emptied'];events.forEach(name=>video.addEventListener(name,progress));
   video.addEventListener('play',scheduleLayout);video.addEventListener('pause',scheduleLayout);
   if(resize)resize.observe(video);
-  videos.set(video,{layout(allowed=true){const r=video.getBoundingClientRect();const dialog=Array.from(document.querySelectorAll('[role="dialog"]')).find(el=>{const b=el.getBoundingClientRect(),s=getComputedStyle(el);return b.width>0&&b.height>0&&s.visibility!=='hidden'&&s.display!=='none'&&s.opacity!=='0';});overlay.hidden=!allowed||!(r.width>0&&r.height>0&&r.bottom>0&&r.right>0&&r.top<innerHeight&&r.left<innerWidth) || !!(dialog&&!dialog.contains(video));overlay.style.left=r.left+'px';overlay.style.top=r.top+'px';overlay.style.width=r.width+'px';const reel=/^\/reels?(?:\/|$)/.test(location.pathname) && r.height>innerHeight*0.6;const viewportBottom=window.visualViewport?Math.min(innerHeight,window.visualViewport.offsetTop+window.visualViewport.height):innerHeight;overlay.style.height=(reel?Math.max(0,viewportBottom-r.top):r.height)+'px';button.hidden=!cfg.downloads;track.hidden=!cfg.rainbow;placeButton();progress();},dispose(){video.removeEventListener('play',scheduleLayout);video.removeEventListener('pause',scheduleLayout);if(resize)resize.unobserve(video);clearTimeout(timer);events.forEach(name=>video.removeEventListener(name,progress));overlay.remove();}});
+  videos.set(video,{layout(allowed=true){if(!allowed){overlay.hidden=true;return;}const r=video.getBoundingClientRect();const dialog=Array.from(document.querySelectorAll('[role="dialog"]')).find(el=>{const b=el.getBoundingClientRect(),s=getComputedStyle(el);return b.width>0&&b.height>0&&s.visibility!=='hidden'&&s.display!=='none'&&s.opacity!=='0';});overlay.hidden=!allowed||!(r.width>0&&r.height>0&&r.bottom>0&&r.right>0&&r.top<innerHeight&&r.left<innerWidth) || !!(dialog&&!dialog.contains(video));overlay.style.left=r.left+'px';overlay.style.top=r.top+'px';overlay.style.width=r.width+'px';const reel=/^\/reels?(?:\/|$)/.test(location.pathname) && r.height>innerHeight*0.6;const viewportBottom=window.visualViewport?Math.min(innerHeight,window.visualViewport.offsetTop+window.visualViewport.height):innerHeight;overlay.style.height=(reel?Math.max(0,viewportBottom-r.top):r.height)+'px';button.hidden=!cfg.downloads;track.hidden=!cfg.rainbow;placeButton();progress();},dispose(){video.removeEventListener('play',scheduleLayout);video.removeEventListener('pause',scheduleLayout);if(resize)resize.unobserve(video);clearTimeout(timer);events.forEach(name=>video.removeEventListener(name,progress));overlay.remove();}});
  }
  // A document-level capture listener also sees touches on Facebook's player
  // cover layers. It is independent of download/progress overlay attachment.
@@ -491,7 +492,8 @@
  document.addEventListener('dblclick',e=>{const video=gestureVideo(e);if(video){e.preventDefault();e.stopPropagation();toggleFullscreen(video);}},true);
  function rendered(video){for(let el=video;el;el=el.parentElement){const c=getComputedStyle(el);if(c.display==='none'||c.visibility==='hidden'||c.visibility==='collapse'||c.opacity==='0')return false;}return true;}
  function layoutVideos(){
-  const candidates=Array.from(videos.keys()).map((video,index)=>{const r=video.getBoundingClientRect(),c=getComputedStyle(video);const w=Math.max(0,Math.min(innerWidth,r.right)-Math.max(0,r.left)),h=Math.max(0,Math.min(innerHeight,r.bottom)-Math.max(0,r.top));
+  const candidates=Array.from(videos.keys()).map((video,index)=>{const r=video.getBoundingClientRect();const w=Math.max(0,Math.min(innerWidth,r.right)-Math.max(0,r.left)),h=Math.max(0,Math.min(innerHeight,r.bottom)-Math.max(0,r.top));
+   if(w*h<=0)return {video,r,index,visible:false,score:0};
    const stack=document.elementsFromPoint?document.elementsFromPoint(Math.max(0,Math.min(innerWidth-1,r.left+r.width/2)),Math.max(0,Math.min(innerHeight-1,r.top+r.height/2))):[];
    const hit=stack.indexOf(video);return {video,r,index,visible:w*h>0&&rendered(video),score:(hit>=0?100000-hit*100:0)+(!video.paused?1000:0)+w*h/10000+index/1000};
   }).filter(c=>c.visible).sort((a,b)=>b.score-a.score);
@@ -516,7 +518,12 @@
   const r=current.getBoundingClientRect();tools.style.left=Math.max(0,r.left)+'px';tools.style.top=Math.max(0,r.top)+'px';tools.style.width=r.width+'px';tools.style.height=Math.min(r.height,innerHeight)+'px';
  }
  let frame=null;
- function scheduleLayout(){if(frame===null)frame=requestAnimationFrame(()=>{frame=null;layoutVideos();syncStoryImages();if(cfg.enhance!==false && pending===null)pending=setTimeout(()=>{pending=null;scan();},350);});}
+ function scheduleLayout(){
+  // Keep controls attached during a fling, but defer expensive whole-page work
+  // until scrolling settles. Fast hashtag mutation handling remains independent.
+  if(cfg.enhance!==false){if(pending!==null)clearTimeout(pending);pending=setTimeout(()=>{pending=null;scan();},350);}
+  if(frame===null)frame=requestAnimationFrame(()=>{frame=null;layoutVideos();syncStoryImages();});
+ }
  window.addEventListener('scroll',scheduleLayout,true);window.addEventListener('resize',scheduleLayout);window.addEventListener('popstate',scheduleLayout);window.addEventListener('hashchange',scheduleLayout);
  const resize=typeof ResizeObserver==='function'?new ResizeObserver(scheduleLayout):null;
  function update(c){
@@ -595,7 +602,7 @@
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
  function colorReport(){
-  const report={version:18,enhance:cfg.enhance!==false,color:cfg.color,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
+  const report={version:19,enhance:cfg.enhance!==false,color:cfg.color,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}
