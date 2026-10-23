@@ -6,7 +6,6 @@ plugins {
 android {
     namespace = "com.almekhlafi.FPRO"
     compileSdk = 35
-    testBuildType = providers.gradleProperty("deviceTestBuildType").getOrElse("debug")
     defaultConfig {
         applicationId = "com.almekhlafi.FPRO"
         minSdk = 23
@@ -28,7 +27,6 @@ android {
         initWith(buildTypes.getByName("release"))
         signingConfig = signingConfigs.getByName("debug")
         matchingFallbacks += listOf("release")
-        testProguardFiles("instrumentation-rules.pro")
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
@@ -41,7 +39,6 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("com.google.errorprone:error_prone_annotations:2.36.0")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:core-ktx:1.6.1")

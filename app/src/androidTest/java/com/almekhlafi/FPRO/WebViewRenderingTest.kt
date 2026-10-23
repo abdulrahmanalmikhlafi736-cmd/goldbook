@@ -25,7 +25,7 @@ class WebViewRenderingTest {
     /** A separate, real HTTPS smoke test. No credentials, mock response or DOM replacement. */
     @Test fun liveFacebookLoggedOutSmoke() {
         org.junit.Assume.assumeTrue("Live site requires a recent system WebView", android.os.Build.VERSION.SDK_INT >= 35)
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+        ActivityScenario.launch<android.app.Activity>(android.content.Intent().setClassName(InstrumentationRegistry.getInstrumentation().targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
             val ready = CountDownLatch(1)
             val state = java.util.concurrent.atomic.AtomicReference("no callback")
             scenario.onActivity { activity ->
@@ -53,7 +53,7 @@ class WebViewRenderingTest {
     }
 
     @Test fun websiteActuallyPaintsInsideCompose() {
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+        ActivityScenario.launch<android.app.Activity>(android.content.Intent().setClassName(InstrumentationRegistry.getInstrumentation().targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
             val ready = CountDownLatch(1)
             val state = java.util.concurrent.atomic.AtomicReference("no JavaScript callback")
             val nativeState = java.util.concurrent.atomic.AtomicReference("")
@@ -80,7 +80,7 @@ class WebViewRenderingTest {
             val painted = ready.await(15, TimeUnit.SECONDS)
             scenario.onActivity { activity ->
                 val web = requireNotNull(findWeb(activity.window.decorView))
-                nativeState.set("url=${web.url}; progress=${web.progress}; JS=${web.settings.javaScriptEnabled}; size=${web.width}x${web.height}; shown=${web.isShown}; lifecycle=${activity.lifecycle.currentState}")
+                nativeState.set("url=${web.url}; progress=${web.progress}; JS=${web.settings.javaScriptEnabled}; size=${web.width}x${web.height}; shown=${web.isShown}; lifecycle=${if (activity.isFinishing) "finishing" else "active"}")
             }
             assertTrue("WebView failed: ${state.get()}; ${nativeState.get()}", painted)
             // Wait past the custom splash and a few rendered frames before screenshot.

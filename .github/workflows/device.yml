@@ -9,9 +9,11 @@ jobs:
           - api: 29
             variant: debug
             task: Debug
+            module: app
           - api: 35
             variant: compact
             task: Compact
+            module: device-tests
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -36,7 +38,7 @@ jobs:
           disable-animations: true
           script: |
             mkdir -p device-diagnostics
-            if ./gradlew -PdeviceTestBuildType=${{ matrix.variant }} connected${{ matrix.task }}AndroidTest --stacktrace > device-diagnostics/gradle.log 2>&1; then echo PASS > device-diagnostics/result; else echo FAIL > device-diagnostics/result; fi
+            if ./gradlew :${{ matrix.module }}:connected${{ matrix.task }}AndroidTest --stacktrace > device-diagnostics/gradle.log 2>&1; then echo PASS > device-diagnostics/result; else echo FAIL > device-diagnostics/result; fi
             timeout 15 adb logcat -d > device-diagnostics/logcat.txt || true
             timeout 15 adb pull /sdcard/Android/data/com.almekhlafi.FPRO/files/ device-diagnostics/ || true
             cat device-diagnostics/gradle.log
@@ -53,7 +55,7 @@ jobs:
               for line in log.read_text().splitlines():
                   if line.startswith('e: ') or 'FAILED' in line or 'AssertionError' in line or 'ERROR:' in line or 'Missing class' in line or 'Exception' in line or 'Test run failed' in line or 'INSTRUMENTATION' in line or 'Caused by' in line or 'No tests found' in line or 'Process crashed' in line:
                       print('::error::' + line.replace('%','%25'))
-          for report in Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'):
+          for report in Path('.').glob('*/build/outputs/androidTest-results/**/TEST-*.xml'):
               for failure in ET.parse(report).iter('failure'):
                   message = (failure.get('message') or failure.text or 'Device test failed').splitlines()[0]
                   print('::error::' + message.replace('%','%25'))
@@ -64,5 +66,5 @@ jobs:
           name: webview-device-diagnostics-${{ matrix.api }}-${{ matrix.variant }}
           path: |
             device-diagnostics/
-            app/build/reports/androidTests/
-            app/build/outputs/androidTest-results/
+            */build/reports/androidTests/
+            */build/outputs/androidTest-results/

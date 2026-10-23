@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          if ./gradlew testDebugUnitTest lintDebug assembleDebug assembleCompact --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"; then
+          if ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleCompact --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"; then
             exit 0
           fi
           # Surface actionable diagnostics in the Checks API as well as raw logs.
