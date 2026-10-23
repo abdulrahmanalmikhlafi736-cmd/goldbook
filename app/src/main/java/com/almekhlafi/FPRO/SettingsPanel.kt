@@ -20,7 +20,7 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         TextButton(onClick = reload) { Text("إعادة فتح فيسبوك") }
         TextButton(onClick = testDisplay) { Text("اختبار عرض محلي بلا إنترنت") }
         TextButton(onClick = copyDiagnostics) { Text("نسخ معلومات التشخيص") }
-        Toggle("توافق وكيل المستخدم مع متصفح الهاتف", "browserAgent", prefs, revision, default = true) { update() }
+        Toggle("توافق وكيل المستخدم مع متصفح الهاتف", "browserAgent", prefs, revision) { update() }
         Toggle("كوكيز الجهات المضمّنة لتوافق تسجيل الدخول", "thirdPartyCookies", prefs, revision, default = true) { update() }
         Text("السماح بكوكيز الطرف الثالث يحسن توافق خدمات Meta المضمّنة، لكنه يسمح بتتبعها. يمكنك تعطيله.", style = MaterialTheme.typography.bodySmall)
         Toggle("الرسم البرمجي — جرّبه إذا بقيت الشاشة رمادية", "software", prefs, revision) { update() }

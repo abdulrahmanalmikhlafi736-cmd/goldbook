@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
         web = createWebView()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         applySettings(false)
-        if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) web.loadUrl("https://www.facebook.com/")
+        if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) web.loadUrl("https://m.facebook.com/")
         setContent {
             val dark = prefs.flag("dark")
             val scheme = when {
@@ -107,7 +107,7 @@ class MainActivity : ComponentActivity() {
                                             Text(diagnostics(), style = MaterialTheme.typography.bodySmall)
                                             Row {
                                                 TextButton(onClick = { failure = null; web.reload() }) { Text("إعادة المحاولة") }
-                                                TextButton(onClick = { failure = null; web.loadUrl("https://www.facebook.com/") }) { Text("الصفحة الرئيسية") }
+                                                TextButton(onClick = { failure = null; web.loadUrl("https://m.facebook.com/") }) { Text("الصفحة الرئيسية") }
                                             }
                                         }
                                     }
@@ -115,7 +115,7 @@ class MainActivity : ComponentActivity() {
                             }
                             if (settings && !pip) Surface(Modifier.fillMaxSize()) {
                                 SettingsPanel(prefs, change = { revision++; applySettings(true) }, close = { settings = false }, whatsapp = { external("https://wa.me/967781764759") }, downloads = { downloadPanel = true }, diagnostics = diagnostics(),
-                                    reload = { settings = false; web.loadUrl("https://www.facebook.com/") },
+                                    reload = { settings = false; web.loadUrl("https://m.facebook.com/") },
                                     testDisplay = { settings = false; showDisplayTest() },
                                     copyDiagnostics = {
                                         getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("FPRO diagnostics", diagnostics()))
@@ -164,7 +164,7 @@ class MainActivity : ComponentActivity() {
         settings.allowContentAccess = false
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         settings.mediaPlaybackRequiresUserGesture = true
-        settings.setSupportMultipleWindows(true)
+        settings.setSupportMultipleWindows(false)
         CookieManager.getInstance().setAcceptCookie(true)
         webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = route(request.url, request.isForMainFrame)
@@ -227,7 +227,7 @@ class MainActivity : ComponentActivity() {
                 resultMsg.sendToTarget(); return true
             }
         }
-        setDownloadListener { url, _, _, _, _ -> media = url to (this.url ?: "https://www.facebook.com/") }
+        setDownloadListener { url, _, _, _, _ -> media = url to (this.url ?: "https://m.facebook.com/") }
     }
 
     private fun route(uri: Uri, mainFrame: Boolean): Boolean {
@@ -264,7 +264,7 @@ class MainActivity : ComponentActivity() {
 
     private fun applySettings(reloadDesktop: Boolean) {
         web.setLayerType(if (prefs.flag("software")) View.LAYER_TYPE_SOFTWARE else View.LAYER_TYPE_NONE, null)
-        val compatibleAgent = if (prefs.flag("browserAgent", true)) Navigation.browserAgent(mobileAgent) else mobileAgent
+        val compatibleAgent = if (prefs.flag("browserAgent")) Navigation.browserAgent(mobileAgent) else mobileAgent
         val agent = if (prefs.flag("desktop")) "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" else compatibleAgent
         val cookieManager = CookieManager.getInstance()
         val allowEmbeddedCookies = prefs.flag("thirdPartyCookies", true)
@@ -284,7 +284,7 @@ class MainActivity : ComponentActivity() {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 5 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 6 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {
@@ -298,7 +298,7 @@ class MainActivity : ComponentActivity() {
             <body style="margin:0;background:#14b450;color:#101010;font:22px sans-serif;padding:70px 24px;min-height:100vh;box-sizing:border-box">
             <h1>اختبار عرض WebView</h1><p>هذه صفحة تشخيص محلية وليست فيسبوك. ظهور الخلفية الخضراء وهذا النص يؤكد أن المحرك يرسم المحتوى.</p>
             <p id="js">JavaScript لم يعمل بعد</p><script>document.getElementById('js').textContent='JavaScript يعمل';document.body.dataset.ready='yes';</script>
-            <a href="https://www.facebook.com/">فتح فيسبوك الحقيقي</a></body></html>
+            <a href="https://m.facebook.com/">فتح فيسبوك الحقيقي</a></body></html>
         """.trimIndent(), "text/html", "UTF-8", null)
     }
 
@@ -344,7 +344,7 @@ class MainActivity : ComponentActivity() {
                 })()
             """.trimIndent()) { result ->
                 if (result == "\"back\"") {
-                    if (web.url?.contains("/messages") == true) web.loadUrl("https://www.facebook.com/")
+                    if (web.url?.contains("/messages") == true) web.loadUrl("https://m.facebook.com/")
                     else if (web.canGoBack()) web.goBack() else finish()
                 }
             }
