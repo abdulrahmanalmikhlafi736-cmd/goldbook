@@ -182,7 +182,19 @@ class WebViewRenderingTest {
         val icon = android.util.Base64.encodeToString("""<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="16" fill="#1877f2"/><path d="M9 16l5 5 10-11" fill="none" stroke="white" stroke-width="3"/></svg>""".toByteArray(), android.util.Base64.NO_WRAP)
         val portrait = android.util.Base64.encodeToString("""<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#ed1c24"/></svg>""".toByteArray(), android.util.Base64.NO_WRAP)
         ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
-            Thread.sleep(2300)
+            // The app schedules its first Facebook load from Compose after the
+            // splash. Wait for that navigation, otherwise it can overwrite the
+            // local fixture after a fixed sleep on a slow emulator.
+            val startupReady = CountDownLatch(1)
+            scenario.onActivity { activity ->
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                fun probeStartup(attempt: Int) {
+                    if (Navigation.isFacebook(web.url.orEmpty())) startupReady.countDown()
+                    else if (attempt < 50) web.postDelayed({ probeStartup(attempt + 1) }, 200)
+                }
+                probeStartup(0)
+            }
+            assertTrue("Initial app navigation must start before loading local fixture", startupReady.await(12, TimeUnit.SECONDS))
             val ready = CountDownLatch(1)
             val evidence = java.util.concurrent.atomic.AtomicReference("no fixture response")
             var collapsed = false
