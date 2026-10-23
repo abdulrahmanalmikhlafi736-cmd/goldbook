@@ -1,5 +1,10 @@
 name: Android APK
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    paths: ['app/**', 'device-tests/**', 'tools/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew*', '.github/workflows/android.yml']
+  pull_request:
+    paths: ['app/**', 'device-tests/**', 'tools/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew*', '.github/workflows/android.yml']
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest

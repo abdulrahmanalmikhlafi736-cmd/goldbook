@@ -53,7 +53,9 @@ jobs:
               try:
                   request = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
                   code = urllib.request.urlopen(request, timeout=25).read(4000000).decode('utf-8', errors='replace')
-                  contexts = [code[max(0,m.start()-350):m.end()+350] for m in re.finditer('getElementsByTagName', code)]
+                  lines = code.splitlines()
+                  source = lines[70] if len(lines) > 70 else code
+                  contexts = [source[max(0,m.start()-500):m.end()+500] for m in re.finditer('getElementsByTagName', source)]
                   for context in contexts[:6]:
                       print('::notice title=Public script context::' + context.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
               except Exception as error:

@@ -1,5 +1,8 @@
 name: WebView device regression
-on: [push, workflow_dispatch]
+on:
+  push:
+    paths: ['app/**', 'device-tests/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew*', '.github/workflows/device.yml']
+  workflow_dispatch:
 jobs:
   rendering:
     strategy:
