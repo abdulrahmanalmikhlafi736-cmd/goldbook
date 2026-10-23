@@ -44,7 +44,7 @@ jobs:
                           selected.append(message)
               useful = [line for line in selected if not any(noise in line.lower() for noise in ('permissions-policy', 'origin trial', 'sharedstorage', 'overlays are enabled'))]
               errors = [line for line in useful if any(word in line.lower() for word in ('uncaught', 'typeerror', 'referenceerror', 'syntaxerror', 'err_', 'failed', 'errorutils', 'exception'))]
-              evidence = errors[-8:] or useful[-8:]
+              evidence = [line for line in errors if 'uncaught' in line.lower()][-2:] or errors[-2:] or useful[-2:]
               for line in evidence:
                   print('::notice title=Chromium evidence::' + line.replace('%','%25'))
           for url in list(scripts)[:1]:
@@ -55,7 +55,12 @@ jobs:
                   code = urllib.request.urlopen(request, timeout=25).read(4000000).decode('utf-8', errors='replace')
                   lines = code.splitlines()
                   source = lines[70] if len(lines) > 70 else code
-                  contexts = [source[max(0,m.start()-500):m.end()+500] for m in re.finditer('getElementsByTagName', source)]
+                  contexts = ['Failing line 71: ' + source[:2900]]
+                  match = re.search('getElementsByTagName', code)
+                  if match:
+                      start = code.rfind('__d(', 0, match.start())
+                      contexts.append('Caller module: ' + code[max(0,start):max(0,start)+2900])
+                  contexts += [source[max(0,m.start()-500):m.end()+500] for m in re.finditer('getElementsByTagName', source)]
                   for context in contexts[:6]:
                       print('::notice title=Public script context::' + context.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
               except Exception as error:
