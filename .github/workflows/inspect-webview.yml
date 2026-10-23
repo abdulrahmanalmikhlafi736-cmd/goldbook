@@ -6,7 +6,7 @@ on:
     inputs:
       run_id:
         description: Completed emulator run to inspect
-        default: '39900288305'
+        default: '39904680852'
         required: true
 jobs:
   inspect:
@@ -21,7 +21,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id="${{ github.event.inputs.run_id || '39900288305' }}"
+          id="${{ github.event.inputs.run_id || '39904680852' }}"
           echo "run=$id" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
@@ -46,6 +46,21 @@ jobs:
               print('::notice title=Native baseline comparison::' + message.replace('%','%25'))
           if not evidence: print('::notice::No baseline markers found in this completed run.')
           PY
+      - name: Summarize failed device tests
+        run: |
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          seen=set()
+          for path in Path('previous-diagnostics').rglob('*.xml'):
+              try: root=ET.parse(path).getroot()
+              except ET.ParseError: continue
+              for failure in list(root.iter('failure'))+list(root.iter('error')):
+                  text=(failure.text or failure.get('message',''))[:3000]
+                  if text in seen: continue
+                  seen.add(text)
+                  print('::notice title=Device test stack::'+text.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+          PYCODE
       - name: Summarize Chromium failures
         run: |
           python3 - <<'PY'
