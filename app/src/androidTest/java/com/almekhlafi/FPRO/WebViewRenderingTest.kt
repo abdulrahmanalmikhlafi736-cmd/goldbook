@@ -463,7 +463,8 @@ class WebViewRenderingTest {
                 web.loadDataWithBaseURL("https://fixture.invalid/", """
                     <html><meta name="viewport" content="width=device-width,initial-scale=1">
                     <style>p,span,a{-webkit-user-select:none;user-select:none}body{margin:24px;font:24px sans-serif}p{margin:24px 0}</style>
-                    <body><article><p id="post">FPROpost selection sample</p><p><span id="comment" dir="auto">FPROcomment selection sample</span></p><p><a id="hashtag" href="/hashtag/sample">#FPROhashtag</a></p></article></body></html>
+                    <body><article role="button" style="user-select:none!important;-webkit-user-select:none!important"><p id="post" style="user-select:none!important;-webkit-user-select:none!important">FPROpost selection sample</p><p><span id="comment" dir="auto" style="user-select:none!important;-webkit-user-select:none!important">FPROcomment selection sample</span></p><p><a id="hashtag" href="/hashtag/sample" style="user-select:none!important;-webkit-user-select:none!important">#FPROhashtag</a></p><button>Like</button></article>
+                    <script>document.addEventListener('selectstart',e=>e.preventDefault(),true);document.addEventListener('pointerdown',e=>e.preventDefault(),true);document.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});</script></body></html>
                 """.trimIndent(), "text/html", "UTF-8", null)
                 fun probe(attempt: Int) {
                     web.evaluateJavascript("!!document.querySelector('#hashtag') && document.readyState==='complete'") { result ->

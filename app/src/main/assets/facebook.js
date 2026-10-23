@@ -9,6 +9,62 @@
  // copy popup, clipboard bridge or touch/scroll interception.
  const selectionStyle=document.createElement('style');selectionStyle.id='fpro-selection-style';
  if(nonce)selectionStyle.nonce=nonce.nonce;
+ // Prepare only the touched reading block, not the whole feed. Some Meta
+ // layouts wrap comments/posts in role=button and set inline !important rules.
+ const selectionOverrides=new Map();
+ let selectionTargetInfo={prepared:false,buttonWrapper:false,inlineBlocked:false};
+ function restoreSelectionOverrides(){
+  selectionOverrides.forEach((entry,el)=>{
+   for(const key of ['user-select','-webkit-user-select']){
+    const old=entry[key];
+    if(el.style.getPropertyValue(key)==='text'&&el.style.getPropertyPriority(key)==='important'){
+     if(old.value)el.style.setProperty(key,old.value,old.priority);else el.style.removeProperty(key);
+    }
+   }
+   if(!entry.marked)el.removeAttribute('data-fpro-selectable-text');
+   ownedStyles.set(el,el.getAttribute('style'));
+  });selectionOverrides.clear();
+ }
+ function readingTarget(target){
+  const el=target&&target.nodeType===1?target:target&&target.parentElement;
+  if(!el||el.closest('button,input,textarea,select,[contenteditable]:not([contenteditable="false"]),.fpro-video-tools,header,nav,[role="banner"],[role="navigation"],svg,img,video,canvas'))return null;
+  const root=el.closest('p,[dir="auto"],[data-ad-preview="message"],[data-ad-comet-preview="message"],span');
+  if(!root||!(root.textContent||'').trim())return null;
+  const control=el.closest('[role="button"]');
+  // An interactive post/comment wrapper is not the same as Like/Reply/etc.
+  if(control){
+   const label=norm(control.getAttribute('aria-label')||control.textContent||'');
+   if(/^(like|love|reply|share|follow|more|see more|see less|play|pause|إعجاب|اعجبني|أعجبني|رد|مشاركة|متابعة|المزيد|عرض المزيد|عرض أقل|تشغيل|إيقاف)$/.test(label))return null;
+   if(!el.closest('article,[role="article"],[data-commentid],[role="comment"]')&&!root.matches('[dir="auto"],p,[data-ad-preview],[data-ad-comet-preview]'))return null;
+  }
+  return {el,root,control};
+ }
+ function prepareSelection(e){
+  if(cfg.textSelection===false||e.isPrimary===false||e.pointerType==='mouse'&&e.button!==0)return;
+  const target=readingTarget(e.target);if(!target)return;
+  restoreSelectionOverrides();lastTap=null;touch=null;
+  selectionTargetInfo={prepared:true,buttonWrapper:!!target.control,inlineBlocked:false};
+  let node=target.el;
+  for(let depth=0;node&&node!==document.body&&depth<10;depth++,node=node.parentElement){
+   const entry={marked:node.hasAttribute('data-fpro-selectable-text')};
+   for(const key of ['user-select','-webkit-user-select']){
+    entry[key]={value:node.style.getPropertyValue(key),priority:node.style.getPropertyPriority(key)};
+    if(entry[key].value==='none')selectionTargetInfo.inlineBlocked=true;
+   }
+   selectionOverrides.set(node,entry);
+   for(const key of ['user-select','-webkit-user-select'])node.style.setProperty(key,'text','important');
+   if(node===target.root)node.setAttribute('data-fpro-selectable-text','');
+   ownedStyles.set(node,node.getAttribute('style'));
+   if(node.matches('article,[role="article"],[role="comment"],[data-commentid]'))break;
+  }
+  // Preserve the browser default (selection/scrolling); avoid Meta's delegated
+  // pointer/touch cancellation on reading text. Ordinary click still propagates.
+  e.stopPropagation();
+ }
+ window.addEventListener('pointerdown',prepareSelection,true);
+ window.addEventListener('touchstart',e=>{
+  if(cfg.textSelection!==false&&readingTarget(e.target))e.stopPropagation();
+ },{capture:true,passive:true});
  // Android treats a long-pressed anchor as a link, not selectable text.
  // Temporarily disarm only hashtag hrefs while the finger is down; Android
  // then performs its own word selection. Restore before an ordinary click.
@@ -18,11 +74,11 @@
   // A recycled Facebook node may already have acquired a NEW destination.
   if(!entry.link.hasAttribute('href'))entry.link.setAttribute('href',entry.href);
  }
- document.addEventListener('pointerdown',e=>{
+ window.addEventListener('pointerdown',e=>{
   restoreSelectionLink();
   if(cfg.textSelection===false||e.isPrimary===false||e.pointerType==='mouse'&&e.button!==0)return;
   const el=e.target.nodeType===1?e.target:e.target.parentElement;
-  if(!el||el.closest('button,[role="button"],input,textarea,select,[contenteditable],.fpro-video-tools'))return;
+  if(!el||el.closest('button,input,textarea,select,[contenteditable]:not([contenteditable="false"]),.fpro-video-tools'))return;
   const link=el.closest('a[href]');if(!link)return;
   const href=link.getAttribute('href'),text=(link.textContent||'').trim();
   if(!/(?:\/hashtag\/|[?&]hashtag=)/i.test(href)||!/^#[^\s#]+$/.test(text))return;
@@ -35,18 +91,18 @@
  document.addEventListener('click',restoreSelectionLink,true);
  window.addEventListener('blur',restoreSelectionLink);
  function updateSelection(){
-  if(cfg.textSelection===false){restoreSelectionLink();selectionStyle.remove();return;}
+  if(cfg.textSelection===false){restoreSelectionLink();restoreSelectionOverrides();selectionStyle.remove();return;}
   if(!selectionStyle.textContent)selectionStyle.textContent=`
    body p,body span,body [dir="auto"],body [role="article"],body [role="article"] *,body article,body article *,body a[href*="/hashtag/"],body a[href*="hashtag="],body [data-ad-preview="message"],body [data-ad-comet-preview="message"]{-webkit-user-select:text!important;user-select:text!important}
    body button,body button *,body [role="button"],body [role="button"] *,body select,body video,body canvas,.fpro-video-tools,.fpro-video-tools *{-webkit-user-select:none!important;user-select:none!important}
-   body input,body textarea,body [contenteditable="true"],body [contenteditable="true"] *{-webkit-user-select:auto!important;user-select:auto!important}
+   body [data-fpro-selectable-text],body [data-fpro-selectable-text] *{-webkit-user-select:text!important;user-select:text!important}
+   body [data-fpro-selectable-text] button,body [data-fpro-selectable-text] button *{-webkit-user-select:none!important;user-select:none!important}
+   body input,body textarea,body [contenteditable]:not([contenteditable="false"]),body [contenteditable]:not([contenteditable="false"]) *{-webkit-user-select:auto!important;user-select:auto!important}
   `;
   if(!selectionStyle.isConnected)document.head.appendChild(selectionStyle);
  }
- document.addEventListener('selectstart',e=>{
-  if(cfg.textSelection===false)return;
-  const el=e.target.nodeType===1?e.target:e.target.parentElement;
-  if(el&&!el.closest('button,[role="button"],input,textarea,select,[contenteditable="true"],.fpro-video-tools')&&el.closest('p,span,[dir="auto"],article,[role="article"],a[href*="hashtag"]'))e.stopPropagation();
+ window.addEventListener('selectstart',e=>{
+  if(cfg.textSelection!==false&&readingTarget(e.target))e.stopPropagation();
  },true);
  const colors = {'طبيعي':'#1877f2','ذهبي':'#d4af37','أحمر':'#c62828','أخضر':'#17833e','بنفسجي':'#8643c5','برتقالي':'#ed701b','فيروزي':'#008c95','وردي':'#d34489','بني':'#805539','فضي':'#9ba6b0','أبيض':'#ffffff'};
  const norm = s => (s || '').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');
@@ -85,21 +141,24 @@
   }
   return null;
  }
+ const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','تطبيق فيسبوك الأصلي','فيسبوك الأصلي','الفيسبوك الأصلي','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app','original facebook'].map(norm));
+ function isAppPrompt(text){return text.length<=90&&appPromptLabels.has(norm(text));}
  function appBanner(link, explicitLabel = false) {
   const control=link.closest('a,button,[role="button"]');
   const inPost=link.closest('[role="article"],article,[data-pagelet^="FeedUnit"]');
   // Reels place the Open App control inside the player/article. Hide that
   // control only, never the reel or its search/profile/navigation siblings.
-  if(inPost) { if(explicitLabel && control) hide(control); return; }
+  if(inPost) { if(explicitLabel && control && !control.matches(postSelector) && !control.querySelector('video,article,[role="article"]')) hide(control); return; }
   const header=control && control.closest('header,nav,[role="banner"],[role="navigation"]');
   if(explicitLabel && header && header.querySelectorAll('a,button,[role="button"]').length>1) { hide(control); return; }
+  if(explicitLabel && header && !header.querySelector('input,textarea,video,article,[role="article"]') && isAppPrompt(norm(header.textContent))) {hide(header);return;}
   const href = link.getAttribute('href') || '';
   if (!explicitLabel && !/^(intent:|fb:|fb-messenger:|android-app:)/i.test(href) && !/(play\.google\.com\/store\/apps|apps\.apple\.com\/|\/marketplace\/app_redirect|\/r\.php\?.*app_id|\/openinapp|\/native_app|\/intent\/)/i.test(href)) return;
   let block = link;
   // Only a compact install prompt, never an article, login form or entire page.
   for (let i=0; i<3 && block.parentElement; i++) {
    const p = block.parentElement;
-   if (/^(BODY|HTML|MAIN|FORM)$/.test(p.tagName) || p.matches(postSelector) || p.getAttribute('role') === 'main' || p.querySelector('input,video') || (p.textContent || '').length > 400) break;
+   if (/^(BODY|HTML|MAIN|FORM)$/.test(p.tagName) || p.matches(postSelector) || p.getAttribute('role') === 'main' || p.matches('header,nav,[role="banner"],[role="navigation"]') || p.querySelector('input,textarea,video,[contenteditable],article,[role="article"]') || (p.textContent || '').length > 400) break;
    if (p.querySelectorAll('a').length > 3) break;
    block = p;
   }
@@ -388,7 +447,7 @@
    const label=labels[i]; if(label.closest('.fpro-video-tools')) continue;
    const text=norm(label.getAttribute('aria-label') || label.textContent);
    const appText=text.replace(/^(facebook|فيسبوك|f)\s*/,'').replace(/\s*(facebook|فيسبوك|f)$/,'');
-   if(cfg.appBanner && ['open app','open in app','get the app','get facebook for android and browse faster','حمل تطبيق فيسبوك','فتح التطبيق','افتح التطبيق','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق'].includes(appText)) appBanner(label,true);
+   if(cfg.appBanner && (isAppPrompt(text)||isAppPrompt(appText))) appBanner(label,true);
    if(!text || text.length>100) continue;
    for(const key of Object.keys(words)) if((cfg[key]) && words[key].some(w=>text===norm(w))) hide(section(label,key));
   }
@@ -567,7 +626,7 @@
  window.addEventListener('scroll',scheduleLayout,true);window.addEventListener('resize',scheduleLayout);window.addEventListener('popstate',scheduleLayout);window.addEventListener('hashchange',scheduleLayout);
  const resize=typeof ResizeObserver==='function'?new ResizeObserver(scheduleLayout):null;
  function update(c){
-  if(JSON.stringify(cfg)===JSON.stringify(c)&&(window.__fpro&&window.__fpro.ready)){scan();return;}
+  if(JSON.stringify(cfg)===JSON.stringify(c)&&(window.__fpro&&window.__fpro.ready)){updateSelection();scan();return;}
   window.__fpro.ready=true;
   cfg=c;updateSelection();iconDefs.remove();restoreTintVars();style.textContent='';restoreHidden();painted.forEach(el=>accentAttrs.forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));painted.forEach(el=>el.removeAttribute('data-fpro-surface'));painted.clear();
   if(c.enhance===false){observer.disconnect();if(resize)resize.disconnect();videos.forEach(entry=>entry.dispose());videos.clear();storyImages.forEach(tools=>tools.remove());storyImages.clear();style.remove();lastTap=null;touch=null;return;}
@@ -642,7 +701,7 @@
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
  function colorReport(){
-  const report={version:20,enhance:cfg.enhance!==false,color:cfg.color,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
+  const report={version:21,enhance:cfg.enhance!==false,color:cfg.color,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}
