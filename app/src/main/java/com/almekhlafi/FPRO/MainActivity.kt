@@ -101,7 +101,11 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
                                 )
                                 FilledTonalIconButton(
-                                    onClick = { settings = true },
+                                    onClick = {
+                                        web.clearFocus()
+                                        WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.ime())
+                                        settings = true
+                                    },
                                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(44.dp)
                                 ) { Text("⚙", style = MaterialTheme.typography.headlineSmall) }
                                 failure?.let { message ->

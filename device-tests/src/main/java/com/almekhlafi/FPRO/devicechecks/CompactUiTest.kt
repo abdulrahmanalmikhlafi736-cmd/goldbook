@@ -78,14 +78,18 @@ class CompactUiTest {
         // No account data is entered and no login request is submitted.
     }
     private fun scrollToText(text: String): UiObject2 {
+        val selector = if (text.startsWith("اللون:")) By.textStartsWith("اللون:") else By.text(text)
         repeat(18) {
-            device.findObject(By.text(text))?.let { return it }
-            val scroll = device.findObject(By.scrollable(true))
-                ?: throw AssertionError("Settings must remain scrollable: $text")
-            scroll.scroll(androidx.test.uiautomator.Direction.DOWN, 0.7f)
-            Thread.sleep(180)
+            device.findObject(selector)?.let { if (!it.visibleBounds.isEmpty) return it }
+            // Use the visible native settings viewport, not a possibly retained
+            // scrollable WebView node behind the Compose settings overlay.
+            device.swipe(device.displayWidth/2, device.displayHeight*3/4,
+                device.displayWidth/2, device.displayHeight/3, 35)
+            Thread.sleep(350)
         }
-        throw AssertionError("Setting not found: $text")
+        device.executeShellCommand("screencap -p /data/local/tmp/fpro-tools.png")
+        val visible = device.findObjects(By.text(java.util.regex.Pattern.compile(".+"))).joinToString(" | ") { it.text.orEmpty() }
+        throw AssertionError("Setting not found: $text; visible: " + visible.take(2200))
     }
 
     @Test fun selectedPageToolsAffectRealFacebook() {
