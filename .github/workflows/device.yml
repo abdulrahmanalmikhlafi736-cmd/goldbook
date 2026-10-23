@@ -37,6 +37,8 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
+            adb shell wm size 720x1280
+            adb shell wm density 280
             mkdir -p device-diagnostics
             if ./gradlew :${{ matrix.module }}:connected${{ matrix.task }}AndroidTest --stacktrace > device-diagnostics/gradle.log 2>&1; then echo PASS > device-diagnostics/result; else echo FAIL > device-diagnostics/result; fi
             timeout 15 adb logcat -d > device-diagnostics/logcat.txt || true
@@ -57,7 +59,7 @@ jobs:
           # Use only Python stdlib; diagnostics must never wait for pip/network.
           for screenshot in Path('device-diagnostics').rglob('compact-facebook.png'):
               encoded = base64.b64encode(screenshot.read_bytes()).decode()
-              chunks = [encoded[i:i+20000] for i in range(0, len(encoded), 20000)]
+              chunks = [encoded[i:i+3000] for i in range(0, len(encoded), 3000)]
               for index, chunk in enumerate(chunks):
                   print(f'::notice title=Anonymous screen {index+1}/{len(chunks)}::PNGCHUNK:{index}:{len(chunks)}:{chunk}')
           for tree in Path('device-diagnostics').rglob('compact-ui.xml'):
