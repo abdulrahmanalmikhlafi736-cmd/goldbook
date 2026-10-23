@@ -14,6 +14,8 @@ const windows=[];
 function fixture(html,config={},captureDownload=false) {
  const dom=new JSDOM('<!doctype html><html><head></head><body>'+html+'</body></html>',{url:'https://m.facebook.com/',runScripts:'outside-only',pretendToBeVisual:true});
  windows.push(dom.window);
+ const computed=dom.window.getComputedStyle.bind(dom.window);dom.window.__pseudoStyles=new WeakMap();
+ dom.window.getComputedStyle=(el,pseudo)=>pseudo?(dom.window.__pseudoStyles.get(el)?.[pseudo]||{content:'none',display:'none',backgroundImage:'none',boxShadow:'none',borderRadius:'0px'}):computed(el);
  dom.window.eval(fs.readFileSync('app/src/main/assets/page-info.js','utf8'));
  const run=c=>dom.window.eval((captureDownload?source.replaceAll("location.href=", "window.__download="):source).replace('__CONFIG__',JSON.stringify(c)));
  run(config);return {window:dom.window,doc:dom.window.document,run};
@@ -120,7 +122,7 @@ function fixture(html,config={},captureDownload=false) {
   fixedSlot.run({homeStories:true});fixedSlot.doc.querySelector('#slot').insertAdjacentHTML('beforeend','<article id="recycledPost">Recycled feed post</article>');fixedSlot.run({homeStories:true});
   assert.equal(fixedSlot.doc.querySelector('#slot').style.display,'','Do not keep a recycled parent hidden after it gains a normal post');
   const mobileIcons=fixture('<article><header><span aria-label="هذا الحساب تم التحقق منه"><img id="raster" src="badge.png" width="16" height="16"></span><span title="Verified account"><i id="sprite" style="width:16px;height:16px;background-image:url(sprite.png)"></i></span><div id="avatarRing" style="border:2px solid rgb(24,119,242);border-radius:50%"><img id="avatar" src="portrait.jpg"></div><div id="bgRing" style="background:rgb(24,119,242);border-radius:50%"><img src="other.jpg"></div><svg id="clock"><path style="fill:gray"></path></svg></header><p>Normal content</p></article>',{});
-  for(const id of ['avatarRing','bgRing'])mobileIcons.doc.querySelector('#'+id).getBoundingClientRect=()=>({width:44,height:44});
+  for(const id of ['avatarRing','bgRing']){mobileIcons.doc.querySelector('#'+id).getBoundingClientRect=()=>({width:44,height:44,top:0,left:0,right:44,bottom:44});mobileIcons.doc.querySelector('#'+id+' img').getBoundingClientRect=()=>({width:40,height:40,top:2,left:2,right:42,bottom:42});}
   mobileIcons.run({color:'ذهبي'});
   assert(mobileIcons.doc.querySelector('#raster').hasAttribute('data-fpro-accent-icon'),'Recognize localized verification wrappers around raster badges');
   assert(mobileIcons.doc.querySelector('#sprite').hasAttribute('data-fpro-accent-icon'),'Recognize verification background sprites');
@@ -133,6 +135,26 @@ function fixture(html,config={},captureDownload=false) {
   const matrix=mobileIcons.doc.querySelector('feColorMatrix').getAttribute('values').split(' ').map(Number);
   for(let row=0;row<3;row++)assert(Math.abs(matrix[row*5]+matrix[row*5+4]-1)<1e-9,'Keep white verification check marks white');
   mobileIcons.run({color:'تلقائي'});assert(!mobileIcons.doc.querySelector('[data-fpro-accent-icon],[data-fpro-accent-ring],#fpro-icon-filter'),'Restore native icons and remove the palette filter');
+  const layered=fixture('<article><a id="pseudo" href="/profile.php?id=private"><div id="cssPhoto" role="img" aria-label="Private Name" style="background-image:url(https://cdn.example/private-photo.jpg);border-radius:50%"></div></a><img id="outlinePhoto" src="private.jpg" style="border-radius:50%;outline-width:2px;outline-style:solid;outline-color:rgb(8,102,255);box-shadow:0 0 0 3px rgba(8,102,255,.6),0 4px 8px black"><svg id="svgFrame"><image id="svgPhoto" href="portrait.jpg"></image><circle id="svgStroke" style="stroke:color(srgb 0.03 0.4 1);fill:none"></circle></svg><div id="gradientFrame" style="border-radius:50%"><img id="gradientPhoto" src="gradient-photo.jpg"></div><button role="button" aria-label="متابعة">متابعة<div id="nestedBackground" style="background:rgb(8,102,255)"><span>متابعة</span></div></button></article>',{});
+  for(const id of ['pseudo','cssPhoto','outlinePhoto','svgFrame','svgPhoto','svgStroke','gradientFrame','gradientPhoto'])layered.doc.querySelector('#'+id).getBoundingClientRect=()=>({width:40,height:40,top:20,left:20,right:60,bottom:60});
+  layered.window.__pseudoStyles.set(layered.doc.querySelector('#pseudo'),{'::before':{content:'""',display:'block',borderRadius:'50%',borderTopWidth:'3px',borderTopColor:'rgb(8,102,255)',backgroundImage:'none',boxShadow:'none'}});
+  layered.window.__pseudoStyles.set(layered.doc.querySelector('#gradientFrame'),{'::after':{content:'""',display:'block',borderRadius:'50%',backgroundImage:'linear-gradient(rgb(8,102,255),rgba(8,102,255,.3))',boxShadow:'none'}});
+  layered.run({enhance:true,color:'أحمر'});
+  assert(layered.doc.querySelector('#pseudo').hasAttribute('data-fpro-accent-before-border'),'Detect ring drawn on a square link pseudo-element');
+  assert(layered.doc.querySelector('#outlinePhoto').hasAttribute('data-fpro-accent-outline'));
+  assert(layered.doc.querySelector('#outlinePhoto').hasAttribute('data-fpro-accent-shadow'));
+  assert(layered.doc.querySelector('#outlinePhoto').style.getPropertyValue('--fpro-ring-shadow').includes('198,40,40'),'Replace blue shadow only, with the selected red');
+  assert(layered.doc.querySelector('#svgStroke').hasAttribute('data-fpro-accent-stroke'),'Support CSS color(srgb) SVG stroke');
+  assert(layered.doc.querySelector('#gradientFrame').hasAttribute('data-fpro-accent-after-gradient'));
+  assert(layered.doc.querySelector('#nestedBackground').hasAttribute('data-fpro-accent-bg'),'Handle child backgrounds of follow buttons');
+  assert(layered.doc.querySelector('#cssPhoto').style.backgroundImage.includes('private-photo.jpg'),'Do not alter background-based profile photos');
+  assert(!layered.doc.querySelector('#cssPhoto').hasAttribute('data-fpro-accent-ring'));
+  const report=JSON.stringify(layered.window.__fpro.colorReport());assert(!/Private Name|private-photo|portrait.jpg|facebook.com|profile.php/.test(report),'Diagnostics must not contain names, image URLs, profile links or page URL');
+  assert.equal(layered.window.__fpro.colorReport().color,'أحمر');
+  layered.window.__pseudoStyles.set(layered.doc.querySelector('#pseudo'),{'::before':{content:'""',display:'block',borderRadius:'50%',borderTopWidth:'3px',borderTopColor:'rgb(128,128,128)',backgroundImage:'none',boxShadow:'none'}});layered.run({enhance:true,color:'أحمر'});
+  assert(!layered.doc.querySelector('#pseudo').hasAttribute('data-fpro-accent-before-border'),'A read/grey ring must stop being forced red');
+  layered.run({enhance:true,color:'تلقائي'});assert(!layered.doc.querySelector('[data-fpro-accent-outline],[data-fpro-accent-shadow],[data-fpro-accent-stroke],[data-fpro-accent-after-gradient]'));assert.equal(layered.doc.querySelector('#outlinePhoto').style.getPropertyValue('--fpro-ring-shadow'),'','Remove only our temporary CSS variables');
+  assert(layered.doc.querySelector('#outlinePhoto').style.boxShadow.includes('rgba(8,102,255,.6)')||layered.doc.querySelector('#outlinePhoto').style.boxShadow.includes('rgba(8, 102, 255, 0.6)'),'Restore original shadow declaration');
   const story=fixture('<main><img id="photo" src="https://cdn.example/story-one.jpg"></main>',{},true);
   story.window.history.replaceState({},'', '/stories/123/456/');const photo=story.doc.querySelector('#photo');
   photo.getBoundingClientRect=()=>({left:0,top:0,width:320,height:600,right:320,bottom:600});
@@ -236,6 +258,6 @@ function fixture(html,config={},captureDownload=false) {
   await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'none','Observe dynamically added cards');
   dynamic.doc.querySelector('#late span').textContent='Ordinary post';
   await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'','Recycled feed cards are restored');
-  console.log('DOM tests passed: scroll-bound emoji gear, lightweight accents, collapsed fixed story slots, localized raster badges/profile rings, button story trays, story images/backgrounds/videos, stable filtering, 20 recycled videos, stale metadata rejection, nonoverlapping tools, homepage story tray, surfaces/SVG restoration; ads, stories, install banner, accents, dynamic feed, video controls, progress, seeking, restoration, independent touch fullscreen and Seal routing.');
+  console.log('DOM tests passed: scroll-bound emoji gear, red pseudo/SVG/background-photo/outline/shadow rings, private color diagnostics, lightweight accents, collapsed fixed story slots, localized raster badges/profile rings, button story trays, story images/backgrounds/videos, stable filtering, 20 recycled videos, stale metadata rejection, nonoverlapping tools, homepage story tray, surfaces/SVG restoration; ads, stories, install banner, accents, dynamic feed, video controls, progress, seeking, restoration, independent touch fullscreen and Seal routing.');
  } finally {windows.forEach(w=>w.close());}
 })().catch(error=>{console.error(error);process.exitCode=1;});

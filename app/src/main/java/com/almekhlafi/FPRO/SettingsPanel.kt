@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, whatsapp: () -> Unit, diagnostics: String, reload: () -> Unit, testDisplay: () -> Unit, copyDiagnostics: () -> Unit) {
+fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, whatsapp: () -> Unit, diagnostics: String, reload: () -> Unit, testDisplay: () -> Unit, copyDiagnostics: () -> Unit, copyColorDiagnostics: () -> Unit) {
     var revision by remember { mutableIntStateOf(0) }
     fun update() { revision++; change() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -40,6 +40,7 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         Text("المظهر والألوان", style = MaterialTheme.typography.titleLarge)
         var expanded by remember { mutableStateOf(false) }
         Text("تلوين خفيف للتفاصيل: الهاشتاجات والمتابعة والصداقة والتوثيق وحلقات القصص؛ دون تغيير خلفيات الموقع.", style = MaterialTheme.typography.bodySmall)
+        TextButton(onClick = copyColorDiagnostics) { Text("نسخ تشخيص التلوين — دون بيانات الحساب") }
         Box {
             OutlinedButton(onClick = { expanded = true }) { Text("اللون: ${prefs.text("color", "تلقائي")}") }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

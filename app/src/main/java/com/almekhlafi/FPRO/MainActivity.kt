@@ -141,6 +141,18 @@ class MainActivity : ComponentActivity() {
                                 SettingsPanel(prefs, change = { revision++; applySettings(true) }, close = { settings = false }, whatsapp = { external("https://wa.me/967781764759") }, diagnostics = diagnostics(),
                                     reload = { settings = false; web.loadUrl("https://m.facebook.com/") },
                                     testDisplay = { settings = false; showDisplayTest() },
+                                    copyColorDiagnostics = {
+                                        web.evaluateJavascript("window.__fpro ? JSON.stringify(window.__fpro.colorReport()) : null") { result ->
+                                            try {
+                                                val report = JSONArray("[$result]").getString(0)
+                                                if (report == "null") toast("انتظر اكتمال تحميل فيسبوك ثم أعد المحاولة")
+                                                else {
+                                                    getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("FPRO color report", report))
+                                                    toast("تم نسخ وصف تقني للألوان فقط؛ دون نصوص أو صور أو روابط الحساب")
+                                                }
+                                            } catch (_: Exception) { toast("تعذر قراءة تشخيص التلوين؛ أعد فتح الصفحة") }
+                                        }
+                                    },
                                     copyDiagnostics = {
                                         getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("FPRO diagnostics", diagnostics()))
                                         toast("تم نسخ التشخيص دون كوكيز أو كلمات مرور")
@@ -369,7 +381,7 @@ class MainActivity : ComponentActivity() {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 12 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 13 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {

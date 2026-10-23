@@ -16,7 +16,8 @@
  };
  const postSelector = '[role="article"],article,[data-pagelet^="FeedUnit"],[data-ft]';
  function postFor(el){return el.closest('[role="article"],article,[data-pagelet^="FeedUnit"]') || el.closest('div[data-ft]');}
- const accentAttrs=['bg','fg','border','fill','stroke','icon','ring'];
+ const accentAttrs=['bg','fg','border','fill','stroke','icon','ring','outline','shadow','gradient','stop',...['before','after'].flatMap(p=>['border','outline','shadow','bg','gradient'].map(k=>p+'-'+k))];
+ const tintVars=new Map(),ownedStyles=new WeakMap();
  const iconDefs=document.createElementNS('http://www.w3.org/2000/svg','svg');iconDefs.id='fpro-icon-filter';iconDefs.setAttribute('aria-hidden','true');iconDefs.style.cssText='position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
  iconDefs.innerHTML='<defs><filter id="fpro-icon-palette" color-interpolation-filters="sRGB"><feColorMatrix type="matrix"/></filter></defs>';
  const hidden = new Map(), painted = new Set(), videos = new Map(), identityBaseline = new WeakMap();
@@ -62,6 +63,38 @@
   hide(block);
  }
  function homeView(){return window.__fproPageInfo ? window.__fproPageInfo().home : /^\/(?:home\.php|index\.php)?$/.test(location.pathname)&&!document.fullscreenElement;}
+ function rgbColor(value){
+  const text=(value||'').trim().toLowerCase();let m;
+  if((m=text.match(/^#([0-9a-f]{3,8})$/))){let h=m[1];if(h.length===3||h.length===4)h=h.split('').map(c=>c+c).join('');if(h.length===6||h.length===8)return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16)).concat(h.length===8?parseInt(h.slice(6),16)/255:1);}
+  if((m=text.match(/^rgba?\(([^)]+)\)$/))){const n=m[1].split(/[, /]+/).filter(Boolean);if(n.length>=3)return n.slice(0,3).map(v=>v.endsWith('%')?parseFloat(v)*2.55:parseFloat(v)).concat(n[3]===undefined?1:n[3].endsWith('%')?parseFloat(n[3])/100:parseFloat(n[3]));}
+  if((m=text.match(/^color\((?:srgb|display-p3)\s+([^)]*)\)$/))){const n=m[1].split(/[ /]+/).filter(Boolean);if(n.length>=3)return n.slice(0,3).map(v=>parseFloat(v)*255).concat(n[3]===undefined?1:parseFloat(n[3]));}
+  return null;
+ }
+ const isBlue=value=>{const c=rgbColor(value);return c&&c[3]>.05&&c[2]>c[0]+30&&c[2]>c[1]+20;};
+ function replaceBlue(value){
+  let changed=false;const target=rgbColor(colors[cfg.color]);if(!target)return {changed:false,value};
+  const result=(value||'').replace(/rgba?\([^)]+\)|color\([^)]+\)|#[0-9a-f]{3,8}\b/gi,part=>{if(!isBlue(part))return part;changed=true;const alpha=rgbColor(part)[3];return 'rgba('+target.slice(0,3).join(',')+','+alpha+')';});
+  return {changed,value:result};
+ }
+ function tintVar(el,key,value){
+  let vars=tintVars.get(el);if(!vars){vars=new Map();tintVars.set(el,vars);}
+  if(!vars.has(key))vars.set(key,{value:el.style.getPropertyValue(key),priority:el.style.getPropertyPriority(key)});
+  if(el.style.getPropertyValue(key)!==value)el.style.setProperty(key,value);
+  ownedStyles.set(el,el.getAttribute('style'));
+ }
+ function restoreTintVars(){
+  tintVars.forEach((vars,el)=>{vars.forEach((old,key)=>{if(old.value)el.style.setProperty(key,old.value,old.priority);else el.style.removeProperty(key);});ownedStyles.set(el,el.getAttribute('style'));});tintVars.clear();
+ }
+ function pictureSource(el){
+  if(el.matches('img,image'))return true;
+  return /url\(/i.test(getComputedStyle(el).backgroundImage);
+ }
+ function avatarPictures(){
+  return Array.from(document.querySelectorAll('img,svg image,[role="img"],[style*="background"],[data-mcomponent="Image"],[data-type="image"]')).filter(el=>{
+   if(el.closest('.fpro-video-tools,#fpro-icon-filter')||/^(facebook|meta)$/i.test(el.getAttribute('alt')||'')||el.closest('a[aria-label="Facebook"],svg[aria-label="Facebook"]'))return false;
+   const r=el.getBoundingClientRect();return r.width>=24&&r.width<=144&&r.height>=24&&r.height<=144&&Math.abs(r.width-r.height)<20&&r.bottom>0&&r.right>0&&r.top<innerHeight&&r.left<innerWidth&&pictureSource(el);
+  });
+ }
  function verifiedLabel(el){
   const label=norm([el.getAttribute('aria-label'),el.getAttribute('alt'),el.getAttribute('title'),el.getAttribute('data-tooltip-content'),el.getAttribute('data-testid'),el.tagName.toLowerCase()==='title'?el.textContent:''].filter(Boolean).join(' '));
   return /\bverified\b|\bverification badge\b|موثق|تم التحقق|علامة التوثيق/.test(label);
@@ -70,22 +103,27 @@
   // A blue-to-theme matrix that leaves white check marks white and preserves
   // source alpha. Unlike a CSS mask, this does not erase the check from a PNG.
   const color=colors[cfg.color], rgb=[0,2,4].map(i=>parseInt(color.slice(1+i,3+i),16)/255), base=24/255;
-  const values=rgb.flatMap(c=>{const a=(1-c)/(1-base);return [a,0,0,0,c-a*base];}).concat([0,0,0,1,0]).join(' ');
+  const check=cfg.color==='أبيض'?0:1;
+  const values=rgb.flatMap(c=>{const a=(check-c)/(1-base);return [a,0,0,0,c-a*base];}).concat([0,0,0,1,0]).join(' ');
   const matrix=iconDefs.querySelector('feColorMatrix');if(matrix.getAttribute('values')!==values)matrix.setAttribute('values',values);
   if(!iconDefs.isConnected)document.body.appendChild(iconDefs);
  }
  function tint() {
   if (!colors[cfg.color]) return;
+  // Read original site styles on every pass, so a ring that turns grey/read
+  // does not stay force-colored. No CSS/body reset and no photo filtering.
+  painted.forEach(el=>accentAttrs.forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));restoreTintVars();
   const next=new Set();
-  const blue=value=>{const m=(value||'').match(/rgba?\((\d+)[, ]+\s*(\d+)[, ]+\s*(\d+)/);return m&&+m[3]>+m[1]+35&&+m[3]>+m[2]+25;};
+  const blue=isBlue;
   function mark(el,attr){if(!el.hasAttribute('data-fpro-accent-'+attr))el.setAttribute('data-fpro-accent-'+attr,'');next.add(el);}
-  const actions=new Set(['follow','follow back','following','add friend','confirm','request sent','متابعة','متابعه','رد المتابعة','إضافة صديق','اضافة صديق','إضافة إلى الأصدقاء','تأكيد','تاكيد','تم إرسال الطلب']);
+  const actions=new Set(['follow','follow back','following','add friend','confirm','request sent','متابعة','متابعه','رد المتابعة','إضافة صديق','اضافة صديق','إضافة إلى الأصدقاء','تأكيد','تاكيد','تم إرسال الطلب'].map(norm));
   for(const el of document.querySelectorAll('a[href],button,[role="button"]')){
    if(el.closest('.fpro-video-tools'))continue;
    const text=norm(el.getAttribute('aria-label')||el.textContent),href=el.getAttribute('href')||'';
    if(/(?:\/hashtag\/|[?&]hashtag=)/i.test(href)||/^#[^\s#]+$/.test(text)){mark(el,'fg');continue;}
    if(!actions.has(text)||el.querySelector('video,img'))continue;
-   const c=getComputedStyle(el);if(blue(c.backgroundColor)||el.hasAttribute('data-fpro-accent-bg'))mark(el,'bg');else mark(el,'fg');
+   const c=getComputedStyle(el);if(blue(c.backgroundColor))mark(el,'bg');else mark(el,'fg');
+   for(const child of el.querySelectorAll('span,div,svg,path')){if(!child.querySelector('img,video')&&blue(getComputedStyle(child).backgroundColor))mark(child,'bg');if(blue(getComputedStyle(child).color))mark(child,'fg');if(child.matches('path')&&blue(getComputedStyle(child).fill))mark(child,'fill');}
   }
   // Facebook mobile uses SVGs, raster icons and background sprites, with
   // localized labels on the icon itself OR a small surrounding wrapper.
@@ -108,19 +146,49 @@
   for(const svg of document.querySelectorAll('article header svg,[role="article"] header svg,article h3 svg,[role="article"] h3 svg')){
    const r=svg.getBoundingClientRect();if(r.width>0&&r.width<=32&&r.height<=32&&!svg.closest('button,[role="button"]')&&Array.from(svg.querySelectorAll('path')).some(path=>blue(getComputedStyle(path).fill)||path.hasAttribute('data-fpro-accent-fill')))icon(svg);
   }
+  const ringNodes=new Set();
   function ring(el,avatar=false){
-   if(el.matches('img,video,canvas')||el.closest('.fpro-video-tools'))return;
-   const c=getComputedStyle(el),r=el.getBoundingClientRect();
-   if(avatar&&(r.width<24||r.width>128||r.height<24||r.height>128||Math.abs(r.width-r.height)>12||parseFloat(c.borderRadius)<r.width*.35))return;
-   if(parseFloat(c.borderTopWidth)>0&&(blue(c.borderTopColor)||el.hasAttribute('data-fpro-accent-border')))mark(el,'border');
-   if(el.matches('circle,ellipse')&&(blue(c.stroke)||el.hasAttribute('data-fpro-accent-stroke')))mark(el,'stroke');
-   if(avatar&&el.querySelectorAll('img').length===1&&(blue(c.backgroundColor)||/gradient/.test(c.backgroundImage)||el.hasAttribute('data-fpro-accent-ring')))mark(el,'ring');
+   if(ringNodes.has(el)||el.closest('.fpro-video-tools,#fpro-icon-filter')||el.matches('video,canvas'))return;
+   const r=el.getBoundingClientRect();
+   if(avatar&&(r.width<24||r.width>160||r.height<24||r.height>160||Math.abs(r.width-r.height)>24))return;
+   const c=getComputedStyle(el),pseudoStyles={before:getComputedStyle(el,'::before'),after:getComputedStyle(el,'::after')},photo=pictureSource(el);
+   const rounded=[c,pseudoStyles.before,pseudoStyles.after].some(p=>p&&(parseFloat(p.borderRadius)>=r.width*.3||/circle|radial-gradient/.test(p.clipPath||p.maskImage||'')));
+   if(avatar&&!rounded&&!el.closest('svg')&&!el.querySelector('circle,ellipse'))return;
+   ringNodes.add(el);
+   // Border, outline and shadow are decorations even when on the image node.
+   if(['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&blue(c['border'+side+'Color'])))mark(el,'border');
+   if(parseFloat(c.outlineWidth)>0&&blue(c.outlineColor))mark(el,'outline');
+   const shadow=replaceBlue(c.boxShadow);if(shadow.changed){tintVar(el,'--fpro-ring-shadow',shadow.value);mark(el,'shadow');}
+   if(el.matches('svg,circle,ellipse,path')){
+    if(blue(c.stroke))mark(el,'stroke');if(el.matches('circle,ellipse,path')&&blue(c.fill))mark(el,'fill');
+    const ref=(c.stroke||'').match(/url\(["']?(?:[^#]*#)([^"')]+)["']?\)/);
+    if(ref){const gradient=document.getElementById(ref[1]);if(gradient&&gradient.matches('linearGradient,radialGradient'))for(const stop of gradient.querySelectorAll('stop'))if(blue(getComputedStyle(stop).stopColor||stop.getAttribute('stop-color')))mark(stop,'stop');}
+   }
+   if(!photo){
+    const gradient=replaceBlue(c.backgroundImage);if(gradient.changed&&/gradient/.test(c.backgroundImage)){tintVar(el,'--fpro-ring-gradient',gradient.value);mark(el,'gradient');}
+    if(blue(c.backgroundColor)&&(avatar||el.querySelector('img,image,[role="img"]')))mark(el,'ring');
+   }
+   for(const pseudo of ['before','after']){
+    const p=pseudoStyles[pseudo];if(!p||p.content==='none'||p.display==='none')continue;
+    if(['Top','Right','Bottom','Left'].some(side=>parseFloat(p['border'+side+'Width'])>0&&blue(p['border'+side+'Color'])))mark(el,pseudo+'-border');
+    if(parseFloat(p.outlineWidth)>0&&blue(p.outlineColor))mark(el,pseudo+'-outline');
+    const shadow=replaceBlue(p.boxShadow);if(shadow.changed){tintVar(el,'--fpro-'+pseudo+'-shadow',shadow.value);mark(el,pseudo+'-shadow');}
+    const gradient=replaceBlue(p.backgroundImage);if(gradient.changed&&/gradient/.test(p.backgroundImage)){tintVar(el,'--fpro-'+pseudo+'-gradient',gradient.value);mark(el,pseudo+'-gradient');}
+    // Only decorative pseudo layers without a photo URL; preserve masks/content.
+    if(!/url\(/i.test(p.backgroundImage)&&blue(p.backgroundColor))mark(el,pseudo+'-bg');
+   }
   }
   for(const el of document.querySelectorAll('a[href*="/stories/"],a[href*="/stories/"] *,[data-sigil~="m-story-tray"] *,[data-pagelet*="Stories"] *'))ring(el);
-  // The blue avatar ring shown beside a post author often links to the profile,
-  // not /stories/. Inspect its circular wrapper, NEVER filter the avatar photo.
-  for(const img of document.querySelectorAll('article img,[role="article"] img,header img,[role="banner"] img')){
-   let wrapper=img.parentElement;for(let d=0;wrapper&&d<3;d++,wrapper=wrapper.parentElement){if(wrapper.matches('article,[role="article"],header,[role="banner"]'))break;ring(wrapper,true);}
+  // Photo-based avatars can be IMG, SVG image or CSS background-image. Their
+  // ring may be a sibling SVG or a pseudo layer on a square, non-rounded link.
+  for(const photo of avatarPictures()){
+   let root=photo;
+   for(let depth=0;root&&depth<5;depth++,root=root.parentElement){
+    if(root.matches('article,[role="article"],header,[role="banner"],body,main,nav,[role="navigation"]'))break;
+    const r=root.getBoundingClientRect();if(r.width>160||r.height>160||Math.abs(r.width-r.height)>24)break;
+    ring(root,true);
+    for(const child of root.querySelectorAll('svg,circle,ellipse,path,span,div'))ring(child,true);
+   }
   }
   if(filtered)setIconPalette();else iconDefs.remove();
   painted.forEach(el=>{if(!next.has(el))for(const attr of accentAttrs)el.removeAttribute('data-fpro-accent-'+attr);});
@@ -349,11 +417,11 @@
  function update(c){
   if(JSON.stringify(cfg)===JSON.stringify(c)&&window.__fpro?.ready){scan();return;}
   window.__fpro.ready=true;
-  cfg=c;iconDefs.remove();style.textContent='';restoreHidden();painted.forEach(el=>accentAttrs.forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));painted.forEach(el=>el.removeAttribute('data-fpro-surface'));painted.clear();
+  cfg=c;iconDefs.remove();restoreTintVars();style.textContent='';restoreHidden();painted.forEach(el=>accentAttrs.forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));painted.forEach(el=>el.removeAttribute('data-fpro-surface'));painted.clear();
   if(c.enhance===false){observer.disconnect();if(resize)resize.disconnect();videos.forEach(entry=>entry.dispose());videos.clear();storyImages.forEach(tools=>tools.remove());storyImages.clear();style.remove();lastTap=null;touch=null;return;}
   if(resize)resize.observe(document.body);
   if(!style.isConnected)document.head.appendChild(style);
-  observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','href','src','data-story-id','data-store','data-video-id']});
+  observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','href','src','data-story-id','data-store','data-video-id','class','style','stroke','fill']});
   const accent=colors[c.color];
   const foreground=c.dark?accent:({'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'}[c.color] || accent);
   const contrast=['ذهبي','فضي','أبيض','برتقالي'].includes(c.color)?'#111':'#fff';
@@ -361,7 +429,8 @@
   tint();
   style.textContent=`
    body{-webkit-user-select:text!important}
-   ${accent?`[data-fpro-accent-bg]{background-color:${accent}!important;color:${contrast}!important}[data-fpro-accent-bg] *{color:${contrast}!important}[data-fpro-accent-fg]{color:${foreground}!important}[data-fpro-accent-icon]{filter:url("#fpro-icon-palette")!important}[data-fpro-accent-ring]{background-color:${accent}!important;background-image:none!important}[data-fpro-accent-border]{border-color:${foreground}!important}[data-fpro-accent-fill]{fill:${foreground}!important}[data-fpro-accent-stroke]{stroke:${foreground}!important}`:''}
+   ${accent?`[data-fpro-accent-bg]{background-color:${accent}!important;color:${contrast}!important}[data-fpro-accent-bg] *{color:${contrast}!important}[data-fpro-accent-fg]{color:${foreground}!important}[data-fpro-accent-icon]{filter:url("#fpro-icon-palette")!important}[data-fpro-accent-ring]{background-color:${accent}!important}[data-fpro-accent-outline]{outline-color:${accent}!important}[data-fpro-accent-shadow]{box-shadow:var(--fpro-ring-shadow)!important}[data-fpro-accent-gradient]{background-image:var(--fpro-ring-gradient)!important}[data-fpro-accent-stop]{stop-color:${accent}!important}[data-fpro-accent-border]{border-color:${foreground}!important}[data-fpro-accent-fill]{fill:${foreground}!important}[data-fpro-accent-stroke]{stroke:${foreground}!important}`:''}
+   ${accent?['before','after'].map(p=>`[data-fpro-accent-${p}-border]::${p}{border-color:${accent}!important}[data-fpro-accent-${p}-outline]::${p}{outline-color:${accent}!important}[data-fpro-accent-${p}-shadow]::${p}{box-shadow:var(--fpro-${p}-shadow)!important}[data-fpro-accent-${p}-bg]::${p}{background-color:${accent}!important}[data-fpro-accent-${p}-gradient]::${p}{background-image:var(--fpro-${p}-gradient)!important}`).join(''):''}
    ${c.dark?`html,body,[role="main"]{background:${c.amoled?'#000':'#18191a'}!important;color:#eee!important;color-scheme:dark}`:''}
    ${c.sticky?'[role="banner"]{position:sticky!important;top:0!important;z-index:1000!important}':''}
    ${c.reverse?'body{direction:ltr!important}':''}
@@ -377,8 +446,20 @@
  }
  const observer=new MutationObserver(records=>{
   if(cfg.enhance===false)return;
-  if(!records.some(r=>!((r.target.nodeType===1?r.target:r.target.parentElement)?.closest('#fpro-style,#fpro-icon-filter,.fpro-video-tools'))))return;
+  if(!records.some(r=>{const el=r.target.nodeType===1?r.target:r.target.parentElement;if(!el||el.closest('#fpro-style,#fpro-icon-filter,.fpro-video-tools'))return false;if(r.type==='attributes'&&r.attributeName==='style'&&(ownedStyles.get(el)===el.getAttribute('style')||el.hasAttribute('data-fpro-hidden')))return false;return true;}))return;
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
- window.__fpro={update};update(initial);
+ function colorReport(){
+  const report={version:13,enhance:cfg.enhance!==false,color:cfg.color,matched:{},avatarSources:{img:0,svg:0,background:0},remainingBlue:[]};
+  for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
+  for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
+  function paint(c){return {color:isBlue(c.color),background:isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>isBlue(c['border'+side+'Color'])),outline:isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:isBlue(c.stroke)};}
+  for(const el of document.querySelectorAll('img,svg,circle,path,i,span,div[role="img"],a')){
+   if(report.remainingBlue.length>=40)break;if(el.closest('.fpro-video-tools,#fpro-icon-filter'))continue;const r=el.getBoundingClientRect();if(r.width<8||r.width>160||r.height<8||r.height>160||r.bottom<=0||r.top>=innerHeight)continue;
+   const own=paint(getComputedStyle(el)),before=paint(getComputedStyle(el,'::before')),after=paint(getComputedStyle(el,'::after'));
+   const raster=el.matches('img,i')&&r.width<=32&&r.height<=32&&!el.hasAttribute('data-fpro-accent-icon');if(raster||[own,before,after].some(p=>Object.values(p).some(Boolean)))report.remainingBlue.push({tag:el.tagName.toLowerCase(),w:Math.round(r.width),h:Math.round(r.height),photo:pictureSource(el),raster,verified:verifiedLabel(el),inPost:!!postFor(el),own,before,after});
+  }
+  return report;
+ }
+ window.__fpro={update,colorReport};update(initial);
 })();
