@@ -19,7 +19,7 @@
  const accentAttrs=['bg','fg','border','fill','stroke','icon','ring','outline','shadow','gradient','stop','svg-bg','before-svg-bg','after-svg-bg','canvas-ring',...['before','after'].flatMap(p=>['border','outline','shadow','bg','gradient'].map(k=>p+'-'+k))];
  const tintVars=new Map(),ownedStyles=new WeakMap();
  const iconDefs=document.createElementNS('http://www.w3.org/2000/svg','svg');iconDefs.id='fpro-icon-filter';iconDefs.setAttribute('aria-hidden','true');iconDefs.style.cssText='position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
- iconDefs.innerHTML='<defs><filter id="fpro-icon-palette" color-interpolation-filters="sRGB"><feColorMatrix type="matrix"/></filter></defs>';
+ iconDefs.innerHTML='<defs><filter id="fpro-icon-palette" color-interpolation-filters="sRGB"><feColorMatrix type="matrix"/></filter><filter id="fpro-canvas-palette" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 1 0 0.38" result="redTest"/><feComponentTransfer in="redTest" result="redMask"><feFuncA type="discrete" tableValues="0 1"/></feComponentTransfer><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 1 0 0.42" result="greenTest"/><feComponentTransfer in="greenTest" result="greenMask"><feFuncA type="discrete" tableValues="0 1"/></feComponentTransfer><feComposite in="redMask" in2="greenMask" operator="in" result="blueMask"/><feComposite in="SourceAlpha" in2="blueMask" operator="in" result="blueAlpha"/><feFlood result="target"/><feComposite in="target" in2="blueAlpha" operator="in" result="tinted"/><feComposite in="SourceGraphic" in2="blueMask" operator="out" result="unchanged"/><feMerge><feMergeNode in="unchanged"/><feMergeNode in="tinted"/></feMerge></filter></defs>';
  const hidden = new Map(), painted = new Set(), videos = new Map(), identityBaseline = new WeakMap();
  function hide(el) {
   if (!el || /^(BODY|HTML|MAIN)$/.test(el.tagName) || ['main','feed','navigation'].includes(el.getAttribute('role'))) return;
@@ -166,6 +166,7 @@
   const color=colors[cfg.color], rgb=[0,2,4].map(i=>parseInt(color.slice(1+i,3+i),16)/255), base=24/255;
   const check=cfg.color==='أبيض'?0:1;
   const values=rgb.flatMap(c=>{const a=(check-c)/(1-base);return [a,0,0,0,c-a*base];}).concat([0,0,0,1,0]).join(' ');
+  const flood=iconDefs.querySelector('feFlood');if(flood.getAttribute('flood-color')!==color)flood.setAttribute('flood-color',color);
   const matrix=iconDefs.querySelector('feColorMatrix');if(matrix.getAttribute('values')!==values)matrix.setAttribute('values',values);
   if(!iconDefs.isConnected)document.body.appendChild(iconDefs);
  }
@@ -292,7 +293,7 @@
   // that contains portrait/media pixels or cannot be read safely.
   if(cfg.experimentalColorVars)for(const {canvas,photo} of avatarCanvasPairs()){
    const filter=getComputedStyle(canvas).filter;if(filter&&filter!=='none')continue;
-   if(canvasRingEvidence(canvas,photo).blueRing){mark(canvas,'canvas-ring');filtered=true;}
+   if(canvasRingEvidence(canvas,photo).blueRing){mark(canvas,'canvas-ring');tintVar(canvas,'filter','url("#fpro-canvas-palette")','important');filtered=true;}
   }
   if(filtered)setIconPalette();else iconDefs.remove();
   painted.forEach(el=>{if(!next.has(el))for(const attr of accentAttrs)el.removeAttribute('data-fpro-accent-'+attr);});
@@ -538,7 +539,7 @@
   style.textContent=`
    ${rcTokens}
    body{-webkit-user-select:text!important}
-   ${accent?`[data-fpro-accent-bg]{background-color:${accent}!important;color:${contrast}!important}[data-fpro-accent-bg] *{color:${contrast}!important}[data-fpro-accent-fg]{color:${foreground}!important}[data-fpro-accent-icon]{filter:url("#fpro-icon-palette")!important}[data-fpro-accent-ring]{background-color:${accent}!important}[data-fpro-accent-outline]{outline-color:${accent}!important}[data-fpro-accent-shadow]{box-shadow:var(--fpro-ring-shadow)!important}[data-fpro-accent-gradient]{background-image:var(--fpro-ring-gradient)!important}[data-fpro-accent-canvas-ring]{filter:url("#fpro-icon-palette")!important}[data-fpro-accent-svg-bg]{background-image:var(--fpro-ring-svg)!important}[data-fpro-accent-before-svg-bg]::before{background-image:var(--fpro-before-svg)!important}[data-fpro-accent-after-svg-bg]::after{background-image:var(--fpro-after-svg)!important}[data-fpro-accent-stop]{stop-color:${accent}!important}[data-fpro-accent-border]{border-color:${foreground}!important}[data-fpro-accent-fill]{fill:${foreground}!important}[data-fpro-accent-stroke]{stroke:${foreground}!important}`:''}
+   ${accent?`[data-fpro-accent-bg]{background-color:${accent}!important;color:${contrast}!important}[data-fpro-accent-bg] *{color:${contrast}!important}[data-fpro-accent-fg]{color:${foreground}!important}[data-fpro-accent-icon]{filter:url("#fpro-icon-palette")!important}[data-fpro-accent-ring]{background-color:${accent}!important}[data-fpro-accent-outline]{outline-color:${accent}!important}[data-fpro-accent-shadow]{box-shadow:var(--fpro-ring-shadow)!important}[data-fpro-accent-gradient]{background-image:var(--fpro-ring-gradient)!important}[data-fpro-accent-canvas-ring]{filter:url("#fpro-canvas-palette")!important}[data-fpro-accent-svg-bg]{background-image:var(--fpro-ring-svg)!important}[data-fpro-accent-before-svg-bg]::before{background-image:var(--fpro-before-svg)!important}[data-fpro-accent-after-svg-bg]::after{background-image:var(--fpro-after-svg)!important}[data-fpro-accent-stop]{stop-color:${accent}!important}[data-fpro-accent-border]{border-color:${foreground}!important}[data-fpro-accent-fill]{fill:${foreground}!important}[data-fpro-accent-stroke]{stroke:${foreground}!important}`:''}
    ${accent?['before','after'].map(p=>`[data-fpro-accent-${p}-border]::${p}{border-color:${accent}!important}[data-fpro-accent-${p}-outline]::${p}{outline-color:${accent}!important}[data-fpro-accent-${p}-shadow]::${p}{box-shadow:var(--fpro-${p}-shadow)!important}[data-fpro-accent-${p}-bg]::${p}{background-color:${accent}!important}[data-fpro-accent-${p}-gradient]::${p}{background-image:var(--fpro-${p}-gradient)!important}`).join(''):''}
    ${c.dark?`html,body,[role="main"]{background:${c.amoled?'#000':'#18191a'}!important;color:#eee!important;color-scheme:dark}`:''}
    ${c.sticky?'[role="banner"]{position:sticky!important;top:0!important;z-index:1000!important}':''}

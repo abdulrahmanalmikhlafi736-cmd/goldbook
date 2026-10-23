@@ -320,6 +320,23 @@ class WebViewRenderingTest {
             assertTrue("RC variable-driven button must actually paint red", Color.red(tokenPixel) > 150 && Color.green(tokenPixel) < 90 && Color.blue(tokenPixel) < 90)
             val originalPhoto = redBitmap.getPixel(redPoints[8].toInt(), redPoints[9].toInt())
             assertTrue("CSS background profile photo must stay green: ${Integer.toHexString(originalPhoto)}", Color.green(originalPhoto) > 130 && Color.red(originalPhoto) < 80)
+            val greyReady = CountDownLatch(1)
+            val greyStillFiltered = java.util.concurrent.atomic.AtomicBoolean(false)
+            scenario.onActivity { activity ->
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                web.evaluateJavascript("""
+                    (()=>{const c=document.querySelector('#canvasRing'),ctx=c.getContext('2d');ctx.clearRect(0,0,106,106);ctx.strokeStyle='#808080';ctx.lineWidth=4;ctx.beginPath();ctx.arc(53,53,50,0,Math.PI*2);ctx.stroke();return c.hasAttribute('data-fpro-accent-canvas-ring');})()
+                """.trimIndent()) { result ->
+                    greyStillFiltered.set(result == "true")
+                    web.postVisualStateCallback(18, object : WebView.VisualStateCallback() { override fun onComplete(requestId: Long) { greyReady.countDown() } })
+                }
+            }
+            assertTrue("Grey canvas redraw must render", greyReady.await(8, TimeUnit.SECONDS))
+            assertTrue("Test must redraw grey while canvas tint is still active", greyStillFiltered.get())
+            Thread.sleep(200)
+            val greyBitmap = requireNotNull(automation.takeScreenshot())
+            val greyPixel = greyBitmap.getPixel(redPoints[18].toInt(), redPoints[19].toInt())
+            assertTrue("Read/grey ring must remain neutral without forcing it red", kotlin.math.abs(Color.red(greyPixel)-Color.green(greyPixel)) < 12 && kotlin.math.abs(Color.green(greyPixel)-Color.blue(greyPixel)) < 12 && Color.red(greyPixel) in 100..155)
             val restored = CountDownLatch(1)
             val transitionResult = java.util.concurrent.atomic.AtomicReference<String>()
             scenario.onActivity { activity ->
