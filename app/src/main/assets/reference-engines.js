@@ -7,7 +7,7 @@
  'use strict';
  if(window.FproColor && window.FproNoapp)return;
  var cfg={recolor:false,uiAccent:'#D4AF37'}, noapp={noOpenApp:false};
- var paints=new Map(), hidden=new Map();
+ var paints=new Map(), hidden=new Map(), checkedSheets=new WeakMap(), checkedAttrs=new WeakMap();
  function rgb(hex){var m=/^#([0-9a-f]{6})$/i.exec(hex||'');return m?[0,2,4].map(function(i){return parseInt(m[1].slice(i,i+2),16);}):null;}
  function blue(r,g,b){return b>r+40&&b>g+20&&Math.max(r,g,b)-Math.min(r,g,b)>60&&b>100;}
  function nodes(roots,selector){
@@ -15,15 +15,25 @@
   var out=new Set();roots.forEach(function(root){if(!root||root.nodeType!==1)return;if(root.matches(selector))out.add(root);root.querySelectorAll(selector).forEach(function(el){out.add(el);});});return Array.from(out);
  }
  function own(el){return el.closest('#fpro-style,#fpro-selection-style,#fpro-icon-filter,#fpro-reference-css,#fpro-reference-svg,.fpro-video-tools');}
+ function mergedOriginal(record,current){
+  var now=document.createElement('span'),before=document.createElement('span'),after=document.createElement('span');
+  now.setAttribute('style',current||'');before.setAttribute('style',record.original||'');after.setAttribute('style',record.applied||'');
+  var keys=new Set(Array.from(before.style).concat(Array.from(after.style)));
+  keys.forEach(function(key){var changed=before.style.getPropertyValue(key)!==after.style.getPropertyValue(key)||before.style.getPropertyPriority(key)!==after.style.getPropertyPriority(key);
+   if(changed&&now.style.getPropertyValue(key)===after.style.getPropertyValue(key)&&now.style.getPropertyPriority(key)===after.style.getPropertyPriority(key)){
+    if(before.style.getPropertyValue(key))now.style.setProperty(key,before.style.getPropertyValue(key),before.style.getPropertyPriority(key));else now.style.removeProperty(key);
+   }
+  });return now.getAttribute('style');
+ }
  function write(el,kind,value){
   var read=function(){return kind==='sheet'?el.textContent:el.getAttribute('style');}, current=read(), record=paints.get(el);
-  if(record&&current!==record.applied){record.original=current;record.kind=kind;}
+  if(record&&current!==record.applied){record.original=kind==='attr'?mergedOriginal(record,current):current;record.kind=kind;}
   if(current===value)return;
   if(!record){record={kind:kind,original:current};paints.set(el,record);}
   if(kind==='sheet')el.textContent=value;else if(value===null)el.removeAttribute('style');else el.setAttribute('style',value);
   record.applied=read();
  }
- function restorePaint(){paints.forEach(function(record,el){var current=record.kind==='sheet'?el.textContent:el.getAttribute('style');if(current!==record.applied)return;if(record.kind==='sheet')el.textContent=record.original;else if(record.original===null)el.removeAttribute('style');else el.setAttribute('style',record.original);});paints.clear();}
+ function restorePaint(){paints.forEach(function(record,el){var current=record.kind==='sheet'?el.textContent:el.getAttribute('style');if(current!==record.applied){if(record.kind==='attr'){var original=mergedOriginal(record,current);if(original===null)el.removeAttribute('style');else el.setAttribute('style',original);}return;}if(record.kind==='sheet')el.textContent=record.original;else if(record.original===null)el.removeAttribute('style');else el.setAttribute('style',record.original);});paints.clear();checkedSheets=new WeakMap();checkedAttrs=new WeakMap();}
  function replaceColor(value){
   var target=rgb(cfg.uiAccent);if(!target)return value;
   return value.replace(/#[0-9a-f]{6}\b|rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+(?:\s*,\s*[\d.]+)?\s*\)/gi,function(color){
@@ -41,12 +51,12 @@
  }
  function pass(roots){
   if(!cfg.recolor||document.hidden)return;
-  nodes(roots,'style').forEach(function(st,index){if(index>=120||own(st)||/^fpro/i.test(st.id))return;var before=st.textContent,after=parsedDeclarations(before);if(after!==before)write(st,'sheet',after);});
+  nodes(roots,'style').forEach(function(st,index){if(index>=120||own(st)||/^fpro/i.test(st.id))return;var before=st.textContent;if(checkedSheets.get(st)===before)return;var after=parsedDeclarations(before);if(after!==before)write(st,'sheet',after);checkedSheets.set(st,st.textContent);});
   var count=0;for(var el of nodes(roots,'[style]')){
-   if(count>=400)break;if(own(el)||el.matches('img,video,canvas,svg,image'))continue;count++;
-   var before=el.getAttribute('style'),probe=document.createElement('span');probe.setAttribute('style',before);
+   if(count>=400)break;if(own(el)||el.matches('img,video,canvas,svg,image'))continue;var before=el.getAttribute('style');if(!/(color|border)/i.test(before)||checkedAttrs.get(el)===before)continue;count++;
+   var probe=document.createElement('span');probe.setAttribute('style',before);
    ['background-color','color','border','border-color','border-top','border-right','border-bottom','border-left','border-top-color','border-right-color','border-bottom-color','border-left-color'].forEach(function(key){var old=probe.style.getPropertyValue(key),next=replaceColor(old);if(next!==old)probe.style.setProperty(key,next,probe.style.getPropertyPriority(key));});
-   if(probe.style.cssText!==el.style.cssText)write(el,'attr',probe.getAttribute('style'));
+   if(probe.style.cssText!==el.style.cssText)write(el,'attr',probe.getAttribute('style'));checkedAttrs.set(el,el.getAttribute('style'));
   }
   // Owner's labelled-badge matrix: blue -> accent, white check -> white.
   var countBadge=0;for(var badge of nodes(roots,'img[aria-label],img[alt],svg[aria-label],i[aria-label],[data-testid]')){
