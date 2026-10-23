@@ -4,10 +4,10 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const source = fs.readFileSync('app/src/main/assets/facebook.js','utf8');
 const windows=[];
-function fixture(html,config={}) {
+function fixture(html,config={},captureDownload=false) {
  const dom=new JSDOM('<!doctype html><html><head></head><body>'+html+'</body></html>',{url:'https://m.facebook.com/',runScripts:'outside-only',pretendToBeVisual:true});
  windows.push(dom.window);
- const run=c=>dom.window.eval(source.replace('__CONFIG__',JSON.stringify(c)));
+ const run=c=>dom.window.eval((captureDownload?source.replace("location.href=", "window.__download="):source).replace('__CONFIG__',JSON.stringify(c)));
  run(config);return {window:dom.window,doc:dom.window.document,run};
 }
 (async()=>{
@@ -20,6 +20,12 @@ function fixture(html,config={}) {
    f.run({ads:false});assert.equal(f.doc.querySelector('#post').style.display,'','Disable restores post');
    assert.equal(f.doc.querySelectorAll('#fpro-style').length,1,'No duplicate injection');
   }
+  const nested=fixture('<article id="post"><a data-ft="tracking"><span>Sponsored</span></a></article>',{ads:true});
+  assert.equal(nested.doc.querySelector('#post').style.display,'none','Nested tracking attributes must not restrict hiding to the label');
+  const direct=fixture(`<div data-store='{"videoData":[{"hd_src":"https://example.invalid/available.mp4"}]}'><video></video></div>`,{downloads:true},true);
+  Object.defineProperty(direct.doc.querySelector('video'),'currentSrc',{value:'blob:https://m.facebook.com/example'});
+  direct.doc.querySelector('.fpro-download').click();
+  assert.equal(new URL(direct.window.__download).searchParams.get('media'),'https://example.invalid/available.mp4','Use explicit available media metadata, not a blob URL, when the page supplies it');
   const feed=fixture('<section id="stories" aria-label="Stories"><a href="/stories/123">Someone</a></section><article id="post"><b>أشخاص قد تعرفهم</b></article><article id="normal">A normal post about stories and sponsored work</article>',{stories:true,people:true});
   assert.equal(feed.doc.querySelector('#stories').style.display,'none');
   assert.equal(feed.doc.querySelector('#post').style.display,'none');
