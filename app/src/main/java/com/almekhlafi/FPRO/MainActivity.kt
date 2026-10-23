@@ -49,6 +49,7 @@ class MainActivity : ComponentActivity() {
     private var revision by mutableIntStateOf(0)
     private var splash by mutableStateOf(true)
     private var pip by mutableStateOf(false)
+    private var pageSequence by mutableIntStateOf(0)
     private var failure by mutableStateOf<String?>(null)
     private var media by mutableStateOf<Pair<String,String>?>(null)
     private var pageColor by mutableStateOf(Color(0xFF1877F2))
@@ -67,7 +68,7 @@ class MainActivity : ComponentActivity() {
         web = createWebView()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         applySettings(false)
-        if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) web.loadUrl("https://m.facebook.com/")
+        if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) web.loadUrl("https://www.facebook.com/")
         setContent {
             val dark = prefs.flag("dark")
             val scheme = when {
@@ -81,21 +82,27 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Surface(Modifier.fillMaxSize()) {
                         Box(Modifier.fillMaxSize().then(if (pip) Modifier else Modifier.safeDrawingPadding())) {
-                            Column(Modifier.fillMaxSize()) {
-                                if (!pip) {
-                                    Row(Modifier.fillMaxWidth().background(if (prefs.flag("liveColor")) pageColor else MaterialTheme.colorScheme.primary), verticalAlignment = Alignment.CenterVertically) {
-                                        TextButton(onClick = { settings = true }) { Text("⚙", color = Color.White, style = MaterialTheme.typography.headlineSmall) }
-                                        Text("FPRO", color = Color.White, modifier = Modifier.weight(1f))
-                                        TextButton(onClick = { web.loadUrl("https://m.facebook.com/messages/") }) { Text("الرسائل", color = Color.White) }
-                                        TextButton(onClick = { web.loadUrl("https://m.facebook.com/") }) { Text("فيسبوك", color = Color.White) }
-                                    }
-                                    if (loadingProgress in 1..99) LinearProgressIndicator(progress = { loadingProgress / 100f }, modifier = Modifier.fillMaxWidth())
-                                }
-                                AndroidView(factory = { web }, modifier = Modifier.weight(1f).fillMaxWidth())
+                            // The website owns the whole viewport; no replacement Facebook toolbar.
+                            AndroidView(factory = { web }, modifier = Modifier.fillMaxSize())
+                            if (!pip) {
+                                if (loadingProgress in 1..99) LinearProgressIndicator(
+                                    progress = { loadingProgress / 100f },
+                                    modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
+                                )
+                                FilledTonalIconButton(
+                                    onClick = { settings = true },
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(44.dp)
+                                ) { Text("⚙", style = MaterialTheme.typography.headlineSmall) }
                                 failure?.let { message ->
-                                    if (!pip) Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(message, Modifier.weight(1f).padding(8.dp))
-                                        TextButton(onClick = { failure = null; web.reload() }) { Text("إعادة المحاولة") }
+                                    Card(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp)) {
+                                        Column(Modifier.padding(16.dp)) {
+                                            Text(message)
+                                            Text("${web.url ?: "https://www.facebook.com/"}\nWebView: ${web.settings.userAgentString}", style = MaterialTheme.typography.bodySmall)
+                                            Row {
+                                                TextButton(onClick = { failure = null; web.reload() }) { Text("إعادة المحاولة") }
+                                                TextButton(onClick = { failure = null; web.loadUrl("https://www.facebook.com/") }) { Text("الصفحة الرئيسية") }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -142,18 +149,31 @@ class MainActivity : ComponentActivity() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = route(request.url, request.isForMainFrame)
             @Deprecated("Required for Android 6")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = route(Uri.parse(url), true)
-            override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) { failure = null }
+            override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+                failure = null
+                val sequence = ++pageSequence
+                view.postDelayed({
+                    if (!isDestroyed && sequence == pageSequence && failure == null) {
+                        view.evaluateJavascript("!!document.body && (document.body.innerText.trim().length > 0 || !!document.querySelector('img,video,canvas'))") { visible ->
+                            if (sequence == pageSequence && visible != "true") failure = "لم يظهر محتوى الصفحة خلال 25 ثانية. قد تكون المشكلة اتصالاً أو حظراً من الموقع أو إصدار WebView. حدّث Android System WebView ثم أعد المحاولة."
+                        }
+                    }
+                }, 25_000)
+            }
             override fun onPageFinished(view: WebView, url: String?) {
                 CookieManager.getInstance().flush()
                 inject()
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                if (request.isForMainFrame) failure = "تعذّر الاتصال. تحقق من الإنترنت ثم أعد المحاولة."
+                if (request.isForMainFrame) failure = "تعذّر تحميل الصفحة: ${error.description} (رمز ${error.errorCode}). تحقق من الاتصال وحدّث Android System WebView."
             }
             override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: WebResourceResponse) {
                 if (request.isForMainFrame) failure = "استجاب الموقع بخطأ ${response.statusCode}"
             }
-            // Default SSL handling cancels invalid certificates; never bypass it.
+            override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: android.net.http.SslError) {
+                handler.cancel()
+                failure = "تعذّر التحقق من شهادة الاتصال الآمن (${error.primaryError}). تحقق من تاريخ الجهاز والشبكة؛ لن يتم تجاوز حماية TLS."
+            }
         }
         webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) { this@MainActivity.loadingProgress = newProgress }
@@ -183,7 +203,7 @@ class MainActivity : ComponentActivity() {
                 resultMsg.sendToTarget(); return true
             }
         }
-        setDownloadListener { url, _, _, _, _ -> media = url to (this.url ?: "https://m.facebook.com/") }
+        setDownloadListener { url, _, _, _, _ -> media = url to (this.url ?: "https://www.facebook.com/") }
     }
 
     private fun route(uri: Uri, mainFrame: Boolean): Boolean {
@@ -193,8 +213,11 @@ class MainActivity : ComponentActivity() {
             }
             return true
         }
+        // Subframes are part of the page, not user navigation. Blocking non-Facebook
+        // HTTPS frames breaks embedded authentication/media supplied by other hosts.
+        if (!mainFrame) return !Navigation.allowEmbedded(uri.toString())
         if (Navigation.isFacebook(uri.toString())) return false
-        if (mainFrame) external(uri.toString())
+        external(uri.toString())
         return true
     }
 
@@ -259,7 +282,7 @@ class MainActivity : ComponentActivity() {
                 })()
             """.trimIndent()) { result ->
                 if (result == "\"back\"") {
-                    if (web.url?.contains("/messages") == true) web.loadUrl("https://m.facebook.com/")
+                    if (web.url?.contains("/messages") == true) web.loadUrl("https://www.facebook.com/")
                     else if (web.canGoBack()) web.goBack() else finish()
                 }
             }

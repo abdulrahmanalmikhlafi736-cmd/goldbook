@@ -4,6 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class NavigationTest {
+    @Test fun embeddedHttpsIsNotExternalNavigation() {
+        assertTrue(Navigation.allowEmbedded("https://www.fbsbx.com/embedded"))
+        assertTrue(Navigation.allowEmbedded("about:blank"))
+        assertFalse(Navigation.allowEmbedded("intent://evil"))
+        assertFalse(Navigation.allowEmbedded("file:///etc/passwd"))
+        assertFalse(Navigation.allowEmbedded("http://example.com"))
+    }
+
     @Test fun trustedHosts() {
         assertTrue(Navigation.isFacebook("https://m.facebook.com/reel/123"))
         assertTrue(Navigation.isFacebook("https://www.messenger.com/"))

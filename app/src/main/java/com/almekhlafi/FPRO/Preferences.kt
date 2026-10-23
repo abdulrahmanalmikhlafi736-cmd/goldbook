@@ -17,6 +17,11 @@ class Preferences(context: Context) {
 }
 
 object Navigation {
+    fun allowEmbedded(url: String): Boolean = try {
+        val uri = java.net.URI(url)
+        uri.scheme == "https" || url == "about:blank"
+    } catch (_: Exception) { false }
+
     fun isFacebook(url: String): Boolean = try {
         val uri = java.net.URI(url)
         val host = uri.host?.lowercase() ?: ""

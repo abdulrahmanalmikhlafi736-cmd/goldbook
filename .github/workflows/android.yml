@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          if ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"; then
+          if ./gradlew testDebugUnitTest lintDebug assembleDebug assembleCompact --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"; then
             exit 0
           fi
           # Surface actionable diagnostics in the Checks API as well as raw logs.
@@ -53,3 +53,9 @@ jobs:
         with:
           name: FPRO-0.0.1-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload compact APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FPRO-0.0.1-compact
+          path: app/build/outputs/apk/compact/app-compact.apk
+          if-no-files-found: error
