@@ -18,10 +18,22 @@ import java.io.File
 class CompactUiTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val device = UiDevice.getInstance(instrumentation)
+    // UI Automator can retain the previous force-stopped window/IME tree on
+    // API 35/36. Query a fresh accessibility snapshot while the page bootstraps.
+    private fun waitObject(selector: androidx.test.uiautomator.BySelector, timeout: Long): UiObject2? {
+        val end = android.os.SystemClock.elapsedRealtime() + timeout
+        do {
+            if (android.os.Build.VERSION.SDK_INT >= 33) instrumentation.uiAutomation.clearCache()
+            try { device.findObject(selector)?.let { return it } } catch (_: androidx.test.uiautomator.StaleObjectException) { }
+            Thread.sleep(250)
+        } while (android.os.SystemClock.elapsedRealtime() < end)
+        return null
+    }
+
     private fun launch() {
         device.executeShellCommand("am force-stop com.almekhlafi.FPRO")
         device.executeShellCommand("am start -W -n com.almekhlafi.FPRO/.MainActivity")
-        assertTrue("Actual compact app must open", device.wait(Until.hasObject(By.pkg("com.almekhlafi.FPRO")), 10_000))
+        assertTrue("Actual compact app must open", waitObject(By.pkg("com.almekhlafi.FPRO"), 30_000) != null)
         Thread.sleep(2300) // custom splash, not a network wait
     }
     private fun screenshot(name: String): File {
@@ -33,7 +45,7 @@ class CompactUiTest {
 
     @Test fun localPagePaintsThroughRealSettingsButton() {
         launch()
-        val settings = requireNotNull(device.wait(Until.findObject(By.desc("الإعدادات")), 25_000)) { "Settings button must be accessible" }
+        val settings = requireNotNull(waitObject(By.desc("الإعدادات"), 30_000)) { "Settings button must be accessible" }
         settings.click()
         val check = requireNotNull(device.wait(Until.findObject(By.text("اختبار عرض محلي بلا إنترنت")), 10_000)) { "Display self-test must be reachable" }
         check.click()
@@ -107,7 +119,7 @@ class CompactUiTest {
     @Test fun selectedPageToolsAffectRealFacebook() {
         launch()
         assertNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 40_000))
-        requireNotNull(device.wait(Until.findObject(By.desc("الإعدادات")), 25_000)) { "Home gear must appear after the page is recognized" }.click()
+        requireNotNull(waitObject(By.desc("الإعدادات"), 30_000)) { "Home gear must appear after the page is recognized" }.click()
         scrollToText("اللون: تلقائي")
         freshUi { requireNotNull(device.findObject(By.textContains("اللون:"))).click() }
         assertNotNull(device.wait(Until.findObject(By.text("ذهبي")), 5000))
