@@ -6,7 +6,7 @@ on:
     inputs:
       run_id:
         description: Completed emulator run to inspect
-        default: '39899234428'
+        default: '39900288305'
         required: true
 jobs:
   inspect:
@@ -21,7 +21,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id="${{ github.event.inputs.run_id || '39899234428' }}"
+          id="${{ github.event.inputs.run_id || '39900288305' }}"
           echo "run=$id" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
@@ -107,4 +107,11 @@ jobs:
           if [ -n "$file" ]; then
             python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]).convert("RGB"); im.thumbnail((360,640)); im.save("/tmp/compose.jpg", quality=55)' "$file"
             python3 -c 'import base64; s=base64.b64encode(open("/tmp/compose.jpg","rb").read()).decode(); [print("::notice title=COMPOSE_JPEG_"+str(i//3000)+"::"+s[i:i+3000]) for i in range(0,len(s),3000)]'
+          fi
+      - name: Inspect verified compact screenshot
+        run: |
+          file=$(find previous-diagnostics -name compact-facebook.png | head -1)
+          if [ -n "$file" ]; then
+            python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]).convert("RGB"); im.thumbnail((360,640)); im.save("/tmp/compact.jpg", quality=55)' "$file"
+            python3 -c 'import base64; s=base64.b64encode(open("/tmp/compact.jpg","rb").read()).decode(); [print("::notice title=COMPACT_JPEG_"+str(i//3000)+"::"+s[i:i+3000]) for i in range(0,len(s),3000)]'
           fi

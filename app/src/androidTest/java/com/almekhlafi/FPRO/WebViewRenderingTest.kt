@@ -79,9 +79,12 @@ class WebViewRenderingTest {
         }
     }
 
-    @Test fun websiteActuallyPaintsInsideCompose() {
+    @Test fun websiteActuallyPaintsInNativeHost() {
         ActivityScenario.launch<android.app.Activity>(android.content.Intent().setClassName(InstrumentationRegistry.getInstrumentation().targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
             val ready = CountDownLatch(1)
+            // The app intentionally starts navigation after its 1.8 s splash.
+            // Do not let that scheduled navigation replace the local fixture.
+            Thread.sleep(2300)
             val state = java.util.concurrent.atomic.AtomicReference("no JavaScript callback")
             val nativeState = java.util.concurrent.atomic.AtomicReference("")
             scenario.onActivity { activity ->

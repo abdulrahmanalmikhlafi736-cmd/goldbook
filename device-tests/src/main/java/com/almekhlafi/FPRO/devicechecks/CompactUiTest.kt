@@ -70,5 +70,11 @@ class CompactUiTest {
         device.executeShellCommand("echo $encoded | base64 -d > /data/local/tmp/fpro-ui.xml")
         println("LIVE_WEB: " + text.take(1800))
         assertTrue("Facebook must deliver visible content; actual accessibility text: ${text.take(1000)}", visible)
+        val input = device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5000)
+        assertNotNull("Real Facebook login input must be interactive", input)
+        input!!.click()
+        assertTrue("Touch must reach Facebook through the transparent controls layer",
+            device.wait(Until.hasObject(By.clazz("android.widget.EditText").focused(true)), 5000))
+        // No account data is entered and no login request is submitted.
     }
 }
