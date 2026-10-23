@@ -460,6 +460,14 @@ function fixture(html,config={},captureDownload=false) {
    for(const id of ['officialBar','searchOfficial','profileOfficial'])assert.equal(bar.doc.getElementById(id).style.display,'','Preserve official reel navigation: '+id);
    assert.equal(bar.doc.getElementById('installSlot').style.display,'none');
   }
+  for(const referenceEngine of [false,true]){
+   const iconBar=fixture('<header id="iconBar"><button id="onlyCTA">فتح التطبيق</button><svg id="searchGlyph"></svg><img id="accountGlyph"></header><button id="brandOnly" style="background-color:rgb(24,119,242)">Facebook</button>',{enhance:false});
+   iconBar.window.eval(fs.readFileSync('app/src/main/assets/reference-engines.js','utf8'));
+   iconBar.doc.getElementById('brandOnly').getBoundingClientRect=()=>({top:12,width:90,height:40});
+   iconBar.run({enhance:true,referenceEngine,appBanner:true});
+   assert.equal(iconBar.doc.getElementById('onlyCTA').style.display,'none');
+   for(const id of ['iconBar','searchGlyph','accountGlyph','brandOnly'])assert.equal(iconBar.doc.getElementById(id).style.display,'','Preserve even icon-only navigation outside the CTA');
+  }
   supplied.run({enhance:true,referenceEngine:true,color:'أخضر',appBanner:false});
   const instantPaint=supplied.doc.createElement('div');instantPaint.id='instantPaintPaint';instantPaint.style.backgroundColor='rgb(24,119,242)';supplied.doc.body.appendChild(instantPaint);
   await new Promise(resolve=>supplied.window.queueMicrotask(resolve));

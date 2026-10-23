@@ -156,7 +156,7 @@
   if(inPost) { if(explicitLabel && control && !control.matches(postSelector) && !control.querySelector('video,article,[role="article"]')) hide(control); return; }
   const header=control && control.closest('header,nav,[role="banner"],[role="navigation"]');
   if(explicitLabel && header && header.querySelectorAll('a,button,[role="button"]').length>1) { hide(control); return; }
-  if(explicitLabel && header && !header.querySelector('input,textarea,video,article,[role="article"]') && isAppPrompt(norm(header.textContent))) {hide(header);return;}
+  if(explicitLabel && header && !header.querySelector('input,textarea,video,article,[role="article"]') && isAppPrompt(norm(header.textContent)) && Array.from(header.querySelectorAll('a,button,[role="button"],[role="link"],[aria-label],[tabindex],[onclick],svg,img')).every(node=>control.contains(node)||node.contains(control))) {hide(header);return;}
   const href = link.getAttribute('href') || '';
   if (!explicitLabel && !/^(intent:|fb:|fb-messenger:|android-app:)/i.test(href) && !/(play\.google\.com\/store\/apps|apps\.apple\.com\/|\/marketplace\/app_redirect|\/r\.php\?.*app_id|\/openinapp|\/native_app|\/intent\/)/i.test(href)) return;
   let block = link;
@@ -164,6 +164,7 @@
   for (let i=0; i<3 && block.parentElement; i++) {
    const p = block.parentElement;
    if (/^(BODY|HTML|MAIN|FORM)$/.test(p.tagName) || p.matches(postSelector) || p.getAttribute('role') === 'main' || p.matches('header,nav,[role="banner"],[role="navigation"]') || p.querySelector('input,textarea,video,[contenteditable],article,[role="article"]') || (p.textContent || '').length > 400) break;
+   if(Array.from(p.querySelectorAll('a,button,[role="button"],[role="link"],[aria-label],[tabindex],[onclick],svg,img')).some(node=>!block.contains(node)&&!node.contains(block)))break;
    if (p.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick],[aria-label]').length > 1 || norm(p.textContent)!==norm(link.textContent)) break;
    block = p;
   }

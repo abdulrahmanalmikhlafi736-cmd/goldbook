@@ -94,16 +94,14 @@
   for(var el of candidates){if(budget++>=800)break;if(own(el)||hidden.has(el))continue;
    var text=head(el),href=el.getAttribute('href')||'';if(!text||/^(رجوع|الرجوع|عوده|العوده|اغلاق|اخفاء|back|go\s+back|close|dismiss)/i.test(text))continue;
    var exact=phrases.test(text),deep=/^(fb:|fb-messenger:|market:|intent:|android-app:)/i.test(href)||/play\.google\.com\/store\/apps|apps\.apple\.com|onelink\.to\/facebook|marketplace\/app_redirect|\/r\.php\?.*app_id|\/openinapp|\/native_app|\/intent\//i.test(href);
-   var r=el.getBoundingClientRect(),near=r.top>=0&&r.top<innerHeight*.3,pill=null;
-   if(!exact&&!cta.test(text)&&near&&/فيسبوك|التطبيق|facebook|open\s+app/i.test(text)){
-    var node=el;for(var d=0;node&&d<7;d++,node=node.parentElement){if(node.matches('body,html,header,nav,article,[role="article"],[role="banner"],[role="navigation"]'))break;var b=node.getBoundingClientRect(),paint=getComputedStyle(node).backgroundColor.match(/[\d.]+/g);if(paint&&blue(+paint[0],+paint[1],+paint[2])&&b.width>30&&b.width<=innerWidth*.72&&b.height>=22&&b.height<=120){pill=node;break;}}
-   }
-   if(!exact&&!deep&&(!cta.test(text)||!el.matches('a,button,[role="button"],[role="link"]'))&&!pill)continue;
+   var r=el.getBoundingClientRect(),near=r.top>=0&&r.top<innerHeight*.3;
+   // Blue Facebook branding alone is not evidence of an app-install CTA.
+   if(!exact&&!deep&&(!cta.test(text)||!el.matches('a,button,[role="button"],[role="link"]')))continue;
    // Never treat a container's combined Open App + Search/Profile labels as a CTA.
-   if(el.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick]').length>1)continue;
+   if(el.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick]').length>1||el.matches('a,button,[role="button"],[role="link"]')&&el.querySelector('a,button,[role="button"],[role="link"],input'))continue;
    if(el.closest('article,[role="article"],[data-pagelet^="FeedUnit"]')){if((exact||cta.test(text))&&el.matches('a,button,[role="button"]'))hide(el);continue;}
-   var best=pill||el,node=best,limit=near?110:Math.max(160,innerHeight*.32);
-   for(var d=0;d<8&&node.parentElement;d++){var parent=node.parentElement;if(parent.matches('body,html,main,form,header,nav,article,[role="article"],[role="main"],[role="feed"],[role="banner"],[role="navigation"]')||parent.querySelector('video,input,textarea,article,[role="article"]'))break;var b=parent.getBoundingClientRect();if(b.height<=0||b.height>limit||near&&b.width>innerWidth*.65)break;if(parent.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick],[aria-label]').length>1||norm(parent.textContent)!==norm(el.textContent))break;if(Array.from(parent.childNodes).some(function(c){return c.nodeType===3&&c.textContent.trim();}))break;best=parent;node=parent;}
+   var best=el,node=best,limit=near?110:Math.max(160,innerHeight*.32);
+   for(var d=0;d<8&&node.parentElement;d++){var parent=node.parentElement;if(parent.matches('body,html,main,form,header,nav,article,[role="article"],[role="main"],[role="feed"],[role="banner"],[role="navigation"]')||parent.querySelector('video,input,textarea,article,[role="article"]'))break;var b=parent.getBoundingClientRect();if(b.height<=0||b.height>limit||near&&b.width>innerWidth*.65)break;if(Array.from(parent.querySelectorAll('a,button,[role="button"],[role="link"],[aria-label],[tabindex],[onclick],svg,img')).some(function(control){return !node.contains(control)&&!control.contains(node);}))break;if(parent.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick],[aria-label]').length>1||norm(parent.textContent)!==norm(el.textContent))break;if(Array.from(parent.childNodes).some(function(c){return c.nodeType===3&&c.textContent.trim();}))break;best=parent;node=parent;}
    hide(best);
   }
  }
