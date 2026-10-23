@@ -41,6 +41,7 @@ jobs:
             if ./gradlew :${{ matrix.module }}:connected${{ matrix.task }}AndroidTest --stacktrace > device-diagnostics/gradle.log 2>&1; then echo PASS > device-diagnostics/result; else echo FAIL > device-diagnostics/result; fi
             timeout 15 adb logcat -d > device-diagnostics/logcat.txt || true
             timeout 15 adb pull /sdcard/Android/data/com.almekhlafi.FPRO/files/ device-diagnostics/ || true
+            timeout 15 adb pull /sdcard/Android/data/com.almekhlafi.FPRO.devicechecks/files/ device-diagnostics/compact-ui/ || true
             cat device-diagnostics/gradle.log
             test "$(cat device-diagnostics/result)" = PASS
       - name: Collect device diagnostics

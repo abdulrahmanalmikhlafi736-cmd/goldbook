@@ -11,11 +11,12 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     targetProjectPath = ":app"
+    // Run in our own process: the production app remains genuinely obfuscated.
+    experimentalProperties["android.experimental.self-instrumenting"] = true
     buildTypes.create("compact") {
         isDebuggable = true
         matchingFallbacks += listOf("compact")
     }
-    sourceSets.getByName("main").java.srcDir("../app/src/androidTest/java")
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
 }
@@ -24,6 +25,6 @@ dependencies {
     // AndroidX classes. It interacts only through platform Activity/View APIs.
     implementation("androidx.test:runner:1.6.2")
     implementation("androidx.test.ext:junit:1.2.1")
-    implementation("androidx.test:core-ktx:1.6.1")
+    implementation("androidx.test.uiautomator:uiautomator:2.3.0")
     implementation("androidx.tracing:tracing:1.2.0")
 }
