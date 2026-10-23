@@ -76,14 +76,15 @@
   const result=(value||'').replace(/rgba?\([^)]+\)|color\([^)]+\)|#[0-9a-f]{3,8}\b/gi,part=>{if(!isBlue(part))return part;changed=true;const alpha=rgbColor(part)[3];return 'rgba('+target.slice(0,3).join(',')+','+alpha+')';});
   return {changed,value:result};
  }
- function tintVar(el,key,value){
+ function tintVar(el,key,value,priority=''){
   let vars=tintVars.get(el);if(!vars){vars=new Map();tintVars.set(el,vars);}
   if(!vars.has(key))vars.set(key,{value:el.style.getPropertyValue(key),priority:el.style.getPropertyPriority(key)});
-  if(el.style.getPropertyValue(key)!==value)el.style.setProperty(key,value);
+  if(el.style.getPropertyValue(key)!==value||el.style.getPropertyPriority(key)!==priority)el.style.setProperty(key,value,priority);
+  const entry=vars.get(key);entry.applied=el.style.getPropertyValue(key);entry.appliedPriority=el.style.getPropertyPriority(key);
   ownedStyles.set(el,el.getAttribute('style'));
  }
  function restoreTintVars(){
-  tintVars.forEach((vars,el)=>{vars.forEach((old,key)=>{if(old.value)el.style.setProperty(key,old.value,old.priority);else el.style.removeProperty(key);});ownedStyles.set(el,el.getAttribute('style'));});tintVars.clear();
+  tintVars.forEach((vars,el)=>{vars.forEach((old,key)=>{if(el.style.getPropertyValue(key)!==old.applied||el.style.getPropertyPriority(key)!==old.appliedPriority)return;if(old.value)el.style.setProperty(key,old.value,old.priority);else el.style.removeProperty(key);});ownedStyles.set(el,el.getAttribute('style'));});tintVars.clear();
  }
  function pictureSource(el){
   if(el.matches('img,image'))return true;
@@ -109,7 +110,7 @@
   if(!iconDefs.isConnected)document.body.appendChild(iconDefs);
  }
  function tint() {
-  if (document.hidden || !colors[cfg.color]) return;
+  if (document.hidden || cfg.color==='طبيعي' || !colors[cfg.color]) return;
   // Read original site styles on every pass, so a ring that turns grey/read
   // does not stay force-colored. No CSS/body reset and no photo filtering.
   painted.forEach(el=>accentAttrs.forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));restoreTintVars();
@@ -117,11 +118,11 @@
   const blue=isBlue;
   function mark(el,attr){if(!el.hasAttribute('data-fpro-accent-'+attr))el.setAttribute('data-fpro-accent-'+attr,'');next.add(el);}
   const actions=new Set(['follow','follow back','following','add friend','confirm','request sent','متابعة','متابعه','رد المتابعة','إضافة صديق','اضافة صديق','إضافة إلى الأصدقاء','تأكيد','تاكيد','تم إرسال الطلب'].map(norm));
-  for(const el of document.querySelectorAll('a[href],button,[role="button"]')){
+  for(const el of document.querySelectorAll('a[href],button,[role="button"],[role="link"],span')){
    if(el.closest('.fpro-video-tools'))continue;
    const text=norm(el.getAttribute('aria-label')||el.textContent),href=el.getAttribute('href')||'';
    if(/(?:\/hashtag\/|[?&]hashtag=)/i.test(href)||/^#[^\s#]+$/.test(text)){mark(el,'fg');continue;}
-   if(!actions.has(text)||el.querySelector('video,img'))continue;
+   if(!el.matches('a[href],button,[role="button"],[role="link"]')||!actions.has(text)||el.querySelector('video,img'))continue;
    const c=getComputedStyle(el);if(blue(c.backgroundColor))mark(el,'bg');else mark(el,'fg');
    for(const child of el.querySelectorAll('span,div,svg,path')){if(!child.querySelector('img,video')&&blue(getComputedStyle(child).backgroundColor))mark(child,'bg');if(blue(getComputedStyle(child).color))mark(child,'fg');if(child.matches('path')&&blue(getComputedStyle(child).fill))mark(child,'fill');}
   }
@@ -189,6 +190,32 @@
     ring(root,true);
     for(const child of root.querySelectorAll('svg,circle,ellipse,path,span,div'))ring(child,true);
    }
+  }
+  // RC-inspired second pass: resolve CSS declarations through the browser,
+  // rather than rewriting stylesheet text with regex. This sees class rules,
+  // inline styles and recycled nodes without destroying shorthand geometry.
+  if(cfg.experimentalColorVars){
+   let examined=0;
+   for(const el of document.querySelectorAll('a,[role="link"],span,div,i')){
+    if(el.closest('.fpro-video-tools,#fpro-icon-filter,header,[role="banner"],nav,[role="navigation"]'))continue;
+    const r=el.getBoundingClientRect();if(r.width<8||r.height<8||r.width>160||r.height>160||r.bottom<=0||r.top>=innerHeight||r.right<=0||r.left>=innerWidth)continue;
+    if(++examined>400)break;
+    const c=getComputedStyle(el),round=Math.abs(r.width-r.height)<=8&&(parseFloat(c.borderRadius)>=Math.min(r.width,r.height)*.3||/circle/.test(c.clipPath||''));
+    // A visible, rounded blue border is sufficient evidence of an accent
+    // decoration; an IMG descendant is not required (mobile sibling rings).
+    if(round)ring(el);
+    const link=el.closest('a[href],[role="link"]');
+    if(link&&r.height<=48&&!el.querySelector('img,image,video,canvas')&&!pictureSource(el)&&blue(c.color))mark(el,'fg');
+   }
+  }
+  // An inline !important declaration outranks our stylesheet. Override only
+  // already-approved accent properties and restore source values each pass.
+  const foreground=cfg.dark?colors[cfg.color]:({'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'}[cfg.color]||colors[cfg.color]);
+  const properties={fg:['color',foreground],border:['border-color',foreground],outline:['outline-color',colors[cfg.color]],fill:['fill',foreground],stroke:['stroke',foreground]};
+  for(const el of next)for(const [attr,[key,value]] of Object.entries(properties)){
+   if(!el.hasAttribute('data-fpro-accent-'+attr))continue;
+   if(el.style.getPropertyPriority(key)==='important')tintVar(el,key,value,'important');
+   if(attr==='border')for(const side of ['top','right','bottom','left']){const prop='border-'+side+'-color';if(el.style.getPropertyPriority(prop)==='important'&&blue(el.style.getPropertyValue(prop)))tintVar(el,prop,value,'important');}
   }
   if(filtered)setIconPalette();else iconDefs.remove();
   painted.forEach(el=>{if(!next.has(el))for(const attr of accentAttrs)el.removeAttribute('data-fpro-accent-'+attr);});
@@ -422,7 +449,7 @@
   if(resize)resize.observe(document.body);
   if(!style.isConnected)document.head.appendChild(style);
   observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','href','src','data-story-id','data-store','data-video-id','class','style','stroke','fill']});
-  const accent=colors[c.color];
+  const accent=c.color==='طبيعي'?null:colors[c.color];
   const foreground=c.dark?accent:({'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'}[c.color] || accent);
   const contrast=['ذهبي','فضي','أبيض','برتقالي'].includes(c.color)?'#111':'#fff';
   // Compute blue accents before applying our overrides. Never recolor photographs.
@@ -455,14 +482,15 @@
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
  function colorReport(){
-  const report={version:14,enhance:cfg.enhance!==false,color:cfg.color,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),matched:{},avatarSources:{img:0,svg:0,background:0},remainingBlue:[]};
+  const report={version:15,enhance:cfg.enhance!==false,color:cfg.color,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),matched:{},avatarSources:{img:0,svg:0,background:0},remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
-  function paint(c){return {color:isBlue(c.color),background:isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>isBlue(c['border'+side+'Color'])),outline:isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:isBlue(c.stroke)};}
+  function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}
+  function pseudoPaint(el,pseudo){const c=getComputedStyle(el,pseudo);return c.content==='none'||c.content==='normal'||!c.content||c.display==='none'?null:paint(c);}
   for(const el of document.querySelectorAll('img,svg,circle,path,i,span,div[role="img"],a')){
    if(report.remainingBlue.length>=40)break;if(el.closest('.fpro-video-tools,#fpro-icon-filter'))continue;const r=el.getBoundingClientRect();if(r.width<8||r.width>160||r.height<8||r.height>160||r.bottom<=0||r.top>=innerHeight)continue;
-   const own=paint(getComputedStyle(el)),before=paint(getComputedStyle(el,'::before')),after=paint(getComputedStyle(el,'::after'));
-   const raster=el.matches('img,i')&&r.width<=32&&r.height<=32&&!el.hasAttribute('data-fpro-accent-icon');if(raster||[own,before,after].some(p=>Object.values(p).some(Boolean)))report.remainingBlue.push({tag:el.tagName.toLowerCase(),w:Math.round(r.width),h:Math.round(r.height),photo:pictureSource(el),raster,verified:verifiedLabel(el),inPost:!!postFor(el),own,before,after});
+   const own=paint(getComputedStyle(el)),before=pseudoPaint(el,'::before'),after=pseudoPaint(el,'::after');
+   const raster=el.matches('img,i')&&r.width<=32&&r.height<=32&&!el.hasAttribute('data-fpro-accent-icon');if(raster||[own,before,after].some(p=>p&&Object.values(p).some(Boolean)))report.remainingBlue.push({tag:el.tagName.toLowerCase(),w:Math.round(r.width),h:Math.round(r.height),photo:pictureSource(el),raster,verified:verifiedLabel(el),inPost:!!postFor(el),own,before,after});
   }
   return report;
  }
