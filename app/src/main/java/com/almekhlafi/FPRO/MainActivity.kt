@@ -202,6 +202,7 @@ class MainActivity : ComponentActivity() {
     private fun createWebView(): WebView = WebView(this).apply {
         layoutDirection = View.LAYOUT_DIRECTION_LTR
         setOnScrollChangeListener { _, _, y, _, _ -> if (y >= 4) homeControls = false }
+        isLongClickable = true // Preserve WebView native text-selection ActionMode.
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
@@ -262,6 +263,7 @@ class MainActivity : ComponentActivity() {
             override fun onPermissionRequest(request: PermissionRequest) { request.deny() }
             override fun onShowCustomView(view: View, callback: CustomViewCallback) {
                 if (fullView != null) { callback.onCustomViewHidden(); return }
+                web.evaluateJavascript("window.__fproNativeFullscreen=true", null)
                 fullView = view; fullCallback = callback
                 (window.decorView as ViewGroup).addView(view, FrameLayout.LayoutParams(-1,-1))
                 systemBars(true)
@@ -385,7 +387,7 @@ class MainActivity : ComponentActivity() {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 19 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 20 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {
@@ -452,6 +454,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun closeFullscreen() {
+        web.evaluateJavascript("window.__fproNativeFullscreen=false", null)
         fullView?.let { (it.parent as? ViewGroup)?.removeView(it) }; fullView = null
         fullCallback?.onCustomViewHidden(); fullCallback = null
         systemBars(prefs.flag("immersive"))

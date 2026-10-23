@@ -446,4 +446,84 @@ class WebViewRenderingTest {
                 Color.green(pixel) > 140 && Color.red(pixel) < 70 && Color.blue(pixel) < 120)
         }
     }
+    @Test fun zNativeLongPressSelectsPostsCommentsAndHashtags() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val automation = instrumentation.getUiAutomation(0)
+        val info = automation.serviceInfo
+        info.flags = info.flags or android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+        automation.serviceInfo = info
+        ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            Thread.sleep(2300)
+            val ready = CountDownLatch(1)
+            scenario.onActivity { activity ->
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                web.stopLoading()
+                web.loadDataWithBaseURL("https://fixture.invalid/", """
+                    <html><meta name="viewport" content="width=device-width,initial-scale=1">
+                    <style>p,span,a{-webkit-user-select:none;user-select:none}body{margin:24px;font:24px sans-serif}p{margin:24px 0}</style>
+                    <body><article><p id="post">FPROpost selection sample</p><p><span id="comment" dir="auto">FPROcomment selection sample</span></p><p><a id="hashtag" href="/hashtag/sample">#FPROhashtag</a></p></article></body></html>
+                """.trimIndent(), "text/html", "UTF-8", null)
+                fun probe(attempt: Int) {
+                    web.evaluateJavascript("!!document.querySelector('#hashtag') && document.readyState==='complete'") { result ->
+                        if(result == "true") {
+                            val source = activity.assets.open("facebook.js").bufferedReader().use { it.readText() }.replace("__CONFIG__", "{\"enhance\":false,\"textSelection\":true}")
+                            web.evaluateJavascript(source) {
+                                web.postVisualStateCallback(20, object : WebView.VisualStateCallback() { override fun onComplete(requestId: Long) { ready.countDown() } })
+                            }
+                        } else if(attempt < 30) web.postDelayed({ probe(attempt+1) }, 200)
+                    }
+                }
+                web.postDelayed({ probe(0) }, 200)
+            }
+            assertTrue("Native selection fixture must render", ready.await(10, TimeUnit.SECONDS))
+            fun hasCopy(node: android.view.accessibility.AccessibilityNodeInfo?): Boolean {
+                if(node == null)return false
+                val label = node.text?.toString().orEmpty()
+                if(label.equals(instrumentation.targetContext.getString(android.R.string.copy), ignoreCase=true))return true
+                for(index in 0 until node.childCount)if(hasCopy(node.getChild(index)))return true
+                return false
+            }
+            for(id in listOf("post", "comment", "hashtag")) {
+                val coordinates = FloatArray(2)
+                val measured = CountDownLatch(1)
+                scenario.onActivity { activity ->
+                    val web = requireNotNull(findWeb(activity.window.decorView))
+                    web.evaluateJavascript("""
+                        (()=>{getSelection().removeAllRanges();const e=document.getElementById('$id'),r=document.createRange();r.setStart(e.firstChild,1);r.setEnd(e.firstChild,5);const b=r.getBoundingClientRect();return JSON.stringify({x:b.left+b.width/2,y:b.top+b.height/2,w:innerWidth});})()
+                    """.trimIndent()) { result ->
+                        val data=org.json.JSONObject(org.json.JSONArray("[$result]").getString(0))
+                        val offset=IntArray(2);web.getLocationOnScreen(offset)
+                        val scale=web.width/data.getDouble("w")
+                        coordinates[0]=(offset[0]+data.getDouble("x")*scale).toFloat()
+                        coordinates[1]=(offset[1]+data.getDouble("y")*scale).toFloat()
+                        measured.countDown()
+                    }
+                }
+                assertTrue(measured.await(5, TimeUnit.SECONDS))
+                val down=android.os.SystemClock.uptimeMillis()
+                val press=android.view.MotionEvent.obtain(down,down,android.view.MotionEvent.ACTION_DOWN,coordinates[0],coordinates[1],0)
+                press.source=android.view.InputDevice.SOURCE_TOUCHSCREEN
+                assertTrue(automation.injectInputEvent(press,true));press.recycle()
+                Thread.sleep(android.view.ViewConfiguration.getLongPressTimeout().toLong()+400)
+                val release=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),android.view.MotionEvent.ACTION_UP,coordinates[0],coordinates[1],0)
+                release.source=android.view.InputDevice.SOURCE_TOUCHSCREEN
+                assertTrue(automation.injectInputEvent(release,true));release.recycle()
+                val selected=CountDownLatch(1)
+                val text=java.util.concurrent.atomic.AtomicReference("")
+                scenario.onActivity { activity ->
+                    requireNotNull(findWeb(activity.window.decorView)).evaluateJavascript("getSelection().toString()") { result ->text.set(result);selected.countDown()}
+                }
+                assertTrue(selected.await(5,TimeUnit.SECONDS))
+                assertTrue("Real long press must select $id text, not a programmatic range: ${text.get()}", text.get().contains("FPRO"))
+                var copyVisible=false
+                repeat(15) {
+                    if(android.os.Build.VERSION.SDK_INT>=33)automation.clearCache()
+                    if(hasCopy(automation.rootInActiveWindow)||automation.windows.any { hasCopy(it.root) })copyVisible=true
+                    if(!copyVisible)Thread.sleep(100)
+                }
+                assertTrue("Android's native Copy action must appear for $id",copyVisible)
+            }
+        }
+    }
+
 }

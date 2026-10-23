@@ -219,6 +219,15 @@ function fixture(html,config={},captureDownload=false) {
 
   f.run({downloads:false,rainbow:false});assert.equal(f.doc.querySelectorAll('.fpro-video-tools').length,0);
   Object.defineProperty(video,'duration',{configurable:true,value:Infinity});f.run({rainbow:true});assert.equal(f.doc.querySelector('.fpro-seek').disabled,true,'Live stream is not falsely seekable');
+  const selection=fixture('<article><p id="text" style="user-select:none">Selectable post</p><span id="comment" dir="auto">Comment</span><a href="/hashtag/test">#test</a><button id="button">Like</button><textarea></textarea></article>',{enhance:false,textSelection:true});
+  assert(selection.doc.querySelector('#fpro-selection-style'),'Native selection CSS is independent of enhancement master');
+  assert.equal(selection.doc.querySelector('#fpro-style'),null,'Selection alone must not enable tint/filter CSS');
+  let blocked=0;selection.doc.body.addEventListener('selectstart',e=>{blocked++;e.preventDefault();});
+  const start=new selection.window.Event('selectstart',{bubbles:true,cancelable:true});selection.doc.querySelector('#text').dispatchEvent(start);
+  assert.equal(start.defaultPrevented,false,'Keep native selection default; stop site bubble cancellation only on reading text');
+  selection.doc.querySelector('textarea').dispatchEvent(new selection.window.Event('selectstart',{bubbles:true,cancelable:true}));assert.equal(blocked,1,'Editor selection keeps normal site handlers');
+  selection.run({enhance:false,textSelection:false});assert.equal(selection.doc.querySelector('#fpro-selection-style'),null,'Selection preference restores site CSS without reloading');
+  const disabledStart=new selection.window.Event('selectstart',{bubbles:true,cancelable:true});selection.doc.querySelector('#text').dispatchEvent(disabledStart);assert(disabledStart.defaultPrevented,'Disable restores original site selectstart behavior');
   const gesture=fixture('<article><video id="player"></video><div id="cover"></div><button id="like" aria-label="Like">Like</button></article>',{enhance:false,doubleTapFullscreen:true,ads:true,downloads:false,rainbow:false});
   const player=gesture.doc.querySelector('video'),cover=gesture.doc.querySelector('#cover');
   player.getBoundingClientRect=()=>({left:0,top:0,right:320,bottom:500,width:320,height:500});
@@ -238,7 +247,12 @@ function fixture(html,config={},captureDownload=false) {
   tap(10);tap(210);assert.equal(entered,1,'Two actual touch sequences on a Facebook cover enter fullscreen without video tools');
   cover.dispatchEvent(new gesture.window.MouseEvent('dblclick',{bubbles:true,cancelable:true,clientX:150,clientY:150}));
   assert.equal(exited,0,'Synthesized dblclick must not immediately undo touch fullscreen');
-  tap(810);tap(1010);assert.equal(exited,1,'Second double tap exits fullscreen');
+  tap(810);tap(1010);assert.equal(exited,0,'Second double tap must NOT exit fullscreen');
+  clock=1600;cover.dispatchEvent(new gesture.window.MouseEvent('dblclick',{bubbles:true,cancelable:true,clientX:150,clientY:150}));
+  assert.equal(exited,0,'Mouse double click must not exit fullscreen either');
+  gesture.doc.fullscreenElement=null; // Exit remains the system/player's responsibility.
+  gesture.window.__fproNativeFullscreen=true;tap(1650);tap(1850);assert.equal(entered,1,'Native custom-view fullscreen cannot be re-entered');
+  gesture.window.__fproNativeFullscreen=false;
   pointer('pointerdown',1800);pointer('pointermove',1850,190,150);pointer('pointerup',1870,190,150);tap(2000);
   assert.equal(entered,1,'Feed scrolling is not a double tap');
   gesture.run({enhance:false,doubleTapFullscreen:false});tap(2700);tap(2900);assert.equal(entered,1,'Independent fullscreen switch disables gesture');

@@ -26,6 +26,8 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SettingsGroup("الفيديو وتعديلات الصفحة", "تحكم مستقل وواضح في الأدوات") {
+        Toggle("تحديد النص بالقائمة الأصلية للجوال", "textSelection", prefs, revision, default = true) { update() }
+        Text("اضغط مطولًا على نص المنشور أو التعليق أو الهاشتاج، ثم حرّك مقابض التحديد للنسخ أو المشاركة حسب خيارات النظام. لا يشمل النص داخل الصور؛ بعض طبقات فيسبوك قد تمنع التحديد.", style = MaterialTheme.typography.bodySmall)
         Toggle("ضغطتان على الفيديو لملء الشاشة — مستقل عن أدوات التنزيل", "doubleTapFullscreen", prefs, revision, default = true) { update() }
         Toggle("تفعيل أدوات وتعديلات الصفحة — اختياري", "pageEnhancements", prefs, revision) { update() }
         Text("اختيار أداة أو لون أدناه يفعّل تعديلات الصفحة تلقائياً. يمكنك إيقافها جميعاً بهذا المفتاح؛ إيقافه يعيد تحميل الصفحة الأصلية ويحفظ اختياراتك.", style = MaterialTheme.typography.bodySmall)
@@ -60,7 +62,7 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         }
         SettingsGroup("الأدوات", "التصفح والعرض وملء الشاشة") {
         listOf("شريط تقدم فيديو قابل للسحب — قوس قزح مع كرة" to "rainbow", "التكبير بالإصبعين" to "zoom", "تثبيت شريط التنقل" to "sticky", "وضع سطح المكتب (يعيد تحميل الصفحة)" to "desktop", "عكس اتجاه الصفحة" to "reverse", "صورة داخل صورة عند المغادرة (Android 8+)" to "pip", "الوضع المغمور" to "immersive").forEach { (label,key) -> Toggle(label,key,prefs,revision) { update() } }
-        Text("الضغطتان لملء الشاشة تعملان بالمفتاح المستقل أعلاه حتى عند تعطيل التنزيل وشريط التقدم؛ يبقى زر ملء الشاشة الأصلي متاحاً. نسخ النص متاح بتحديده حيث يسمح الموقع. الرسائل متاحة وفق دعم فيسبوك للويب. إشعارات الويب والعمل الصوتي الدائم في الخلفية غير مضمونين؛ لا توجد خدمة إشعارات Meta أصلية في هذا التطبيق.", style = MaterialTheme.typography.bodySmall)
+        Text("الضغطتان للدخول إلى ملء الشاشة فقط؛ للخروج استخدم الرجوع أو زر المشغل الأصلي. الضغطتان لملء الشاشة تعملان بالمفتاح المستقل أعلاه حتى عند تعطيل التنزيل وشريط التقدم؛ يبقى زر ملء الشاشة الأصلي متاحاً. نسخ النص متاح بتحديده حيث يسمح الموقع. الرسائل متاحة وفق دعم فيسبوك للويب. إشعارات الويب والعمل الصوتي الدائم في الخلفية غير مضمونين؛ لا توجد خدمة إشعارات Meta أصلية في هذا التطبيق.", style = MaterialTheme.typography.bodySmall)
         }
         SettingsGroup("التوافق والتشخيص", "خيارات متقدمة — اتركها كما هي إذا كان العرض سليمًا") {
         Text(diagnostics, style = MaterialTheme.typography.bodySmall)

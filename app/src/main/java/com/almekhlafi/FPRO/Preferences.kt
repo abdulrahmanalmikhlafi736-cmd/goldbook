@@ -37,6 +37,7 @@ class Preferences(context: Context) {
         listOf("homeStories", "ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads").forEach { put(it, flag(it)) }
         put("enhance", flag("pageEnhancements"))
         put("doubleTapFullscreen", flag("doubleTapFullscreen", true))
+        put("textSelection", flag("textSelection", true))
         put("color", text("color", "تلقائي"))
         put("experimentalColorVars", flag("experimentalColorVars"))
         put("dark", flag("dark")); put("amoled", flag("amoled"))
