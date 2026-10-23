@@ -3,6 +3,11 @@ on:
   push:
     paths: ['.github/workflows/inspect-webview.yml']
   workflow_dispatch:
+    inputs:
+      run_id:
+        description: Completed emulator run to inspect
+        default: '39898158820'
+        required: true
 jobs:
   inspect:
     runs-on: ubuntu-24.04
@@ -16,7 +21,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id=$(gh run list --workflow device.yml --branch "$GITHUB_REF_NAME" --status completed --limit 1 --json databaseId --jq '.[0].databaseId')
+          id="${{ github.event.inputs.run_id || '39898158820' }}"
           echo "run=$id" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
@@ -24,6 +29,23 @@ jobs:
           run-id: ${{ steps.source.outputs.run }}
           pattern: webview-device-diagnostics-35-*
           path: previous-diagnostics
+      - name: Summarize baseline comparisons
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import html
+          evidence = {}
+          for path in Path('previous-diagnostics').rglob('*'):
+              if path.suffix not in ('.xml', '.txt'): continue
+              text = html.unescape(path.read_text(errors='replace'))
+              for marker in ('PLAIN_BASELINE:', 'COMPOSE_SITE:', 'BASELINE_ACCESSIBILITY='):
+                  position = text.rfind(marker)
+                  if position >= 0:
+                      evidence[marker] = text[position:position+3000].split('\n')[0]
+          for marker, message in evidence.items():
+              print('::notice title=Native baseline comparison::' + message.replace('%','%25'))
+          if not evidence: print('::notice::No baseline markers found in this completed run.')
+          PY
       - name: Summarize Chromium failures
         run: |
           python3 - <<'PY'
