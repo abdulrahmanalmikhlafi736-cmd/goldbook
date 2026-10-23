@@ -32,7 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -69,10 +69,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         prefs = Preferences(this); downloads = DownloadStore(this)
         web = createWebView()
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         applySettings(false)
-        if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) web.loadUrl("https://m.facebook.com/")
-        setContent {
+        // Keep Chromium in a real native view hierarchy, matching the working
+        // browser baseline. Compose draws only transparent controls above it;
+        // no AndroidView render-node interop is involved in website painting.
+        val controls = ComposeView(this)
+        setContentView(FrameLayout(this).apply {
+            addView(web, FrameLayout.LayoutParams(-1, -1))
+            addView(controls, FrameLayout.LayoutParams(-1, -1))
+        })
+        controls.setContent {
             val dark = prefs.flag("dark")
             val scheme = when {
                 prefs.flag("dynamic") && Build.VERSION.SDK_INT >= 31 -> if (dark) dynamicDarkColorScheme(this) else dynamicLightColorScheme(this)
@@ -83,14 +90,11 @@ class MainActivity : ComponentActivity() {
             @Suppress("UNUSED_VARIABLE") val currentRevision = revision
             MaterialTheme(colorScheme = scheme) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    Surface(Modifier.fillMaxSize()) {
-                        Box(Modifier.fillMaxSize().then(if (pip) Modifier else Modifier.safeDrawingPadding())) {
+                    Box(Modifier.fillMaxSize()) {
+                        Box(Modifier.fillMaxSize()) {
                             // The website owns the whole viewport; no replacement Facebook toolbar.
                             // RTL belongs to native Arabic controls, not the browser viewport.
                             // Let Facebook's own HTML dir/CSS control its text direction.
-                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                AndroidView(factory = { web }, modifier = Modifier.fillMaxSize())
-                            }
                             if (!pip) {
                                 if (loadingProgress in 1..99) LinearProgressIndicator(
                                     progress = { loadingProgress / 100f },
@@ -139,7 +143,15 @@ class MainActivity : ComponentActivity() {
                             })
                         }
                         BackHandler { smartBack() }
-                        LaunchedEffect(Unit) { delay(1800); splash = false }
+                        LaunchedEffect(Unit) {
+                            delay(1800)
+                            splash = false
+                            web.post {
+                                if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) {
+                                    web.loadUrl("https://m.facebook.com/")
+                                }
+                            }
+                        }
                         // Native watchdog: it must NOT wait for a JavaScript callback to
                         // report a stalled renderer, or depend on onPageStarted firing.
                         LaunchedEffect(pageSequence) {
@@ -284,7 +296,7 @@ class MainActivity : ComponentActivity() {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 6 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 7 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {
