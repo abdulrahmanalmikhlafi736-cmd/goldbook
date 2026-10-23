@@ -21,6 +21,10 @@ jobs:
             variant: compact
             task: Compact
             module: device-tests
+          - api: 36
+            variant: compact
+            task: Compact
+            module: device-tests
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -95,6 +99,6 @@ jobs:
         if: success() && matrix.variant == 'compact'
         uses: actions/upload-artifact@v4
         with:
-          name: FPRO-compact-device-verified
+          name: FPRO-compact-device-verified-API${{ matrix.api }}
           path: app/build/outputs/apk/compact/app-compact.apk
           if-no-files-found: error
