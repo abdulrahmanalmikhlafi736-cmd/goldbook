@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var web: WebView
     private var settings by mutableStateOf(false)
     private var downloadPanel by mutableStateOf(false)
-    private var progress by mutableIntStateOf(0)
+    private var loadingProgress by mutableIntStateOf(0)
     private var revision by mutableIntStateOf(0)
     private var splash by mutableStateOf(true)
     private var pip by mutableStateOf(false)
@@ -89,7 +89,7 @@ class MainActivity : ComponentActivity() {
                                         TextButton(onClick = { web.loadUrl("https://m.facebook.com/messages/") }) { Text("الرسائل", color = Color.White) }
                                         TextButton(onClick = { web.loadUrl("https://m.facebook.com/") }) { Text("فيسبوك", color = Color.White) }
                                     }
-                                    if (progress in 1..99) LinearProgressIndicator(progress = { progress / 100f }, modifier = Modifier.fillMaxWidth())
+                                    if (loadingProgress in 1..99) LinearProgressIndicator(progress = { loadingProgress / 100f }, modifier = Modifier.fillMaxWidth())
                                 }
                                 AndroidView(factory = { web }, modifier = Modifier.weight(1f).fillMaxWidth())
                                 failure?.let { message ->
@@ -156,7 +156,7 @@ class MainActivity : ComponentActivity() {
             // Default SSL handling cancels invalid certificates; never bypass it.
         }
         webChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView, newProgress: Int) { this@MainActivity.progress = newProgress }
+            override fun onProgressChanged(view: WebView, newProgress: Int) { this@MainActivity.loadingProgress = newProgress }
             override fun onShowFileChooser(view: WebView, callback: ValueCallback<Array<Uri>>, params: FileChooserParams): Boolean {
                 fileCallback?.onReceiveValue(null); fileCallback = callback
                 return try { filePicker.launch(params.createIntent()); true } catch (_: ActivityNotFoundException) { fileCallback = null; false }
