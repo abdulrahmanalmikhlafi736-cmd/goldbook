@@ -4,6 +4,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class NavigationTest {
+    @Test fun reducedChromeAgentKeepsActualEngineMajor() {
+        val ua = Navigation.browserAgent("Mozilla/5.0 (Linux; Android 15; sdk_gphone Build/ABC; wv) AppleWebKit/537.36 Version/4.0 Chrome/135.0.77.4 Mobile Safari/537.36")
+        assertTrue(ua.contains("Chrome/135.0.0.0"))
+        assertFalse(ua.contains("wv"))
+        assertFalse(ua.contains("Build/"))
+    }
     @Test fun mobileCompatibilityPreservesRealEngineVersion() {
         assertEquals("Android Chrome/135.0.0.0 Mobile", Navigation.browserAgent("Android; wv Version/4.0 Chrome/135.0.0.0 Mobile"))
     }
@@ -11,6 +17,9 @@ class NavigationTest {
     @Test fun embeddedHttpsIsNotExternalNavigation() {
         assertTrue(Navigation.allowEmbedded("https://www.fbsbx.com/embedded"))
         assertTrue(Navigation.allowEmbedded("about:blank"))
+        assertTrue(Navigation.allowEmbedded("about:srcdoc"))
+        assertTrue(Navigation.allowEmbedded("blob:https://www.facebook.com/nonce"))
+        assertTrue(Navigation.allowEmbedded("data:text/html,<p>embedded</p>"))
         assertFalse(Navigation.allowEmbedded("intent://evil"))
         assertFalse(Navigation.allowEmbedded("file:///etc/passwd"))
         assertFalse(Navigation.allowEmbedded("http://example.com"))

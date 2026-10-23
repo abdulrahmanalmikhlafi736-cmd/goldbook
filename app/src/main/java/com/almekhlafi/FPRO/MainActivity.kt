@@ -165,7 +165,6 @@ class MainActivity : ComponentActivity() {
         settings.mediaPlaybackRequiresUserGesture = true
         settings.setSupportMultipleWindows(true)
         CookieManager.getInstance().setAcceptCookie(true)
-        CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
         webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = route(request.url, request.isForMainFrame)
             @Deprecated("Required for Android 6")
@@ -268,19 +267,25 @@ class MainActivity : ComponentActivity() {
         web.setLayerType(if (prefs.flag("software")) View.LAYER_TYPE_SOFTWARE else View.LAYER_TYPE_NONE, null)
         val compatibleAgent = if (prefs.flag("browserAgent", true)) Navigation.browserAgent(mobileAgent) else mobileAgent
         val agent = if (prefs.flag("desktop")) "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" else compatibleAgent
+        val cookieManager = CookieManager.getInstance()
+        val allowEmbeddedCookies = prefs.flag("thirdPartyCookies", true)
+        val cookiesChanged = cookieManager.acceptThirdPartyCookies(web) != allowEmbeddedCookies
+        cookieManager.setAcceptThirdPartyCookies(web, allowEmbeddedCookies)
         val changed = web.settings.userAgentString != agent
         web.settings.userAgentString = agent
         web.settings.setSupportZoom(prefs.flag("zoom"))
         web.settings.builtInZoomControls = prefs.flag("zoom")
         web.settings.displayZoomControls = false
-        web.settings.useWideViewPort = true; web.settings.loadWithOverviewMode = true
+        // Mobile pages need a device-width viewport, not a scaled desktop canvas.
+        web.settings.useWideViewPort = prefs.flag("desktop")
+        web.settings.loadWithOverviewMode = prefs.flag("desktop")
         systemBars(prefs.flag("immersive"))
-        if (reloadDesktop && changed) web.reload() else inject()
+        if (reloadDesktop && (changed || cookiesChanged)) web.reload() else inject()
     }
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 3 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 4 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {

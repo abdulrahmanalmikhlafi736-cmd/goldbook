@@ -17,11 +17,16 @@ class Preferences(context: Context) {
 }
 
 object Navigation {
-    fun browserAgent(agent: String): String = agent.replace("; wv", "").replace(" Version/4.0", "")
+    fun browserAgent(agent: String): String {
+        val major = Regex("Chrome/(\\d+)").find(agent)?.groupValues?.get(1)
+        if (major == null || !agent.startsWith("Mozilla/")) return agent.replace("; wv", "").replace(" Version/4.0", "")
+        // Chrome's reduced Android UA format; preserve the real engine major.
+        return "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$major.0.0.0 Mobile Safari/537.36"
+    }
 
     fun allowEmbedded(url: String): Boolean = try {
         val uri = java.net.URI(url)
-        uri.scheme == "https" || url == "about:blank"
+        uri.scheme in setOf("https", "blob", "data") || url == "about:blank" || url == "about:srcdoc"
     } catch (_: Exception) { false }
 
     fun isFacebook(url: String): Boolean = try {
