@@ -70,6 +70,8 @@ class WebViewRenderingTest {
             val bitmap = instrumentation.uiAutomation.takeScreenshot()
             val target = instrumentation.targetContext.getExternalFilesDir(null)!!
             if (bitmap != null) java.io.File(target, "facebook-live.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+            android.util.Log.i("FPRO_EVIDENCE", "COMPOSE_SITE: " + state.get())
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("screencap -p /data/local/tmp/fpro-compose.png")).use { it.readBytes() }
             println("LIVE_WEB: " + state.get())
             assertTrue("Live Facebook must deliver actual content/controls: " + state.get(), loaded)
         }
