@@ -139,7 +139,7 @@ class WebViewRenderingTest {
                 // Chromium navigation; this test needs a stable SPA history.
                 val header = """
                     <html><meta name="viewport" content="width=device-width,initial-scale=1">
-                    <body><header><svg aria-label="Facebook" style="position:absolute;left:65vw;top:8px;width:100px;height:40px"></svg></header></body></html>
+                    <body><header id="gear-fixture"><svg aria-label="Facebook" style="position:absolute;left:65vw;top:8px;width:100px;height:40px"></svg></header></body></html>
                 """.trimIndent()
                 web.webViewClient = object : android.webkit.WebViewClient() {
                     override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse =
@@ -149,11 +149,13 @@ class WebViewRenderingTest {
                 fun probe(attempt: Int) {
                     val flag = MainActivity::class.java.getDeclaredField("homeControls\$delegate").apply { isAccessible = true }
                     val x = MainActivity::class.java.getDeclaredField("gearX\$delegate").apply { isAccessible = true }
-                    if ((flag.get(activity) as androidx.compose.runtime.State<*>).value == true) {
-                        val coordinate = (x.get(activity) as androidx.compose.runtime.State<*>).value as Float
-                        positioned = coordinate > web.width * .65f && coordinate < web.width * .88f
-                        ready.countDown()
-                    } else if (attempt < 25) web.postDelayed({ probe(attempt + 1) }, 200)
+                    web.evaluateJavascript("!!document.querySelector('#gear-fixture') && document.readyState==='complete'") { committed ->
+                        if (committed == "true" && (flag.get(activity) as androidx.compose.runtime.State<*>).value == true) {
+                            val coordinate = (x.get(activity) as androidx.compose.runtime.State<*>).value as Float
+                            positioned = coordinate > web.width * .65f && coordinate < web.width * .88f
+                            ready.countDown()
+                        } else if (attempt < 25) web.postDelayed({ probe(attempt + 1) }, 200)
+                    }
                 }
                 web.postDelayed({ probe(0) }, 300)
             }
@@ -486,7 +488,7 @@ class WebViewRenderingTest {
                 return false
             }
             for(id in listOf("post", "comment", "hashtag")) {
-                val coordinates = FloatArray(2)
+                val coordinates = FloatArray(4)
                 val measured = CountDownLatch(1)
                 scenario.onActivity { activity ->
                     val web = requireNotNull(findWeb(activity.window.decorView))
@@ -498,7 +500,9 @@ class WebViewRenderingTest {
                         val scale=web.width/data.getDouble("w")
                         coordinates[0]=(offset[0]+data.getDouble("x")*scale).toFloat()
                         coordinates[1]=(offset[1]+data.getDouble("y")*scale).toFloat()
-                        measured.countDown()
+                        coordinates[2]=offset[0]+web.width*.9f
+                        coordinates[3]=offset[1]+web.height*.8f
+                        web.postVisualStateCallback(21, object : WebView.VisualStateCallback() { override fun onComplete(requestId: Long) { measured.countDown() } })
                     }
                 }
                 assertTrue(measured.await(5, TimeUnit.SECONDS))
@@ -528,6 +532,17 @@ class WebViewRenderingTest {
                     if(!copyVisible)Thread.sleep(100)
                 }
                 assertTrue("Android's native Copy action must appear for $id",copyVisible)
+                // Dismiss handles/toolbar by a real tap on blank page space,
+                // just as a user does before selecting a different paragraph.
+                val cancelDown=android.os.SystemClock.uptimeMillis()
+                val cancelPress=android.view.MotionEvent.obtain(cancelDown,cancelDown,android.view.MotionEvent.ACTION_DOWN,coordinates[2],coordinates[3],0)
+                cancelPress.source=android.view.InputDevice.SOURCE_TOUCHSCREEN
+                automation.injectInputEvent(cancelPress,false);cancelPress.recycle()
+                Thread.sleep(60)
+                val cancelUp=android.view.MotionEvent.obtain(cancelDown,android.os.SystemClock.uptimeMillis(),android.view.MotionEvent.ACTION_UP,coordinates[2],coordinates[3],0)
+                cancelUp.source=android.view.InputDevice.SOURCE_TOUCHSCREEN
+                automation.injectInputEvent(cancelUp,false);cancelUp.recycle()
+                Thread.sleep(350)
             }
         }
     }
