@@ -123,7 +123,7 @@
   for(const el of [svg,...svg.querySelectorAll('*')])for(const attr of el.attributes)if(/^on|href$/i.test(attr.localName)||/url\s*\(|javascript:/i.test(attr.value))return null;
   let changed=false;
   for(const shape of svg.querySelectorAll('circle,ellipse,path')){
-   let stroke='';for(let el=shape;el&&!stroke;el=el.parentElement)stroke=el.style?.stroke||el.getAttribute('stroke')||'';
+   let stroke='';for(let el=shape;el&&!stroke;el=el.parentElement)stroke=(el.style&&el.style.stroke)||el.getAttribute('stroke')||'';
    if(!isBlue(stroke))continue;
    const replacement=replaceBlue(stroke);shape.setAttribute('stroke',replacement.value);shape.style.setProperty('stroke',replacement.value,'important');changed=true;
   }
@@ -158,7 +158,7 @@
  }
  function canvasRingEvidence(canvas,photo){
   const result={readable:false,blueRing:false,transparentCenter:false};
-  const w=canvas.width,h=canvas.height,r=canvas.getBoundingClientRect(),p=photo?.getBoundingClientRect();if(!p||w<24||h<24||w>1024||h>512||r.width<=0||r.height<=0)return result;
+  const w=canvas.width,h=canvas.height,r=canvas.getBoundingClientRect(),p=photo&&photo.getBoundingClientRect();if(!p||w<24||h<24||w>1024||h>512||r.width<=0||r.height<=0)return result;
   const sx=w/r.width,sy=h/r.height;if(Math.abs(sx-sy)>Math.min(sx,sy)*.15)return result;
   const size=Math.min(r.height,p.width+24)*sx,cx=(p.left+p.width/2-r.left)*sx,cy=(p.top+p.height/2-r.top)*sy;
   // Copy into an unattached sampler. Do not acquire/change the source canvas
@@ -461,14 +461,14 @@
  // cover layers. It is independent of download/progress overlay attachment.
  let touch=null,lastTap=null,lastFullscreen= -Infinity;
  function gestureVideo(e) {
-  if(cfg.doubleTapFullscreen===false || e.isPrimary===false || window.getSelection()?.isCollapsed===false)return null;
+  if(cfg.doubleTapFullscreen===false || e.isPrimary===false || (window.getSelection()&&window.getSelection().isCollapsed===false))return null;
   const target=e.target.nodeType===1?e.target:e.target.parentElement;
   if(!target || target.closest('.fpro-video-tools,input,textarea,select,[contenteditable="true"]'))return null;
   const candidates=Array.from(document.querySelectorAll('video')).filter(v=>{
    const r=v.getBoundingClientRect(), c=getComputedStyle(v);
    return r.width>0&&r.height>0&&e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom&&c.display!=='none'&&c.visibility!=='hidden';
   });
-  const video=candidates.find(v=>v===target || v.contains(target)) || candidates.find(v=>target.closest('[role="article"],article')?.contains(v)) || candidates[0];
+  const video=candidates.find(v=>v===target || v.contains(target)) || candidates.find(v=>(target.closest('[role="article"],article')&&target.closest('[role="article"],article').contains(v))) || candidates[0];
   if(!video)return null;
   const dialog=target.closest('[role="dialog"]');if(dialog&&!dialog.contains(video))return null;
   const control=target.closest('a,button,[role="button"]');
@@ -525,7 +525,7 @@
    if(!videoPlaying)for(const img of document.querySelectorAll('img,[style*="background-image"]')){const r=img.getBoundingClientRect();if(storyImageSource(img)&&!img.closest('header,[role="banner"]')&&rendered(img)&&r.width>=120&&r.height>=180&&r.top<innerHeight&&r.bottom>0&&r.left<innerWidth&&r.right>0)eligible.push({img,r});}
   }
   eligible.sort((a,b)=>b.r.width*b.r.height-a.r.width*a.r.height);
-  const current=eligible[0]?.img;
+  const current=eligible[0]&&eligible[0].img;
   storyImages.forEach((tools,img)=>{if(img!==current){tools.remove();storyImages.delete(img);}});
   if(!current)return;
   let tools=storyImages.get(current);
@@ -542,7 +542,7 @@
  window.addEventListener('scroll',scheduleLayout,true);window.addEventListener('resize',scheduleLayout);window.addEventListener('popstate',scheduleLayout);window.addEventListener('hashchange',scheduleLayout);
  const resize=typeof ResizeObserver==='function'?new ResizeObserver(scheduleLayout):null;
  function update(c){
-  if(JSON.stringify(cfg)===JSON.stringify(c)&&window.__fpro?.ready){scan();return;}
+  if(JSON.stringify(cfg)===JSON.stringify(c)&&(window.__fpro&&window.__fpro.ready)){scan();return;}
   window.__fpro.ready=true;
   cfg=c;updateSelection();iconDefs.remove();restoreTintVars();style.textContent='';restoreHidden();painted.forEach(el=>accentAttrs.forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));painted.forEach(el=>el.removeAttribute('data-fpro-surface'));painted.clear();
   if(c.enhance===false){observer.disconnect();if(resize)resize.disconnect();videos.forEach(entry=>entry.dispose());videos.clear();storyImages.forEach(tools=>tools.remove());storyImages.clear();style.remove();lastTap=null;touch=null;return;}

@@ -468,7 +468,9 @@ class WebViewRenderingTest {
                         if(result == "true") {
                             val source = activity.assets.open("facebook.js").bufferedReader().use { it.readText() }.replace("__CONFIG__", "{\"enhance\":false,\"textSelection\":true}")
                             web.evaluateJavascript(source) {
-                                web.postVisualStateCallback(20, object : WebView.VisualStateCallback() { override fun onComplete(requestId: Long) { ready.countDown() } })
+                                web.evaluateJavascript("!!window.__fpro && !!document.querySelector('#fpro-selection-style')") { installed ->
+                                if(installed == "true")web.postVisualStateCallback(20, object : WebView.VisualStateCallback() { override fun onComplete(requestId: Long) { ready.countDown() } })
+                                }
                             }
                         } else if(attempt < 30) web.postDelayed({ probe(attempt+1) }, 200)
                     }
@@ -507,7 +509,11 @@ class WebViewRenderingTest {
                 Thread.sleep(android.view.ViewConfiguration.getLongPressTimeout().toLong()+400)
                 val release=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),android.view.MotionEvent.ACTION_UP,coordinates[0],coordinates[1],0)
                 release.source=android.view.InputDevice.SOURCE_TOUCHSCREEN
-                assertTrue(automation.injectInputEvent(release,true));release.recycle()
+                // Native floating selection toolbar can change input focus before
+                // ACTION_UP is acknowledged. The actual selection and Copy UI,
+                // not that dispatcher acknowledgement, are the assertions.
+                automation.injectInputEvent(release,false);release.recycle()
+                Thread.sleep(300)
                 val selected=CountDownLatch(1)
                 val text=java.util.concurrent.atomic.AtomicReference("")
                 scenario.onActivity { activity ->
