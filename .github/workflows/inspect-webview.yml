@@ -37,6 +37,9 @@ jobs:
                       if message not in seen:
                           seen.add(message)
                           selected.append(message)
-              for line in selected[-35:]:
+              useful = [line for line in selected if not any(noise in line.lower() for noise in ('permissions-policy', 'origin trial', 'sharedstorage', 'overlays are enabled'))]
+              errors = [line for line in useful if any(word in line.lower() for word in ('uncaught', 'typeerror', 'referenceerror', 'syntaxerror', 'err_', 'failed', 'errorutils', 'exception'))]
+              evidence = errors[-8:] or useful[-8:]
+              for line in evidence:
                   print('::notice title=Chromium evidence::' + line.replace('%','%25'))
           PY
