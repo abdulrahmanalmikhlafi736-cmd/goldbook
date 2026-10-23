@@ -30,6 +30,8 @@ import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
@@ -68,6 +70,9 @@ class MainActivity : ComponentActivity() {
     }
     private val mobileAgent by lazy { WebSettings.getDefaultUserAgent(this) }
     private val pageInfoScript by lazy { assets.open("page-info.js").bufferedReader().use { it.readText() } }
+    private val pageInfoQuery by lazy {
+        "(window.__fproPageInfo ? JSON.stringify(window.__fproPageInfo()) : " + pageInfoScript.trim().removeSuffix(";") + ")"
+    }
     private val script by lazy { assets.open("facebook.js").bufferedReader().use { it.readText() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -113,7 +118,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     modifier = Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset {
                                         IntOffset((gearX - 22.dp.toPx()).toInt().coerceAtLeast(0), (gearY - 22.dp.toPx()).toInt().coerceAtLeast(0))
-                                    }.size(44.dp)
+                                    }.size(44.dp).semantics { contentDescription = "الإعدادات" }
                                 ) { Text("⚙", style = MaterialTheme.typography.headlineSmall) }
                                 failure?.let { message ->
                                     Card(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp)) {
@@ -158,7 +163,7 @@ class MainActivity : ComponentActivity() {
                             delay(2400)
                             while (true) {
                                 if (Navigation.isFacebook(web.url.orEmpty())) {
-                                    web.evaluateJavascript("window.__fproPageInfo ? JSON.stringify(window.__fproPageInfo()) : null") { updateHomeControls(it) }
+                                    web.evaluateJavascript(pageInfoQuery) { updateHomeControls(it) }
                                 } else homeControls = false
                                 delay(650)
                             }

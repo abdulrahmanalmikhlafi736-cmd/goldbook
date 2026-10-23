@@ -127,7 +127,7 @@ class WebViewRenderingTest {
     /** Local Facebook-shaped header: verifies the native state, not just the JS helper. */
     @Test fun dHomeGearFollowsRtlLogoAndHidesAfterSpaNavigation() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        ActivityScenario.launch<MainActivity>().use { scenario ->
+        ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
             Thread.sleep(2300)
             val ready = CountDownLatch(1)
             var positioned = false
