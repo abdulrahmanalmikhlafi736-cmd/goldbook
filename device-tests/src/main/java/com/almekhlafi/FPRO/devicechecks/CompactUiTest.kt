@@ -61,7 +61,13 @@ class CompactUiTest {
             if (!visible) Thread.sleep(1000)
         }
         val capture = screenshot("compact-facebook.png")
-        device.dumpWindowHierarchy(File(capture.parentFile, "compact-ui.xml"))
+        val hierarchy = File(capture.parentFile, "compact-ui.xml")
+        device.dumpWindowHierarchy(hierarchy)
+        // AGP uninstalls the test APK and deletes its external files at teardown.
+        // Persist anonymous evidence under shell-owned /data/local/tmp first.
+        device.executeShellCommand("screencap -p /data/local/tmp/fpro-facebook.png")
+        val encoded = android.util.Base64.encodeToString(hierarchy.readBytes(), android.util.Base64.NO_WRAP)
+        device.executeShellCommand("echo $encoded | base64 -d > /data/local/tmp/fpro-ui.xml")
         println("LIVE_WEB: " + text.take(1800))
         assertTrue("Facebook must deliver visible content; actual accessibility text: ${text.take(1000)}", visible)
     }
