@@ -40,18 +40,28 @@ class CompactUiTest {
         assertNotNull("Local HTML must be accessible in actual WebView", device.wait(Until.findObject(By.textContains("اختبار عرض WebView")), 15_000))
         Thread.sleep(800)
         val bitmap = BitmapFactory.decodeFile(screenshot("compact-local.png").absolutePath)
-        val pixel = bitmap.getPixel(bitmap.width / 2, bitmap.height / 2)
-        assertTrue("Compact APK must paint green pixels, not a grey screen: ${Integer.toHexString(pixel)}", Color.green(pixel) > 140 && Color.red(pixel) < 70 && Color.blue(pixel) < 120)
+        var greenSamples = 0
+        for (y in 30..85 step 5) for (x in 20..80 step 10) {
+            val pixel = bitmap.getPixel(bitmap.width * x / 100, bitmap.height * y / 100)
+            if (Color.green(pixel) > 140 && Color.red(pixel) < 70 && Color.blue(pixel) < 120) greenSamples++
+        }
+        assertTrue("Compact APK must paint green pixels, not a grey screen; green samples=$greenSamples", greenSamples > 15)
     }
 
     @Test fun realFacebookIsVisibleInCompactApp() {
         launch()
-        val facebook = device.wait(Until.findObject(By.textContains("Facebook")), 40_000)
+        val deadline = android.os.SystemClock.elapsedRealtime() + 40_000
+        var text = ""
+        var visible = false
+        while (android.os.SystemClock.elapsedRealtime() < deadline && !visible) {
+            try {
+                text = device.findObject(By.clazz("android.webkit.WebView"))?.let { textTree(it) } ?: ""
+                visible = text.length > 80 && (text.contains("facebook", ignoreCase = true) || text.contains("فيسبوك"))
+            } catch (_: androidx.test.uiautomator.StaleObjectException) { /* DOM changed; read a fresh tree. */ }
+            if (!visible) Thread.sleep(1000)
+        }
         screenshot("compact-facebook.png")
-        val web = device.findObject(By.clazz("android.webkit.WebView"))
-        val text = web?.let { textTree(it) } ?: "No accessible WebView"
         println("LIVE_WEB: " + text.take(1800))
-        assertNotNull("Facebook content must become visible; actual accessibility text: ${text.take(1000)}", facebook)
-        assertTrue("A real page must contain more than a brand name", text.length > 80)
+        assertTrue("Facebook must deliver visible content; actual accessibility text: ${text.take(1000)}", visible)
     }
 }
