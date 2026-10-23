@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
     private var pip by mutableStateOf(false)
     private var pageSequence by mutableIntStateOf(0)
     private var pageConfirmed = false
+    private var enhancementsInstalled = false
     private var loadState by mutableStateOf("تهيئة محرك الويب")
     private var failure by mutableStateOf<String?>(null)
     private var media by mutableStateOf<Pair<String,String>?>(null)
@@ -172,6 +173,7 @@ class MainActivity : ComponentActivity() {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 failure = null
                 pageConfirmed = false
+                enhancementsInstalled = false
                 pageSequence++
                 loadState = "بدء تحميل: $url"
             }
@@ -285,7 +287,7 @@ class MainActivity : ComponentActivity() {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 4 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 5 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {
@@ -304,7 +306,17 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun inject() {
+        // A clean Facebook session must not run our DOM observer or rewrite any
+        // styles until the user explicitly opts in to page modifications.
+        if (!prefs.flag("pageEnhancements")) {
+            if (enhancementsInstalled) {
+                enhancementsInstalled = false
+                web.reload() // restore the original page and remove all old hooks
+            }
+            return
+        }
         if (!Navigation.isFacebook(web.url ?: "")) return
+        enhancementsInstalled = true
         web.evaluateJavascript(script.replace("__CONFIG__", prefs.scriptConfig()), null)
         if (prefs.flag("liveColor")) web.evaluateJavascript("document.querySelector('meta[name=\"theme-color\"]')?.content || getComputedStyle(document.body).backgroundColor") { result ->
             try {

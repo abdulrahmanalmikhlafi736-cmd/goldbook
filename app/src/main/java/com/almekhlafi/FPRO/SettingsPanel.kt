@@ -26,6 +26,9 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         Toggle("الرسم البرمجي — جرّبه إذا بقيت الشاشة رمادية", "software", prefs, revision) { update() }
         Text("اختبار العرض ليس فيسبوك. إذا ظهر أخضر فالمحرك يرسم؛ انسخ التشخيص لتحديد سبب تعطل الموقع. الرسم البرمجي قد يقلل أداء الفيديو.", style = MaterialTheme.typography.bodySmall)
         HorizontalDivider()
+        Toggle("تفعيل أدوات وتعديلات الصفحة — اختياري", "pageEnhancements", prefs, revision) { update() }
+        Text("يفتح فيسبوك دون حقن أو تعديل افتراضياً. شغّل هذا الخيار فقط لاستخدام الفلاتر وألوان الموقع وأدوات الفيديو أدناه. تعطيله يعيد تحميل الصفحة الأصلية.", style = MaterialTheme.typography.bodySmall)
+        HorizontalDivider()
         Text("التنزيل", style = MaterialTheme.typography.titleLarge)
         Toggle("إظهار زر التنزيل القابل للسحب", "downloads", prefs, revision) { update() }
         var pkg by remember { mutableStateOf(prefs.text("package")) }
