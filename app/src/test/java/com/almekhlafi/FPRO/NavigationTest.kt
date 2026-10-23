@@ -19,7 +19,7 @@ class NavigationTest {
         assertTrue(Navigation.allowEmbedded("about:blank"))
         assertTrue(Navigation.allowEmbedded("about:srcdoc"))
         assertTrue(Navigation.allowEmbedded("blob:https://www.facebook.com/nonce"))
-        assertTrue(Navigation.allowEmbedded("data:text/html,<p>embedded</p>"))
+        assertTrue(Navigation.allowEmbedded("data:text/html,%3Cp%3Eembedded%3C/p%3E"))
         assertFalse(Navigation.allowEmbedded("intent://evil"))
         assertFalse(Navigation.allowEmbedded("file:///etc/passwd"))
         assertFalse(Navigation.allowEmbedded("http://example.com"))
