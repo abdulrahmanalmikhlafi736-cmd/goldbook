@@ -238,6 +238,12 @@
     if(link&&r.height<=48&&!el.querySelector('img,image,video,canvas')&&!pictureSource(el)&&blue(c.color))mark(el,'fg');
    }
   }
+  // Mobile author badges may be font glyphs, not IMG/SVG nodes. Only a
+  // private-use blue glyph next to author-like text, never arbitrary text.
+  if(cfg.experimentalColorVars)for(const el of document.querySelectorAll('span')){
+   const r=el.getBoundingClientRect();if(r.width<8||r.width>24||r.height<8||r.height>24||r.bottom<=0||r.top>=innerHeight||!privateGlyph(el)||el.closest('header,nav,[role="banner"],[role="navigation"],[role="tab"],button,[role="button"],.fpro-video-tools'))continue;
+   const parent=el.parentElement;if(parent&&/[A-Za-z\u0600-\u06ff]/.test(parent.textContent||'')&&(verifiedLabel(el)||verifiedLabel(parent)||parent.matches('a,span,[role="link"]'))&&blue(getComputedStyle(el).color))mark(el,'fg');
+  }
   // An inline !important declaration outranks our stylesheet. Override only
   // already-approved accent properties and restore source values each pass.
   const foreground=cfg.dark?colors[cfg.color]:({'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'}[cfg.color]||colors[cfg.color]);
@@ -246,12 +252,6 @@
    if(!el.hasAttribute('data-fpro-accent-'+attr))continue;
    if(el.style.getPropertyPriority(key)==='important')tintVar(el,key,value,'important');
    if(attr==='border')for(const side of ['top','right','bottom','left']){const prop='border-'+side+'-color';if(el.style.getPropertyPriority(prop)==='important'&&blue(el.style.getPropertyValue(prop)))tintVar(el,prop,value,'important');}
-  }
-  // Mobile author badges may be font glyphs, not IMG/SVG nodes. Only a
-  // private-use blue glyph next to author-like text, never arbitrary text.
-  if(cfg.experimentalColorVars)for(const el of document.querySelectorAll('span')){
-   const r=el.getBoundingClientRect();if(r.width<8||r.width>24||r.height<8||r.height>24||r.bottom<=0||r.top>=innerHeight||!privateGlyph(el)||el.closest('header,nav,[role="banner"],[role="navigation"],[role="tab"],button,[role="button"],.fpro-video-tools'))continue;
-   const parent=el.parentElement;if(parent&&/[A-Za-z\u0600-\u06ff]/.test(parent.textContent||'')&&(verifiedLabel(el)||verifiedLabel(parent)||parent.matches('a,span,[role="link"]'))&&blue(getComputedStyle(el).color))mark(el,'fg');
   }
   if(filtered)setIconPalette();else iconDefs.remove();
   painted.forEach(el=>{if(!next.has(el))for(const attr of accentAttrs)el.removeAttribute('data-fpro-accent-'+attr);});

@@ -306,7 +306,7 @@ function fixture(html,config={},captureDownload=false) {
   const svgRingSource='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 53 53"><circle cx="26.5" cy="26.5" r="25" fill="none" stroke="#0866ff" stroke-width="2"/></svg>';
   const ringData='url("data:image/svg+xml,'+encodeURIComponent(svgRingSource)+'")';
   const svgPhotoSource='<svg xmlns="http://www.w3.org/2000/svg"><image href="private-photo.jpg"/><circle stroke="#0866ff" r="20"/></svg>';
-  const dataRings=fixture('<div id="encoded"><img id="encodedPhoto" src="portrait.jpg" style="border-radius:50%"></div><div id="rejectEmbeddedPhoto"><img id="safePhoto" src="portrait2.jpg" style="border-radius:50%"></div><div id="vectorPortrait" role="img"></div><span id="author">Author <span id="glyph" style="color:rgb(8,102,255)">\ue001</span></span><nav><span id="navGlyph" style="color:rgb(8,102,255)">\ue001</span></nav>',{enhance:true,color:'أحمر',experimentalColorVars:true});
+  const dataRings=fixture('<div id="encoded"><img id="encodedPhoto" src="portrait.jpg" style="border-radius:50%"></div><div id="rejectEmbeddedPhoto"><img id="safePhoto" src="portrait2.jpg" style="border-radius:50%"></div><div id="vectorPortrait" role="img"></div><span id="author">Author <span id="glyph" style="color:rgb(8,102,255)!important">\ue001</span></span><nav><span id="navGlyph" style="color:rgb(8,102,255)">\ue001</span></nav>',{enhance:true,color:'أحمر',experimentalColorVars:true});
   for(const id of ['encoded','rejectEmbeddedPhoto','vectorPortrait']){const el=dataRings.doc.querySelector('#'+id);el.style.backgroundImage=id==='rejectEmbeddedPhoto'?'url("data:image/svg+xml,'+encodeURIComponent(svgPhotoSource)+'")':ringData;el.getBoundingClientRect=()=>({width:53,height:53,left:10,top:10,right:63,bottom:63});}
   for(const id of ['encodedPhoto','safePhoto'])dataRings.doc.querySelector('#'+id).getBoundingClientRect=()=>({width:41,height:41,left:16,top:16,right:57,bottom:57});
   for(const id of ['glyph','navGlyph'])dataRings.doc.querySelector('#'+id).getBoundingClientRect=()=>({width:17,height:17,left:16,top:16,right:33,bottom:33});
@@ -317,6 +317,7 @@ function fixture(html,config={},captureDownload=false) {
   assert(!dataRings.doc.querySelector('#rejectEmbeddedPhoto').hasAttribute('data-fpro-accent-svg-bg'),'Never rewrite SVG containing an embedded photo or external reference');
   assert(!dataRings.doc.querySelector('#vectorPortrait').hasAttribute('data-fpro-accent-svg-bg'),'A standalone SVG background avatar is a photo source, not a known decoration');
   assert(dataRings.doc.querySelector('#glyph').hasAttribute('data-fpro-accent-fg'),'Recognize blue private-use glyph beside author text');
+  assert.equal(dataRings.doc.querySelector('#glyph').style.color,'rgb(198, 40, 40)','Author glyph important source color must actually be overridden');
   assert(!dataRings.doc.querySelector('#navGlyph').hasAttribute('data-fpro-accent-fg'),'Do not recolor navigation glyphs');
   const rendererReport=dataRings.window.__fpro.colorReport();assert(rendererReport.avatarFrames.some(a=>a.levels.some(l=>l.backgroundKind==='embedded-svg')),'Report background renderer kind without URL');
   assert(!/private-photo|portrait.jpg|data:image|<svg/.test(JSON.stringify(rendererReport)),'Never export SVG/image source from renderer diagnostics');
