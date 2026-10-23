@@ -89,18 +89,18 @@ class CompactUiTest {
     }
 
     private fun scrollToText(text: String): UiObject2 {
-        val selector = if (text.startsWith("اللون:")) By.textStartsWith("اللون:") else By.text(text)
+        val selector = if (text.startsWith("اللون:")) By.textContains("اللون:") else By.text(text)
         repeat(18) {
             val node = freshUi { device.findObject(selector)?.takeIf { !it.visibleBounds.isEmpty } }
             if (node != null) return node
             // Use the visible native settings viewport, not a possibly retained
             // scrollable WebView node behind the Compose settings overlay.
             device.swipe(device.displayWidth/2, device.displayHeight*3/4,
-                device.displayWidth/2, device.displayHeight/3, 35)
-            Thread.sleep(350)
+                device.displayWidth/2, device.displayHeight*11/20, 75)
+            Thread.sleep(500)
         }
         device.executeShellCommand("screencap -p /data/local/tmp/fpro-tools.png")
-        val visible = device.findObjects(By.text(java.util.regex.Pattern.compile(".+"))).joinToString(" | ") { it.text.orEmpty() }
+        val visible = device.findObjects(By.text(java.util.regex.Pattern.compile(".+"))).joinToString(" | ") { try { it.text.orEmpty() } catch (_: androidx.test.uiautomator.StaleObjectException) { "[updated node]" } }
         throw AssertionError("Setting not found: $text; visible: " + visible.take(2200))
     }
 
@@ -109,7 +109,7 @@ class CompactUiTest {
         assertNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 40_000))
         requireNotNull(device.findObject(By.text("⚙"))).click()
         scrollToText("اللون: تلقائي")
-        freshUi { requireNotNull(device.findObject(By.textStartsWith("اللون:"))).click() }
+        freshUi { requireNotNull(device.findObject(By.textContains("اللون:"))).click() }
         assertNotNull(device.wait(Until.findObject(By.text("ذهبي")), 5000))
         freshUi { requireNotNull(device.findObject(By.text("ذهبي"))).click() }
         scrollToText("إخفاء شريط فتح التطبيق أو تثبيته")
