@@ -134,10 +134,18 @@ class WebViewRenderingTest {
             scenario.onActivity { activity ->
                 val web = requireNotNull(findWeb(activity.window.decorView))
                 web.stopLoading()
-                web.loadDataWithBaseURL("https://m.facebook.com/", """
+                // Serve a deterministic local header at a real HTTPS-shaped URL.
+                // loadDataWithBaseURL can retain about:blank during a pending
+                // Chromium navigation; this test needs a stable SPA history.
+                val header = """
                     <html><meta name="viewport" content="width=device-width,initial-scale=1">
                     <body><header><svg aria-label="Facebook" style="position:absolute;left:65vw;top:8px;width:100px;height:40px"></svg></header></body></html>
-                """.trimIndent(), "text/html", "UTF-8", null)
+                """.trimIndent()
+                web.webViewClient = object : android.webkit.WebViewClient() {
+                    override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse =
+                        android.webkit.WebResourceResponse("text/html", "UTF-8", header.byteInputStream())
+                }
+                web.loadUrl("https://m.facebook.com/")
                 fun probe(attempt: Int) {
                     val flag = MainActivity::class.java.getDeclaredField("homeControls\$delegate").apply { isAccessible = true }
                     val x = MainActivity::class.java.getDeclaredField("gearX\$delegate").apply { isAccessible = true }
