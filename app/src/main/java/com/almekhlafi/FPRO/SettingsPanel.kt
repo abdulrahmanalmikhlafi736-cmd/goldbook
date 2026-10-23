@@ -9,12 +9,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, whatsapp: () -> Unit, downloads: () -> Unit) {
+fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, whatsapp: () -> Unit, downloads: () -> Unit, diagnostics: String, reload: () -> Unit, testDisplay: () -> Unit, copyDiagnostics: () -> Unit) {
     var revision by remember { mutableIntStateOf(0) }
     fun update() { revision++; change() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("إعدادات FPRO", style = MaterialTheme.typography.headlineMedium)
         TextButton(onClick = close) { Text("العودة إلى فيسبوك ←") }
+        Text("تشخيص الصفحة الفارغة", style = MaterialTheme.typography.titleLarge)
+        Text(diagnostics, style = MaterialTheme.typography.bodySmall)
+        TextButton(onClick = reload) { Text("إعادة فتح فيسبوك") }
+        TextButton(onClick = testDisplay) { Text("اختبار عرض محلي بلا إنترنت") }
+        TextButton(onClick = copyDiagnostics) { Text("نسخ معلومات التشخيص") }
+        Toggle("توافق وكيل المستخدم مع متصفح الهاتف", "browserAgent", prefs, revision, default = true) { update() }
+        Toggle("الرسم البرمجي — جرّبه إذا بقيت الشاشة رمادية", "software", prefs, revision) { update() }
+        Text("اختبار العرض ليس فيسبوك. إذا ظهر أخضر فالمحرك يرسم؛ انسخ التشخيص لتحديد سبب تعطل الموقع. الرسم البرمجي قد يقلل أداء الفيديو.", style = MaterialTheme.typography.bodySmall)
+        HorizontalDivider()
         Text("التنزيل", style = MaterialTheme.typography.titleLarge)
         Toggle("إظهار زر التنزيل القابل للسحب", "downloads", prefs, revision) { update() }
         var pkg by remember { mutableStateOf(prefs.text("package")) }
@@ -53,8 +62,8 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
 }
 
 @Composable
-private fun Toggle(label: String, key: String, prefs: Preferences, revision: Int, change: () -> Unit) {
-    val value = remember(revision) { prefs.flag(key) }
+private fun Toggle(label: String, key: String, prefs: Preferences, revision: Int, default: Boolean = false, change: () -> Unit) {
+    val value = remember(revision) { prefs.flag(key, default) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, Modifier.weight(1f).padding(top = 12.dp, end = 12.dp))
         Switch(checked = value, onCheckedChange = { prefs.set(key, it); change() })

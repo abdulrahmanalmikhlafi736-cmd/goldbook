@@ -50,6 +50,8 @@ class MainActivity : ComponentActivity() {
     private var splash by mutableStateOf(true)
     private var pip by mutableStateOf(false)
     private var pageSequence by mutableIntStateOf(0)
+    private var pageConfirmed = false
+    private var loadState by mutableStateOf("تهيئة محرك الويب")
     private var failure by mutableStateOf<String?>(null)
     private var media by mutableStateOf<Pair<String,String>?>(null)
     private var pageColor by mutableStateOf(Color(0xFF1877F2))
@@ -97,7 +99,7 @@ class MainActivity : ComponentActivity() {
                                     Card(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp)) {
                                         Column(Modifier.padding(16.dp)) {
                                             Text(message)
-                                            Text("${web.url ?: "https://www.facebook.com/"}\nWebView: ${web.settings.userAgentString}", style = MaterialTheme.typography.bodySmall)
+                                            Text(diagnostics(), style = MaterialTheme.typography.bodySmall)
                                             Row {
                                                 TextButton(onClick = { failure = null; web.reload() }) { Text("إعادة المحاولة") }
                                                 TextButton(onClick = { failure = null; web.loadUrl("https://www.facebook.com/") }) { Text("الصفحة الرئيسية") }
@@ -107,7 +109,13 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             if (settings && !pip) Surface(Modifier.fillMaxSize()) {
-                                SettingsPanel(prefs, change = { revision++; applySettings(true) }, close = { settings = false }, whatsapp = { external("https://wa.me/967781764759") }, downloads = { downloadPanel = true })
+                                SettingsPanel(prefs, change = { revision++; applySettings(true) }, close = { settings = false }, whatsapp = { external("https://wa.me/967781764759") }, downloads = { downloadPanel = true }, diagnostics = diagnostics(),
+                                    reload = { settings = false; web.loadUrl("https://www.facebook.com/") },
+                                    testDisplay = { settings = false; showDisplayTest() },
+                                    copyDiagnostics = {
+                                        getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("FPRO diagnostics", diagnostics()))
+                                        toast("تم نسخ التشخيص دون كوكيز أو كلمات مرور")
+                                    })
                             }
                             if (splash && !pip) Splash()
                         }
@@ -127,6 +135,12 @@ class MainActivity : ComponentActivity() {
                         }
                         BackHandler { smartBack() }
                         LaunchedEffect(Unit) { delay(1800); splash = false }
+                        // Native watchdog: it must NOT wait for a JavaScript callback to
+                        // report a stalled renderer, or depend on onPageStarted firing.
+                        LaunchedEffect(pageSequence) {
+                            delay(25_000)
+                            if (!pageConfirmed && failure == null) failure = "لم يؤكد محرك الويب عرض محتوى الصفحة. افتح الإعدادات ثم اختبار العرض لتمييز خلل المحرك من اتصال فيسبوك.\n${diagnostics()}"
+                        }
                     }
                 }
             }
@@ -151,17 +165,23 @@ class MainActivity : ComponentActivity() {
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = route(Uri.parse(url), true)
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 failure = null
-                val sequence = ++pageSequence
-                view.postDelayed({
-                    if (!isDestroyed && sequence == pageSequence && failure == null) {
-                        view.evaluateJavascript("!!document.body && (document.body.innerText.trim().length > 0 || !!document.querySelector('img,video,canvas'))") { visible ->
-                            if (sequence == pageSequence && visible != "true") failure = "لم يظهر محتوى الصفحة خلال 25 ثانية. قد تكون المشكلة اتصالاً أو حظراً من الموقع أو إصدار WebView. حدّث Android System WebView ثم أعد المحاولة."
-                        }
-                    }
-                }, 25_000)
+                pageConfirmed = false
+                pageSequence++
+                loadState = "بدء تحميل: $url"
             }
             override fun onPageFinished(view: WebView, url: String?) {
                 CookieManager.getInstance().flush()
+                loadState = "انتهى التحميل: $url"
+                // ES5 syntax here is intentional: diagnostics must also run on old
+                // providers which cannot parse Facebook's modern JavaScript.
+                view.evaluateJavascript("(function(){return !!document.body && document.body.innerText.replace(/\\s/g,'').length > 30;})()") { result ->
+                    pageConfirmed = result == "true"
+                }
+                if (Navigation.isFacebook(url.orEmpty())) {
+                    view.evaluateJavascript("(function(){try{new Function('return ({x:1})?.x ?? 0');return true;}catch(e){return false;}})()") { modern ->
+                        if (modern != "true") failure = "محرك Android System WebView قديم ولا يدعم JavaScript الحديث الذي يحتاجه الموقع. حدّث WebView أو Chrome من متجر التطبيقات ثم أعد فتح FPRO.\n${diagnostics()}"
+                    }
+                }
                 inject()
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -239,7 +259,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun applySettings(reloadDesktop: Boolean) {
-        val agent = if (prefs.flag("desktop")) "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" else mobileAgent
+        web.setLayerType(if (prefs.flag("software")) View.LAYER_TYPE_SOFTWARE else View.LAYER_TYPE_NONE, null)
+        val compatibleAgent = if (prefs.flag("browserAgent", true)) Navigation.browserAgent(mobileAgent) else mobileAgent
+        val agent = if (prefs.flag("desktop")) "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" else compatibleAgent
         val changed = web.settings.userAgentString != agent
         web.settings.userAgentString = agent
         web.settings.setSupportZoom(prefs.flag("zoom"))
@@ -248,6 +270,26 @@ class MainActivity : ComponentActivity() {
         web.settings.useWideViewPort = true; web.settings.loadWithOverviewMode = true
         systemBars(prefs.flag("immersive"))
         if (reloadDesktop && changed) web.reload() else inject()
+    }
+
+    private fun diagnostics(): String {
+        val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
+        return "FPRO code 3 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+    }
+
+    private fun showDisplayTest() {
+        web.stopLoading()
+        failure = null
+        pageConfirmed = false
+        pageSequence++
+        loadState = "اختبار محلي بلا إنترنت"
+        web.loadDataWithBaseURL("https://fpro.invalid/", """
+            <!doctype html><html dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="margin:0;background:#14b450;color:#101010;font:22px sans-serif;padding:70px 24px;min-height:100vh;box-sizing:border-box">
+            <h1>اختبار عرض WebView</h1><p>هذه صفحة تشخيص محلية وليست فيسبوك. ظهور الخلفية الخضراء وهذا النص يؤكد أن المحرك يرسم المحتوى.</p>
+            <p id="js">JavaScript لم يعمل بعد</p><script>document.getElementById('js').textContent='JavaScript يعمل';document.body.dataset.ready='yes';</script>
+            <a href="https://www.facebook.com/">فتح فيسبوك الحقيقي</a></body></html>
+        """.trimIndent(), "text/html", "UTF-8", null)
     }
 
     private fun inject() {

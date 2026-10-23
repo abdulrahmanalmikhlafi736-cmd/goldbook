@@ -38,7 +38,7 @@ class WebViewRenderingTest {
                     <script>document.body.dataset.ready='yes';</script></body></html>
                 """.trimIndent(), "text/html", "UTF-8", null)
                 fun probe(attempt: Int) {
-                    web.evaluateJavascript("document.body?.dataset.ready === 'yes'") { value ->
+                    web.evaluateJavascript("!!document.body && document.body.dataset.ready === 'yes'") { value ->
                         state.set("JS=$value; visual frame pending")
                         if (value == "true") web.postVisualStateCallback(1, object : WebView.VisualStateCallback() {
                             override fun onComplete(requestId: Long) { state.set("frame received"); ready.countDown() }

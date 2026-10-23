@@ -4,6 +4,10 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class NavigationTest {
+    @Test fun mobileCompatibilityPreservesRealEngineVersion() {
+        assertEquals("Android Chrome/135.0.0.0 Mobile", Navigation.browserAgent("Android; wv Version/4.0 Chrome/135.0.0.0 Mobile"))
+    }
+
     @Test fun embeddedHttpsIsNotExternalNavigation() {
         assertTrue(Navigation.allowEmbedded("https://www.fbsbx.com/embedded"))
         assertTrue(Navigation.allowEmbedded("about:blank"))

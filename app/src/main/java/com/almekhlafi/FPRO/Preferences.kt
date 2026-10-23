@@ -17,6 +17,8 @@ class Preferences(context: Context) {
 }
 
 object Navigation {
+    fun browserAgent(agent: String): String = agent.replace("; wv", "").replace(" Version/4.0", "")
+
     fun allowEmbedded(url: String): Boolean = try {
         val uri = java.net.URI(url)
         uri.scheme == "https" || url == "about:blank"
