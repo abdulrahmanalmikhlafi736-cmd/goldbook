@@ -11,9 +11,27 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - name: Set up Android SDK (without obsolete tools package)
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew testDebugUnitTest lintDebug assembleDebug
+      - name: Test injected page tools
+        run: |
+          node --check app/src/main/assets/facebook.js
+          node tools/test-injection.cjs
+      - name: Test, lint and build debug APK
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-check-reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: FPRO-0.0.1-debug
