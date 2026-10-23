@@ -22,6 +22,36 @@ class WebViewRenderingTest {
         return null
     }
 
+    /** A separate, real HTTPS smoke test. No credentials, mock response or DOM replacement. */
+    @Test fun liveFacebookLoggedOutSmoke() {
+        org.junit.Assume.assumeTrue("Live site requires a recent system WebView", android.os.Build.VERSION.SDK_INT >= 35)
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            val ready = CountDownLatch(1)
+            val state = java.util.concurrent.atomic.AtomicReference("no callback")
+            scenario.onActivity { activity ->
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                fun probe(attempt: Int) {
+                    web.evaluateJavascript("JSON.stringify({url:location.origin,text:document.body?document.body.innerText.slice(0,1800):'',controls:document.querySelectorAll('input,button,a').length,ready:document.readyState})") { result ->
+                        state.set(result ?: "null")
+                        try {
+                            val data = org.json.JSONObject(org.json.JSONArray("[" + result + "]").getString(0))
+                            if (data.optString("url").contains("facebook.com") && data.optString("text").length > 80 && data.optInt("controls") > 2 && data.optString("ready") != "loading") ready.countDown()
+                            else if (attempt < 40) web.postDelayed({ probe(attempt + 1) }, 1000)
+                        } catch (_: Exception) { if (attempt < 40) web.postDelayed({ probe(attempt + 1) }, 1000) }
+                    }
+                }
+                web.postDelayed({ probe(0) }, 1500)
+            }
+            val loaded = ready.await(50, TimeUnit.SECONDS)
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            val bitmap = instrumentation.uiAutomation.takeScreenshot()
+            val target = instrumentation.targetContext.getExternalFilesDir(null)!!
+            if (bitmap != null) java.io.File(target, "facebook-live.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+            println("LIVE_WEB: " + state.get())
+            assertTrue("Live Facebook must deliver actual content/controls: " + state.get(), loaded)
+        }
+    }
+
     @Test fun websiteActuallyPaintsInsideCompose() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             val ready = CountDownLatch(1)

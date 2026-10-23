@@ -2,6 +2,10 @@ name: WebView device regression
 on: [push, workflow_dispatch]
 jobs:
   rendering:
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [29, 35]
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -20,7 +24,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 29
+          api-level: ${{ matrix.api }}
           arch: x86_64
           profile: pixel_2
           disable-animations: true
@@ -51,7 +55,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: webview-device-diagnostics
+          name: webview-device-diagnostics-${{ matrix.api }}
           path: |
             device-diagnostics/
             app/build/reports/androidTests/
