@@ -42,6 +42,7 @@ jobs:
                       if message not in seen:
                           seen.add(message)
                           selected.append(message)
+              # Prioritize the completed plain/Compose comparison over warning noise.
               metadata = [line for line in selected if 'FPRO_EVIDENCE' in line]
               for line in metadata[-2:]:
                   print('::notice title=Browser baseline metadata::' + line.replace('%','%25'))
