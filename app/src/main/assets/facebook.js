@@ -33,8 +33,9 @@
   const control=el.closest('[role="button"]');
   // An interactive post/comment wrapper is not the same as Like/Reply/etc.
   if(control){
-   const label=norm(control.getAttribute('aria-label')||control.textContent||'');
-   if(/^(like|love|reply|share|follow|more|see more|see less|play|pause|إعجاب|اعجبني|أعجبني|رد|مشاركة|متابعة|المزيد|عرض المزيد|عرض أقل|تشغيل|إيقاف)$/.test(label))return null;
+   const aria=control.getAttribute('aria-label')||'',visible=control.textContent||'';
+   const label=aria.length<=90?norm(aria):'',visibleLabel=visible.length<=90?norm(visible):'';
+   if(selectionControlLabels.has(label)||selectionControlLabels.has(visibleLabel))return null;
    if(!el.closest('article,[role="article"],[data-commentid],[role="comment"]')&&!root.matches('[dir="auto"],p,[data-ad-preview],[data-ad-comet-preview]'))return null;
   }
   return {el,root,control};
@@ -106,6 +107,7 @@
  },true);
  const colors = {'طبيعي':'#1877f2','ذهبي':'#d4af37','أحمر':'#c62828','أخضر':'#17833e','بنفسجي':'#8643c5','برتقالي':'#ed701b','فيروزي':'#008c95','وردي':'#d34489','بني':'#805539','فضي':'#9ba6b0','أبيض':'#ffffff'};
  const norm = s => (s || '').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');
+ const selectionControlLabels=new Set(['like','love','reply','replies','share','follow','comment','comments','send','save','copy','cancel','more','see more','see less','play','pause','إعجاب','أعجبني','رد','ردود','مشاركة','متابعة','تعليق','تعليقات','التعليقات','إرسال','حفظ','نسخ','إلغاء','المزيد','عرض المزيد','عرض أقل','تشغيل','إيقاف'].map(norm));
  const words = {
   ads:['sponsored','ممول','إعلان','اعلان','إعلان ممول','publicité','gesponsert','patrocinado','sponsorizzato'],
   suggested:['suggested for you','مقترح لك','مقترحة لك','مقترحات لك'],
