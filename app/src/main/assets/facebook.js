@@ -16,6 +16,9 @@
  };
  const postSelector = '[role="article"],article,[data-pagelet^="FeedUnit"],[data-ft]';
  function postFor(el){return el.closest('[role="article"],article,[data-pagelet^="FeedUnit"]') || el.closest('div[data-ft]');}
+ const accentAttrs=['bg','fg','border','fill','stroke','icon','ring'];
+ const iconDefs=document.createElementNS('http://www.w3.org/2000/svg','svg');iconDefs.id='fpro-icon-filter';iconDefs.setAttribute('aria-hidden','true');iconDefs.style.cssText='position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
+ iconDefs.innerHTML='<defs><filter id="fpro-icon-palette" color-interpolation-filters="sRGB"><feColorMatrix type="matrix"/></filter></defs>';
  const hidden = new Map(), painted = new Set(), videos = new Map(), identityBaseline = new WeakMap();
  function hide(el) {
   if (!el || /^(BODY|HTML|MAIN)$/.test(el.tagName) || ['main','feed','navigation'].includes(el.getAttribute('role'))) return;
@@ -59,6 +62,18 @@
   hide(block);
  }
  function homeView(){return window.__fproPageInfo ? window.__fproPageInfo().home : /^\/(?:home\.php|index\.php)?$/.test(location.pathname)&&!document.fullscreenElement;}
+ function verifiedLabel(el){
+  const label=norm([el.getAttribute('aria-label'),el.getAttribute('alt'),el.getAttribute('title'),el.getAttribute('data-tooltip-content'),el.getAttribute('data-testid'),el.tagName.toLowerCase()==='title'?el.textContent:''].filter(Boolean).join(' '));
+  return /verified|verification badge|موثق|تم التحقق|علامة التوثيق/.test(label);
+ }
+ function setIconPalette(){
+  // A blue-to-theme matrix that leaves white check marks white and preserves
+  // source alpha. Unlike a CSS mask, this does not erase the check from a PNG.
+  const color=colors[cfg.color], rgb=[0,2,4].map(i=>parseInt(color.slice(1+i,3+i),16)/255), base=24/255;
+  const values=rgb.flatMap(c=>{const a=(1-c)/(1-base);return [a,0,0,0,c-a*base];}).concat([0,0,0,1,0]).join(' ');
+  const matrix=iconDefs.querySelector('feColorMatrix');if(matrix.getAttribute('values')!==values)matrix.setAttribute('values',values);
+  if(!iconDefs.isConnected)document.body.appendChild(iconDefs);
+ }
  function tint() {
   if (!colors[cfg.color]) return;
   const next=new Set();
@@ -72,26 +87,65 @@
    if(!actions.has(text)||el.querySelector('video,img'))continue;
    const c=getComputedStyle(el);if(blue(c.backgroundColor)||el.hasAttribute('data-fpro-accent-bg'))mark(el,'bg');else mark(el,'fg');
   }
-  // Only explicitly labelled verification icons; never all blue SVGs or branding.
-  for(const el of document.querySelectorAll('svg[aria-label],span[aria-label],i[aria-label],svg title')){
-   const label=norm(el.getAttribute('aria-label')||el.textContent);
-   if(!/^(verified|verified account|حساب موثق|موثق|تم التحقق|تم التحقق من الحساب)$/.test(label))continue;
-   const icon=el.closest('svg')||el.querySelector('svg')||el;
-   if(icon.closest('.fpro-video-tools'))continue;
-   mark(icon,'fg');for(const path of icon.querySelectorAll('path,circle'))if(blue(getComputedStyle(path).fill)||path.hasAttribute('data-fpro-accent-fill'))mark(path,'fill');
+  // Facebook mobile uses SVGs, raster icons and background sprites, with
+  // localized labels on the icon itself OR a small surrounding wrapper.
+  const candidates=document.querySelectorAll('[aria-label],[alt],[title],[data-tooltip-content],[data-testid*="verified" i],svg title');
+  let filtered=false;
+  function icon(el){
+   if(!el||el.closest('.fpro-video-tools,#fpro-icon-filter')||el.querySelector('video'))return;
+   const r=el.getBoundingClientRect();if(r.width>48||r.height>48||el.matches('a,button,input'))return;
+   if(el.matches('img,i')||!el.children.length&&!el.textContent.trim()&&(el.matches('span,[role="img"]')||getComputedStyle(el).backgroundImage!=='none')){mark(el,'icon');filtered=true;return;}
+   const svg=el.closest('svg')||el.querySelector('svg');
+   if(svg){mark(svg,'fg');for(const path of svg.querySelectorAll('path,circle,polygon'))if(blue(getComputedStyle(path).fill)||path.hasAttribute('data-fpro-accent-fill'))mark(path,'fill');}
   }
-  // Story rings only: preserve photos, tile backgrounds and unrelated borders.
-  for(const ring of document.querySelectorAll('a[href*="/stories/"],a[href*="/stories/"] *,[data-sigil~="m-story-tray"] *,[data-pagelet*="Stories"] *')){
-   if(ring.matches('img,video,canvas')||ring.closest('.fpro-video-tools'))continue;
-   const c=getComputedStyle(ring);if(parseFloat(c.borderTopWidth)>0&&(blue(c.borderTopColor)||ring.hasAttribute('data-fpro-accent-border')))mark(ring,'border');
+  for(const el of candidates){
+   if(!verifiedLabel(el))continue;
+   if(el.matches('img,i,svg,title'))icon(el.tagName.toLowerCase()==='title'?el.closest('svg'):el);
+   else {const children=el.querySelectorAll('svg,img,i');if(children.length)children.forEach(icon);else icon(el);}
   }
-  painted.forEach(el=>{if(!next.has(el))for(const attr of ['bg','fg','border','fill','stroke'])el.removeAttribute('data-fpro-accent-'+attr);});
+  // Unlabelled SVG badge next to an author, not global blue navigation icons.
+  for(const svg of document.querySelectorAll('article header svg,[role="article"] header svg,article h3 svg,[role="article"] h3 svg')){
+   const r=svg.getBoundingClientRect();if(r.width>0&&r.width<=32&&r.height<=32&&!svg.closest('button,[role="button"]')&&Array.from(svg.querySelectorAll('path')).some(path=>blue(getComputedStyle(path).fill)||path.hasAttribute('data-fpro-accent-fill')))icon(svg);
+  }
+  function ring(el,avatar=false){
+   if(el.matches('img,video,canvas')||el.closest('.fpro-video-tools'))return;
+   const c=getComputedStyle(el),r=el.getBoundingClientRect();
+   if(avatar&&(r.width<24||r.width>128||r.height<24||r.height>128||Math.abs(r.width-r.height)>12||parseFloat(c.borderRadius)<r.width*.35))return;
+   if(parseFloat(c.borderTopWidth)>0&&(blue(c.borderTopColor)||el.hasAttribute('data-fpro-accent-border')))mark(el,'border');
+   if(el.matches('circle,ellipse')&&(blue(c.stroke)||el.hasAttribute('data-fpro-accent-stroke')))mark(el,'stroke');
+   if(avatar&&el.querySelectorAll('img').length===1&&(blue(c.backgroundColor)||/gradient/.test(c.backgroundImage)||el.hasAttribute('data-fpro-accent-ring')))mark(el,'ring');
+  }
+  for(const el of document.querySelectorAll('a[href*="/stories/"],a[href*="/stories/"] *,[data-sigil~="m-story-tray"] *,[data-pagelet*="Stories"] *'))ring(el);
+  // The blue avatar ring shown beside a post author often links to the profile,
+  // not /stories/. Inspect its circular wrapper, NEVER filter the avatar photo.
+  for(const img of document.querySelectorAll('article img,[role="article"] img,header img,[role="banner"] img')){
+   let wrapper=img.parentElement;for(let d=0;wrapper&&d<3;d++,wrapper=wrapper.parentElement){if(wrapper.matches('article,[role="article"],header,[role="banner"]'))break;ring(wrapper,true);}
+  }
+  if(filtered)setIconPalette();else iconDefs.remove();
+  painted.forEach(el=>{if(!next.has(el))for(const attr of accentAttrs)el.removeAttribute('data-fpro-accent-'+attr);});
   painted.clear();next.forEach(el=>painted.add(el));
+ }
+ function hideStoryBlock(el){
+  let block=el;
+  const boundary='article,[role="article"],[role="main"],[role="feed"],main,body,html,header,nav,form,[role="banner"],[role="navigation"],[data-pagelet^="Feed"],#m_news_feed_stream';
+  function decoration(node){
+   if(node.matches('style,script,hr,[role="separator"],#fpro-icon-filter'))return true;
+   if((node.textContent||'').trim()||node.matches('img,video,canvas,iframe,svg,[role="img"]')||node.querySelector('img,video,canvas,iframe,svg,input,a,button,[role="button"],[role="img"]'))return false;
+   return getComputedStyle(node).backgroundImage==='none'||getComputedStyle(node).backgroundImage==='';
+  }
+  for(let d=0;block.parentElement&&d<8;d++){
+   const parent=block.parentElement;
+   if(parent.matches(boundary)||parent.querySelector('article,[role="article"],[data-pagelet^="FeedUnit"],input,textarea,video'))break;
+   if(Array.from(parent.childNodes).some(n=>n.nodeType===3&&n.textContent.trim()))break;
+   if(Array.from(parent.children).some(child=>child!==block&&!decoration(child)))break;
+   block=parent;
+  }
+  hide(block);
  }
  function hideHomeStories(){
   const safe=el=>el&&!/^(BODY|HTML|MAIN|FORM|NAV|HEADER|FOOTER)$/.test(el.tagName)&&!['main','feed','navigation','banner'].includes(el.getAttribute('role'))&&!el.querySelector('article,[role="article"],[data-pagelet^="FeedUnit"],input,textarea');
   const explicit=document.querySelectorAll('[data-pagelet*="Stories"],[data-sigil~="m-story-tray"],[data-type*="story-tray" i],[aria-label="Stories"],[aria-label="القصص"]');
-  explicit.forEach(el=>{if(safe(el)&&!el.closest('article,[role="article"]'))hide(el);});
+  explicit.forEach(el=>{if(safe(el)&&!el.closest('article,[role="article"]'))hideStoryBlock(el);});
   const seeds=Array.from(document.querySelectorAll('a[href*="/stories/"],a[href*="story.php?"],button,[role="button"],span,div[dir="auto"]')).filter(el=>/\/stories\/|story\.php\?/.test(el.getAttribute('href')||'')||['create story','create a story','add to story','إنشاء قصة','انشاء قصة','إنشاء قصه','إضافة إلى قصتك','اضافة الى قصتك'].includes(norm(el.getAttribute('aria-label')||el.textContent)));
   for(const seed of seeds){
    if(seed.closest('article,[role="article"],[data-pagelet^="FeedUnit"]'))continue;
@@ -105,7 +159,7 @@
     const c=getComputedStyle(row),horizontal=/auto|scroll/.test(c.overflowX)||row.scrollWidth>row.clientWidth+12||c.flexDirection==='row';
     if(allStories||(horizontal&&(media>=2||row.querySelectorAll('[role="button"]').length>=2)))best=row;
    }
-   hide(best);
+   hideStoryBlock(best);
   }
  }
  function scan() {
@@ -294,7 +348,7 @@
  function update(c){
   if(JSON.stringify(cfg)===JSON.stringify(c)&&window.__fpro?.ready){scan();return;}
   window.__fpro.ready=true;
-  cfg=c;style.textContent='';restoreHidden();painted.forEach(el=>['bg','fg','border','fill','stroke'].forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));painted.forEach(el=>el.removeAttribute('data-fpro-surface'));painted.clear();
+  cfg=c;iconDefs.remove();style.textContent='';restoreHidden();painted.forEach(el=>accentAttrs.forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));painted.forEach(el=>el.removeAttribute('data-fpro-surface'));painted.clear();
   if(c.enhance===false){observer.disconnect();if(resize)resize.disconnect();videos.forEach(entry=>entry.dispose());videos.clear();storyImages.forEach(tools=>tools.remove());storyImages.clear();style.remove();lastTap=null;touch=null;return;}
   if(resize)resize.observe(document.body);
   if(!style.isConnected)document.head.appendChild(style);
@@ -306,7 +360,7 @@
   tint();
   style.textContent=`
    body{-webkit-user-select:text!important}
-   ${accent?`[data-fpro-accent-bg]{background-color:${accent}!important;color:${contrast}!important}[data-fpro-accent-bg] *{color:${contrast}!important}[data-fpro-accent-fg]{color:${foreground}!important}[data-fpro-accent-border]{border-color:${foreground}!important}[data-fpro-accent-fill]{fill:${foreground}!important}[data-fpro-accent-stroke]{stroke:${foreground}!important}`:''}
+   ${accent?`[data-fpro-accent-bg]{background-color:${accent}!important;color:${contrast}!important}[data-fpro-accent-bg] *{color:${contrast}!important}[data-fpro-accent-fg]{color:${foreground}!important}[data-fpro-accent-icon]{filter:url("#fpro-icon-palette")!important}[data-fpro-accent-ring]{background-color:${accent}!important;background-image:none!important}[data-fpro-accent-border]{border-color:${foreground}!important}[data-fpro-accent-fill]{fill:${foreground}!important}[data-fpro-accent-stroke]{stroke:${foreground}!important}`:''}
    ${c.dark?`html,body,[role="main"]{background:${c.amoled?'#000':'#18191a'}!important;color:#eee!important;color-scheme:dark}`:''}
    ${c.sticky?'[role="banner"]{position:sticky!important;top:0!important;z-index:1000!important}':''}
    ${c.reverse?'body{direction:ltr!important}':''}
@@ -322,7 +376,7 @@
  }
  const observer=new MutationObserver(records=>{
   if(cfg.enhance===false)return;
-  if(!records.some(r=>!((r.target.nodeType===1?r.target:r.target.parentElement)?.closest('#fpro-style,.fpro-video-tools'))))return;
+  if(!records.some(r=>!((r.target.nodeType===1?r.target:r.target.parentElement)?.closest('#fpro-style,#fpro-icon-filter,.fpro-video-tools'))))return;
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
  window.__fpro={update};update(initial);

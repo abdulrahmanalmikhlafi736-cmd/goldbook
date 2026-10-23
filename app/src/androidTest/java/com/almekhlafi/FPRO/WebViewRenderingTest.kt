@@ -174,6 +174,72 @@ class WebViewRenderingTest {
         }
     }
 
+    /** Local fixture: prove slot geometry and actual raster-icon pixels, not just attributes. */
+    @Test fun eStorySlotAndRasterPaletteActuallyRender() {
+        org.junit.Assume.assumeTrue(android.os.Build.VERSION.SDK_INT >= 35)
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val automation = instrumentation.getUiAutomation(android.app.UiAutomation.FLAG_DONT_USE_ACCESSIBILITY)
+        val icon = android.util.Base64.encodeToString("""<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="16" fill="#1877f2"/><path d="M9 16l5 5 10-11" fill="none" stroke="white" stroke-width="3"/></svg>""".toByteArray(), android.util.Base64.NO_WRAP)
+        val portrait = android.util.Base64.encodeToString("""<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#ed1c24"/></svg>""".toByteArray(), android.util.Base64.NO_WRAP)
+        ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            Thread.sleep(2300)
+            val ready = CountDownLatch(1)
+            val evidence = java.util.concurrent.atomic.AtomicReference("no fixture response")
+            var collapsed = false
+            val points = FloatArray(6)
+            scenario.onActivity { activity ->
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                web.stopLoading()
+                var injected = false
+                web.webViewClient = object : android.webkit.WebViewClient() {
+                    override fun onPageFinished(view: WebView, url: String?) {
+                        view.evaluateJavascript("!!document.querySelector('#palette-fixture')") { present ->
+                            if (present == "true" && !injected) {
+                                injected = true
+                                val source = activity.assets.open("facebook.js").bufferedReader().use { it.readText() }
+                                    .replace("__CONFIG__", """{"enhance":true,"homeStories":true,"color":"ذهبي"}""")
+                                view.evaluateJavascript("window.__fproPageInfo=()=>({home:true});" + source) {
+                                    view.evaluateJavascript("""
+                                        (()=>{const b=document.querySelector('#badge').getBoundingClientRect(),a=document.querySelector('#avatar').getBoundingClientRect(),r=document.querySelector('#ring').getBoundingClientRect();return JSON.stringify({slot:document.querySelector('#slot').getBoundingClientRect().height,gap:document.querySelector('#post').getBoundingClientRect().top-document.querySelector('#composer').getBoundingClientRect().bottom,width:innerWidth,points:[b.left+4,b.top+16,a.left+a.width/2,a.top+a.height/2,r.left+1,r.top+r.height/2]});})()
+                                    """.trimIndent()) { result ->
+                                        evidence.set(result ?: "null")
+                                        val data = org.json.JSONObject(org.json.JSONArray("[$result]").getString(0))
+                                        collapsed = data.getDouble("slot") == 0.0 && kotlin.math.abs(data.getDouble("gap")) < 1
+                                        val offset = IntArray(2); view.getLocationOnScreen(offset)
+                                        val scale = view.width / data.getDouble("width")
+                                        val coordinates = data.getJSONArray("points")
+                                        for (n in 0..5) points[n] = (coordinates.getDouble(n) * scale + offset[n % 2]).toFloat()
+                                        view.postVisualStateCallback(12, object : WebView.VisualStateCallback() {
+                                            override fun onComplete(requestId: Long) { ready.countDown() }
+                                        })
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                web.loadDataWithBaseURL("https://fixture.invalid/", """
+                    <html><meta name="viewport" content="width=device-width,initial-scale=1">
+                    <body id="palette-fixture" style="margin:0;background:#242526;min-height:100vh">
+                    <header style="height:100px"><span aria-label="هذا الحساب تم التحقق منه"><img id="badge" style="position:absolute;left:24px;top:24px;width:32px;height:32px" src="data:image/svg+xml;base64,$icon"></span>
+                    <div id="ring" style="position:absolute;left:80px;top:24px;border:2px solid rgb(24,119,242);border-radius:50%;width:40px;height:40px"><img id="avatar" style="display:block;width:40px;height:40px;border-radius:50%" src="data:image/svg+xml;base64,$portrait"></div></header>
+                    <main><div id="composer" style="height:40px">Composer</div><div id="slot" style="min-height:190px;padding:12px"><div style="height:190px"><div data-sigil="m-story-tray"><a href="/stories/1">One</a><a href="/stories/2">Two</a></div></div><hr></div><article id="post" style="height:60px">Normal post</article></main>
+                    </body></html>
+                """.trimIndent(), "text/html", "UTF-8", null)
+            }
+            assertTrue("Local palette must produce a visual frame: ${evidence.get()}", ready.await(12, TimeUnit.SECONDS))
+            assertTrue("Story slot including min-height/padding must collapse without a gap: ${evidence.get()}", collapsed)
+            Thread.sleep(400)
+            val bitmap = requireNotNull(automation.takeScreenshot())
+            val badge = bitmap.getPixel(points[0].toInt(), points[1].toInt())
+            val photo = bitmap.getPixel(points[2].toInt(), points[3].toInt())
+            val ring = bitmap.getPixel(points[4].toInt(), points[5].toInt())
+            assertTrue("Verification image pixels must turn gold, not stay blue: ${Integer.toHexString(badge)}", Color.red(badge) > 150 && Color.green(badge) > 100 && Color.blue(badge) < 110)
+            assertTrue("Avatar pixels must remain their original red: ${Integer.toHexString(photo)}", Color.red(photo) > 180 && Color.green(photo) < 70 && Color.blue(photo) < 80)
+            assertTrue("Profile story border must turn gold: ${Integer.toHexString(ring)}", Color.red(ring) > 100 && Color.green(ring) > 60 && Color.blue(ring) < 90)
+        }
+    }
+
     /** A separate, real HTTPS smoke test. No credentials, mock response or DOM replacement. */
     @Test fun liveFacebookLoggedOutSmoke() {
         org.junit.Assume.assumeTrue("Live site requires a recent system WebView", android.os.Build.VERSION.SDK_INT >= 35)

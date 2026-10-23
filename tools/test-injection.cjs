@@ -113,6 +113,24 @@ function fixture(html,config={},captureDownload=false) {
   assert.equal(buttonTray.doc.querySelector('#buttons').style.display,'none','Hide button-based story carousel, not only story links');
   assert.equal(buttonTray.doc.querySelector('#kept').style.display,'');
   buttonTray.run({homeStories:false});assert.equal(buttonTray.doc.querySelector('#buttons').style.display,'flex');
+  const fixedSlot=fixture('<main><div id="composer"><input></div><div id="slot" style="min-height:190px;padding:12px"><div id="fixed" style="height:190px"><div data-sigil="m-story-tray"><a href="/stories/1">One</a><a href="/stories/2">Two</a></div></div><hr></div><article id="next">Next post</article></main>',{homeStories:true});
+  assert.equal(fixedSlot.doc.querySelector('#slot').style.display,'none','Collapse the fixed-height/padded outer slot, not just its cards');
+  assert.equal(fixedSlot.doc.querySelector('#composer').style.display,'');assert.equal(fixedSlot.doc.querySelector('#next').style.display,'');
+  fixedSlot.run({homeStories:false});assert.equal(fixedSlot.doc.querySelector('#slot').style.display,'');assert.equal(fixedSlot.doc.querySelector('#slot').style.minHeight,'190px','Restore original slot geometry when disabled');
+  fixedSlot.run({homeStories:true});fixedSlot.doc.querySelector('#slot').insertAdjacentHTML('beforeend','<article id="recycledPost">Recycled feed post</article>');fixedSlot.run({homeStories:true});
+  assert.equal(fixedSlot.doc.querySelector('#slot').style.display,'','Do not keep a recycled parent hidden after it gains a normal post');
+  const mobileIcons=fixture('<article><header><span aria-label="هذا الحساب تم التحقق منه"><img id="raster" src="badge.png" width="16" height="16"></span><span title="Verified account"><i id="sprite" style="width:16px;height:16px;background-image:url(sprite.png)"></i></span><div id="avatarRing" style="border:2px solid rgb(24,119,242);border-radius:50%"><img id="avatar" src="portrait.jpg"></div><div id="bgRing" style="background:rgb(24,119,242);border-radius:50%"><img src="other.jpg"></div><svg id="clock"><path style="fill:gray"></path></svg></header><p>Normal content</p></article>',{});
+  for(const id of ['avatarRing','bgRing'])mobileIcons.doc.querySelector('#'+id).getBoundingClientRect=()=>({width:44,height:44});
+  mobileIcons.run({color:'ذهبي'});
+  assert(mobileIcons.doc.querySelector('#raster').hasAttribute('data-fpro-accent-icon'),'Recognize localized verification wrappers around raster badges');
+  assert(mobileIcons.doc.querySelector('#sprite').hasAttribute('data-fpro-accent-icon'),'Recognize verification background sprites');
+  assert(mobileIcons.doc.querySelector('#avatarRing').hasAttribute('data-fpro-accent-border'),'Tint circular profile rings even without a stories URL');
+  assert(mobileIcons.doc.querySelector('#bgRing').hasAttribute('data-fpro-accent-ring'));
+  assert(!mobileIcons.doc.querySelector('#avatar').hasAttribute('data-fpro-accent-icon'),'Never filter the profile photograph');
+  assert(!mobileIcons.doc.querySelector('#clock').hasAttribute('data-fpro-accent-fg'),'Do not tint unrelated grey header icons');
+  const matrix=mobileIcons.doc.querySelector('feColorMatrix').getAttribute('values').split(' ').map(Number);
+  for(let row=0;row<3;row++)assert(Math.abs(matrix[row*5]+matrix[row*5+4]-1)<1e-9,'Keep white verification check marks white');
+  mobileIcons.run({color:'تلقائي'});assert(!mobileIcons.doc.querySelector('[data-fpro-accent-icon],[data-fpro-accent-ring],#fpro-icon-filter'),'Restore native icons and remove the palette filter');
   const story=fixture('<main><img id="photo" src="https://cdn.example/story-one.jpg"></main>',{},true);
   story.window.history.replaceState({},'', '/stories/123/456/');const photo=story.doc.querySelector('#photo');
   photo.getBoundingClientRect=()=>({left:0,top:0,width:320,height:600,right:320,bottom:600});
@@ -216,6 +234,6 @@ function fixture(html,config={},captureDownload=false) {
   await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'none','Observe dynamically added cards');
   dynamic.doc.querySelector('#late span').textContent='Ordinary post';
   await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'','Recycled feed cards are restored');
-  console.log('DOM tests passed: scroll-bound emoji gear, lightweight accents, button story trays, story images/backgrounds/videos, stable filtering, 20 recycled videos, stale metadata rejection, nonoverlapping tools, homepage story tray, surfaces/SVG restoration; ads, stories, install banner, accents, dynamic feed, video controls, progress, seeking, restoration, independent touch fullscreen and Seal routing.');
+  console.log('DOM tests passed: scroll-bound emoji gear, lightweight accents, collapsed fixed story slots, localized raster badges/profile rings, button story trays, story images/backgrounds/videos, stable filtering, 20 recycled videos, stale metadata rejection, nonoverlapping tools, homepage story tray, surfaces/SVG restoration; ads, stories, install banner, accents, dynamic feed, video controls, progress, seeking, restoration, independent touch fullscreen and Seal routing.');
  } finally {windows.forEach(w=>w.close());}
 })().catch(error=>{console.error(error);process.exitCode=1;});
