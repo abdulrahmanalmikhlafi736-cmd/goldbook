@@ -128,6 +128,8 @@ function fixture(html,config={},captureDownload=false) {
   assert(mobileIcons.doc.querySelector('#bgRing').hasAttribute('data-fpro-accent-ring'));
   assert(!mobileIcons.doc.querySelector('#avatar').hasAttribute('data-fpro-accent-icon'),'Never filter the profile photograph');
   assert(!mobileIcons.doc.querySelector('#clock').hasAttribute('data-fpro-accent-fg'),'Do not tint unrelated grey header icons');
+  const labelledAuthor=fixture('<article><header aria-label="Verified account author"><img id="profile" alt="Profile photo" src="user.jpg"><img id="badgeOnly" alt="Verified account" src="badge.png"></header></article>',{color:'ذهبي'});
+  assert(!labelledAuthor.doc.querySelector('#profile').hasAttribute('data-fpro-accent-icon'),'A verified author label must not color the profile picture');assert(labelledAuthor.doc.querySelector('#badgeOnly').hasAttribute('data-fpro-accent-icon'));
   const matrix=mobileIcons.doc.querySelector('feColorMatrix').getAttribute('values').split(' ').map(Number);
   for(let row=0;row<3;row++)assert(Math.abs(matrix[row*5]+matrix[row*5+4]-1)<1e-9,'Keep white verification check marks white');
   mobileIcons.run({color:'تلقائي'});assert(!mobileIcons.doc.querySelector('[data-fpro-accent-icon],[data-fpro-accent-ring],#fpro-icon-filter'),'Restore native icons and remove the palette filter');

@@ -64,7 +64,7 @@
  function homeView(){return window.__fproPageInfo ? window.__fproPageInfo().home : /^\/(?:home\.php|index\.php)?$/.test(location.pathname)&&!document.fullscreenElement;}
  function verifiedLabel(el){
   const label=norm([el.getAttribute('aria-label'),el.getAttribute('alt'),el.getAttribute('title'),el.getAttribute('data-tooltip-content'),el.getAttribute('data-testid'),el.tagName.toLowerCase()==='title'?el.textContent:''].filter(Boolean).join(' '));
-  return /verified|verification badge|موثق|تم التحقق|علامة التوثيق/.test(label);
+  return /\bverified\b|\bverification badge\b|موثق|تم التحقق|علامة التوثيق/.test(label);
  }
  function setIconPalette(){
   // A blue-to-theme matrix that leaves white check marks white and preserves
@@ -94,6 +94,7 @@
   function icon(el){
    if(!el||el.closest('.fpro-video-tools,#fpro-icon-filter')||el.querySelector('video'))return;
    const r=el.getBoundingClientRect();if(r.width>48||r.height>48||el.matches('a,button,input'))return;
+   if(el.matches('img')&&(r.width>32||r.height>32||el.getAttribute('alt')&&!verifiedLabel(el)))return;
    if(el.matches('img,i')||!el.children.length&&!el.textContent.trim()&&(el.matches('span,[role="img"]')||getComputedStyle(el).backgroundImage!=='none')){mark(el,'icon');filtered=true;return;}
    const svg=el.closest('svg')||el.querySelector('svg');
    if(svg){mark(svg,'fg');for(const path of svg.querySelectorAll('path,circle,polygon'))if(blue(getComputedStyle(path).fill)||path.hasAttribute('data-fpro-accent-fill'))mark(path,'fill');}
@@ -101,7 +102,7 @@
   for(const el of candidates){
    if(!verifiedLabel(el))continue;
    if(el.matches('img,i,svg,title'))icon(el.tagName.toLowerCase()==='title'?el.closest('svg'):el);
-   else {const children=el.querySelectorAll('svg,img,i');if(children.length)children.forEach(icon);else icon(el);}
+   else {const children=Array.from(el.querySelectorAll('svg,img,i')),owned=children.filter(verifiedLabel);if(owned.length)owned.forEach(icon);else if(children.length===1&&!el.matches('article,header,a,button,[role="article"],[role="banner"]'))icon(children[0]);else if(!children.length)icon(el);}
   }
   // Unlabelled SVG badge next to an author, not global blue navigation icons.
   for(const svg of document.querySelectorAll('article header svg,[role="article"] header svg,article h3 svg,[role="article"] h3 svg')){
