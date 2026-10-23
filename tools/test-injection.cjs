@@ -253,6 +253,27 @@ function fixture(html,config={},captureDownload=false) {
   deniedVideo.dispatchEvent(new denied.window.MouseEvent('dblclick',{bubbles:true,cancelable:true,clientX:150,clientY:150}));
   await Promise.resolve();
   assert.equal(denied.window.__download,'fpro://fullscreen-error','Report rejected fullscreen, never fake fullscreen with CSS');
+  const hiddenColor=fixture('<a href="/hashtag/test">#test</a>',{enhance:true,color:'تلقائي'});
+  Object.defineProperty(hiddenColor.doc,'hidden',{configurable:true,value:true});hiddenColor.run({enhance:true,color:'أحمر'});
+  assert(!hiddenColor.doc.querySelector('[data-fpro-accent-fg]'),'Do not run accent passes in background documents');
+  Object.defineProperty(hiddenColor.doc,'hidden',{configurable:true,value:false});hiddenColor.doc.dispatchEvent(new hiddenColor.window.Event('visibilitychange'));
+  assert(hiddenColor.doc.querySelector('[data-fpro-accent-fg]'),'Resume accent processing when page becomes visible');
+  const rc=fixture('<style id="meta-original">:root{--accent:#0866ff;--primary-icon:#111;--primary-button-background:#0866ff} .keep{border:2px solid #0866ff;color:rgba(8,102,255,0)}</style><img id="rcPhoto" src="portrait.jpg" style="border:2px solid blue"><button class="keep">Test</button>',{enhance:true,color:'أحمر'});
+  const originalMeta=rc.doc.querySelector('#meta-original').textContent,originalPhoto=rc.doc.querySelector('#rcPhoto').getAttribute('style');
+  const accentToken=()=>rc.window.getComputedStyle(rc.doc.documentElement).getPropertyValue('--accent').trim();
+  assert.equal(accentToken(),'#0866ff','RC experiment must be off by default');
+  rc.run({enhance:true,color:'أحمر',experimentalColorVars:true});
+  assert.equal(accentToken(),'#c62828','Experimental RC tokens take the selected red');
+  assert.equal(rc.window.getComputedStyle(rc.doc.documentElement).getPropertyValue('--primary-icon').trim(),'#111','Do not replace normal primary icons');
+  assert.equal(rc.window.__fpro.colorReport().experimentalColorVarsActive,true);
+  rc.run({enhance:true,color:'ذهبي',experimentalColorVars:true});assert.equal(accentToken(),'#d4af37','Changing palettes must reapply tokens without a once-only cache');
+  const lateTheme=rc.doc.createElement('section');lateTheme.className='__fb-dark-mode';rc.doc.body.appendChild(lateTheme);
+  assert.equal(rc.window.getComputedStyle(lateTheme).getPropertyValue('--accent').trim(),'#d4af37','New theme scopes receive the experiment without destructive passes');
+  rc.run({enhance:true,color:'ذهبي',experimentalColorVars:false});assert.equal(accentToken(),'#0866ff','Disabling experiment restores original Meta tokens');
+  for(const color of ['طبيعي','تلقائي']){rc.run({enhance:true,color,experimentalColorVars:true});assert.equal(accentToken(),'#0866ff');assert.equal(rc.window.__fpro.colorReport().experimentalColorVarsActive,false);}
+  rc.run({enhance:true,color:'أحمر',experimentalColorVars:true});rc.run({enhance:false,color:'أحمر',experimentalColorVars:true});assert.equal(accentToken(),'#0866ff','Master off must remove all experimental token overrides');
+  assert.equal(rc.doc.querySelector('#meta-original').textContent,originalMeta,'Never rewrite source styles, border widths, or zero alpha');
+  assert.equal(rc.doc.querySelector('#rcPhoto').getAttribute('style'),originalPhoto,'Never rewrite photo inline declarations');
   const dynamic=fixture('<main id="feed"></main>',{ads:true});
   dynamic.doc.querySelector('#feed').innerHTML='<article id="late"><span>Sponsored</span></article>';
   await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'none','Observe dynamically added cards');

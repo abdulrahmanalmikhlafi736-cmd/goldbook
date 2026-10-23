@@ -242,24 +242,26 @@ class WebViewRenderingTest {
             // avatar renderers, not only IMG + ordinary border in the first phase.
             val green = android.util.Base64.encodeToString("""<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#20b060"/></svg>""".toByteArray(), android.util.Base64.NO_WRAP)
             val redReady = CountDownLatch(1)
-            val redPoints = FloatArray(10)
+            val redPoints = FloatArray(12)
             scenario.onActivity { activity ->
                 val web = requireNotNull(findWeb(activity.window.decorView))
                 val html = """
-                    <style>.pseudo:after{content:"";position:absolute;inset:-3px;border:3px solid rgb(8,102,255);border-radius:50%;box-sizing:border-box;pointer-events:none}</style>
+                    <style>:root{--primary-button-background:#0866ff;--accent:#0866ff}.token-chip{position:absolute;left:24px;top:110px;width:120px;height:32px;background:var(--primary-button-background);color:var(--primary-button-text)}.pseudo:after{content:"";position:absolute;inset:-3px;border:3px solid rgb(8,102,255);border-radius:50%;box-sizing:border-box;pointer-events:none}</style>
+                    <div id="tokenChip" class="token-chip">Token</div>
                     <a id="cssFrame" class="pseudo" href="/profile.php" style="position:absolute;left:24px;top:24px;width:40px;height:40px"><div role="img" style="width:40px;height:40px;border-radius:50%;background-image:url(data:image/svg+xml;base64,$green)"></div></a>
                     <svg id="svgFrame" style="position:absolute;left:100px;top:24px;width:46px;height:46px" viewBox="0 0 46 46"><defs><clipPath id="avatarClip"><circle cx="23" cy="23" r="18"/></clipPath></defs><image href="data:image/svg+xml;base64,$green" x="5" y="5" width="36" height="36" clip-path="url(#avatarClip)"/><circle cx="23" cy="23" r="21" fill="none" stroke="rgb(8,102,255)" stroke-width="3"/></svg>
                     <img id="shadowFrame" src="data:image/svg+xml;base64,$green" style="position:absolute;left:170px;top:24px;width:40px;height:40px;border-radius:50%;box-shadow:0 0 0 3px rgb(8,102,255)">
                     <img id="outlineFrame" src="data:image/svg+xml;base64,$green" style="position:absolute;left:240px;top:24px;width:40px;height:40px;border-radius:50%;outline:3px solid rgb(8,102,255)">
                 """.trimIndent()
-                web.evaluateJavascript("document.body.innerHTML=" + org.json.JSONObject.quote(html) + ";window.__fpro.update({enhance:true,color:'أحمر'});") {
+                web.evaluateJavascript("document.body.innerHTML=" + org.json.JSONObject.quote(html) + ";window.__fpro.update({enhance:true,color:'أحمر',experimentalColorVars:true});") {
                     web.evaluateJavascript("""
-                        (()=>{const a=document.querySelector('#cssFrame').getBoundingClientRect(),b=document.querySelector('#svgFrame').getBoundingClientRect(),c=document.querySelector('#shadowFrame').getBoundingClientRect(),d=document.querySelector('#outlineFrame').getBoundingClientRect();return JSON.stringify({width:innerWidth,points:[a.left-2,a.top+20,b.left+2,b.top+23,c.left-2,c.top+20,d.left-2,d.top+20,a.left+20,a.top+20]});})()
+                        (()=>{const a=document.querySelector('#cssFrame').getBoundingClientRect(),b=document.querySelector('#svgFrame').getBoundingClientRect(),c=document.querySelector('#shadowFrame').getBoundingClientRect(),d=document.querySelector('#outlineFrame').getBoundingClientRect();return JSON.stringify({active:window.__fpro.colorReport().experimentalColorVarsActive,width:innerWidth,points:[a.left-2,a.top+20,b.left+2,b.top+23,c.left-2,c.top+20,d.left-2,d.top+20,a.left+20,a.top+20,134,115]});})()
                     """.trimIndent()) { result ->
                         val data = org.json.JSONObject(org.json.JSONArray("[$result]").getString(0))
                         val offset = IntArray(2); web.getLocationOnScreen(offset)
                         val scale = web.width / data.getDouble("width")
-                        for (n in 0..9) redPoints[n] = (data.getJSONArray("points").getDouble(n) * scale + offset[n % 2]).toFloat()
+                        assertTrue("RC token experiment must be active", data.getBoolean("active"))
+                        for (n in 0..11) redPoints[n] = (data.getJSONArray("points").getDouble(n) * scale + offset[n % 2]).toFloat()
                         web.postVisualStateCallback(13, object : WebView.VisualStateCallback() {
                             override fun onComplete(requestId: Long) { redReady.countDown() }
                         })
@@ -273,8 +275,22 @@ class WebViewRenderingTest {
                 val pixel = redBitmap.getPixel(redPoints[n*2].toInt(), redPoints[n*2+1].toInt())
                 assertTrue("Pseudo/SVG/shadow/outline ring $n must be RED, not blue: ${Integer.toHexString(pixel)}", Color.red(pixel) > 150 && Color.green(pixel) < 90 && Color.blue(pixel) < 90)
             }
+            val tokenPixel = redBitmap.getPixel(redPoints[10].toInt(), redPoints[11].toInt())
+            assertTrue("RC variable-driven button must actually paint red", Color.red(tokenPixel) > 150 && Color.green(tokenPixel) < 90 && Color.blue(tokenPixel) < 90)
             val originalPhoto = redBitmap.getPixel(redPoints[8].toInt(), redPoints[9].toInt())
             assertTrue("CSS background profile photo must stay green: ${Integer.toHexString(originalPhoto)}", Color.green(originalPhoto) > 130 && Color.red(originalPhoto) < 80)
+            val restored = CountDownLatch(1)
+            val transitionResult = java.util.concurrent.atomic.AtomicReference<String>()
+            scenario.onActivity { activity ->
+                requireNotNull(findWeb(activity.window.decorView)).evaluateJavascript("""
+                    (()=>{const chip=document.querySelector('#tokenChip');window.__fpro.update({enhance:true,color:'ذهبي',experimentalColorVars:true});const gold=getComputedStyle(chip).backgroundColor;window.__fpro.update({enhance:true,color:'ذهبي',experimentalColorVars:false});return JSON.stringify({gold,original:getComputedStyle(chip).backgroundColor,active:window.__fpro.colorReport().experimentalColorVarsActive});})()
+                """.trimIndent()) { result -> transitionResult.set(result); restored.countDown() }
+            }
+            assertTrue("Live palette change and RC off must finish", restored.await(8, TimeUnit.SECONDS))
+            val transitions = org.json.JSONObject(org.json.JSONArray("[${transitionResult.get()}]").getString(0))
+            assertEquals("rgb(212, 175, 55)", transitions.getString("gold"))
+            assertEquals("rgb(8, 102, 255)", transitions.getString("original"))
+            assertFalse(transitions.getBoolean("active"))
         }
     }
 

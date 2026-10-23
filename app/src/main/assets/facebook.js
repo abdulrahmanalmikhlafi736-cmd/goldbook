@@ -109,7 +109,7 @@
   if(!iconDefs.isConnected)document.body.appendChild(iconDefs);
  }
  function tint() {
-  if (!colors[cfg.color]) return;
+  if (document.hidden || !colors[cfg.color]) return;
   // Read original site styles on every pass, so a ring that turns grey/read
   // does not stay force-colored. No CSS/body reset and no photo filtering.
   painted.forEach(el=>accentAttrs.forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));restoreTintVars();
@@ -427,7 +427,12 @@
   const contrast=['ذهبي','فضي','أبيض','برتقالي'].includes(c.color)?'#111':'#fff';
   // Compute blue accents before applying our overrides. Never recolor photographs.
   tint();
+  // Optional RC experiment: reversible token overrides, never rewrite Meta's
+  // stylesheets/inline declarations or its primary-icon/surface tokens.
+  const rcTokens=c.experimentalColorVars && accent && !['طبيعي','تلقائي'].includes(c.color)
+   ? `:root,body,.__fb-light-mode,.__fb-dark-mode{${['--accent','--primary-blue','--blue-link','--primary-button-background','--primary-deemphasized-button-text'].map(key=>key+':'+accent+'!important').join(';')};--primary-button-text:${contrast}!important}` : '';
   style.textContent=`
+   ${rcTokens}
    body{-webkit-user-select:text!important}
    ${accent?`[data-fpro-accent-bg]{background-color:${accent}!important;color:${contrast}!important}[data-fpro-accent-bg] *{color:${contrast}!important}[data-fpro-accent-fg]{color:${foreground}!important}[data-fpro-accent-icon]{filter:url("#fpro-icon-palette")!important}[data-fpro-accent-ring]{background-color:${accent}!important}[data-fpro-accent-outline]{outline-color:${accent}!important}[data-fpro-accent-shadow]{box-shadow:var(--fpro-ring-shadow)!important}[data-fpro-accent-gradient]{background-image:var(--fpro-ring-gradient)!important}[data-fpro-accent-stop]{stop-color:${accent}!important}[data-fpro-accent-border]{border-color:${foreground}!important}[data-fpro-accent-fill]{fill:${foreground}!important}[data-fpro-accent-stroke]{stroke:${foreground}!important}`:''}
    ${accent?['before','after'].map(p=>`[data-fpro-accent-${p}-border]::${p}{border-color:${accent}!important}[data-fpro-accent-${p}-outline]::${p}{outline-color:${accent}!important}[data-fpro-accent-${p}-shadow]::${p}{box-shadow:var(--fpro-${p}-shadow)!important}[data-fpro-accent-${p}-bg]::${p}{background-color:${accent}!important}[data-fpro-accent-${p}-gradient]::${p}{background-image:var(--fpro-${p}-gradient)!important}`).join(''):''}
@@ -450,7 +455,7 @@
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
  function colorReport(){
-  const report={version:13,enhance:cfg.enhance!==false,color:cfg.color,matched:{},avatarSources:{img:0,svg:0,background:0},remainingBlue:[]};
+  const report={version:14,enhance:cfg.enhance!==false,color:cfg.color,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),matched:{},avatarSources:{img:0,svg:0,background:0},remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:isBlue(c.color),background:isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>isBlue(c['border'+side+'Color'])),outline:isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:isBlue(c.stroke)};}
@@ -461,5 +466,6 @@
   }
   return report;
  }
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)scan();});
  window.__fpro={update,colorReport};update(initial);
 })();

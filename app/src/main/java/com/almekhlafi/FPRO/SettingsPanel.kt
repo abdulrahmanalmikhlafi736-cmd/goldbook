@@ -40,6 +40,8 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         Text("المظهر والألوان", style = MaterialTheme.typography.titleLarge)
         var expanded by remember { mutableStateOf(false) }
         Text("تلوين خفيف للتفاصيل: الهاشتاجات والمتابعة والصداقة والتوثيق وحلقات القصص؛ دون تغيير خلفيات الموقع.", style = MaterialTheme.typography.bodySmall)
+        Toggle("تجربة متغيرات ألوان فيسبوك", "experimentalColorVars", prefs, revision) { update() }
+        Text("تجريبي ومغلق افتراضياً: اختر الأحمر ثم فعّله للمقارنة. قد يغيّر أي عنصر يعتمد متغيرات الألوان، ومنها الأزرار والروابط؛ أوقفه إذا اتسع التلوين. لا يعيد كتابة أنماط الموقع أو ألوان الصور. أوقفه لاستعادة المتغيرات الأصلية. لا يعمل مع طبيعي أو تلقائي.", style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = copyColorDiagnostics) { Text("نسخ تشخيص التلوين — دون بيانات الحساب") }
         Box {
             OutlinedButton(onClick = { expanded = true }) { Text("اللون: ${prefs.text("color", "تلقائي")}") }

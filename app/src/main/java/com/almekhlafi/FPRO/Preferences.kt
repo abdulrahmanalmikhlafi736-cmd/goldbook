@@ -7,7 +7,7 @@ class Preferences(context: Context) {
     private val store = context.getSharedPreferences("fpro", Context.MODE_PRIVATE)
     fun flag(key: String, default: Boolean = false) = store.getBoolean(key, default)
     fun text(key: String, default: String = "") = store.getString(key, default) ?: default
-    private val pageKeys = setOf("homeStories", "ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads", "dark", "amoled", "liveColor")
+    private val pageKeys = setOf("homeStories", "ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads", "dark", "amoled", "liveColor", "experimentalColorVars")
     init {
         if (!store.getBoolean("sealQuickSetupV9", false)) {
             store.edit().apply {
@@ -38,6 +38,7 @@ class Preferences(context: Context) {
         put("enhance", flag("pageEnhancements"))
         put("doubleTapFullscreen", flag("doubleTapFullscreen", true))
         put("color", text("color", "تلقائي"))
+        put("experimentalColorVars", flag("experimentalColorVars"))
         put("dark", flag("dark")); put("amoled", flag("amoled"))
     }.toString()
 }
