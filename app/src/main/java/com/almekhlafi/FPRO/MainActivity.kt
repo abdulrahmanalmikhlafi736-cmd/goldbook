@@ -180,11 +180,8 @@ class MainActivity : ComponentActivity() {
             override fun onPageFinished(view: WebView, url: String?) {
                 CookieManager.getInstance().flush()
                 loadState = "انتهى التحميل: $url"
-                // ES5 syntax here is intentional: diagnostics must also run on old
-                // providers which cannot parse Facebook's modern JavaScript.
-                view.evaluateJavascript("(function(){return !!document.body && document.body.innerText.replace(/\\s/g,'').length > 30;})()") { result ->
-                    pageConfirmed = result == "true"
-                }
+                // Do not probe or mutate the DOM while Facebook's bootstrap is
+                // still initializing. The independent watchdog reads it later.
                 val engineMajor = Regex("Chrome/(\\d+)").find(mobileAgent)?.groupValues?.get(1)?.toIntOrNull()
                 if (Navigation.isFacebook(url.orEmpty()) && engineMajor != null && engineMajor < 80) {
                     failure = "محرك Android System WebView قديم (Chromium $engineMajor) ولا يدعم صياغة JavaScript الحديثة. حدّث WebView أو Chrome من متجر التطبيقات ثم أعد فتح FPRO.\n${diagnostics()}"

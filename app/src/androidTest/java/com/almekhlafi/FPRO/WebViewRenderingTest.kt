@@ -65,7 +65,7 @@ class WebViewRenderingTest {
                         } catch (_: Exception) { if (attempt < 40) web.postDelayed({ probe(attempt + 1) }, 1000) }
                     }
                 }
-                web.postDelayed({ probe(0) }, 1500)
+                web.postDelayed({ probe(0) }, 15_000)
             }
             val loaded = ready.await(50, TimeUnit.SECONDS)
             val instrumentation = InstrumentationRegistry.getInstrumentation()
