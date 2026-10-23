@@ -69,3 +69,10 @@ jobs:
             device-diagnostics/
             */build/reports/androidTests/
             */build/outputs/androidTest-results/
+      - name: Publish the exact device-tested compact APK
+        if: success() && matrix.variant == 'compact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: FPRO-compact-device-verified
+          path: app/build/outputs/apk/compact/app-compact.apk
+          if-no-files-found: error

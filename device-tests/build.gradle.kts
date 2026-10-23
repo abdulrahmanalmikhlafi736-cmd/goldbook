@@ -23,7 +23,7 @@ android {
 }
 dependencies {
     // This independent harness does not link against the app's optimized Kotlin/
-    // AndroidX classes. It interacts only through platform Activity/View APIs.
+    // AndroidX classes. UI Automator checks the app from a separate process.
     implementation("androidx.test:runner:1.6.2")
     implementation("androidx.test.ext:junit:1.2.1")
     implementation("androidx.test.uiautomator:uiautomator:2.3.0")
