@@ -24,16 +24,25 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: ./gradlew connectedDebugAndroidTest --stacktrace
+          script: |
+            mkdir -p device-diagnostics
+            if ./gradlew connectedDebugAndroidTest --stacktrace > device-diagnostics/gradle.log 2>&1; then echo PASS > device-diagnostics/result; else echo FAIL > device-diagnostics/result; fi
+            timeout 15 adb logcat -d > device-diagnostics/logcat.txt || true
+            timeout 15 adb pull /sdcard/Android/data/com.almekhlafi.FPRO/files/ device-diagnostics/ || true
+            cat device-diagnostics/gradle.log
+            test "$(cat device-diagnostics/result)" = PASS
       - name: Collect device diagnostics
         if: always()
         run: |
           mkdir -p device-diagnostics
-          adb logcat -d > device-diagnostics/logcat.txt || true
-          adb pull /sdcard/Android/data/com.almekhlafi.FPRO/files/ device-diagnostics/ || true
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
+          log = Path('device-diagnostics/gradle.log')
+          if log.exists():
+              for line in log.read_text().splitlines():
+                  if line.startswith('e: ') or 'FAILED' in line or 'AssertionError' in line:
+                      print('::error::' + line.replace('%','%25'))
           for report in Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'):
               for failure in ET.parse(report).iter('failure'):
                   message = (failure.get('message') or failure.text or 'Device test failed').splitlines()[0]
