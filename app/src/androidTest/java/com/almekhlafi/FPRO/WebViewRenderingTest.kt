@@ -14,6 +14,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /** Verifies real rendered pixels, not just successful compilation or DOM presence. */
+@org.junit.FixMethodOrder(org.junit.runners.MethodSorters.NAME_ASCENDING)
 @RunWith(AndroidJUnit4::class)
 class WebViewRenderingTest {
     private fun findWeb(view: View): WebView? {
@@ -22,8 +23,9 @@ class WebViewRenderingTest {
         return null
     }
 
-    @Test fun plainNativeBrowserBaseline() {
+    @Test fun aPlainNativeBrowserBaseline() {
         org.junit.Assume.assumeTrue(android.os.Build.VERSION.SDK_INT >= 35)
+        val nativeAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation(android.app.UiAutomation.FLAG_DONT_USE_ACCESSIBILITY)
         ActivityScenario.launch<android.app.Activity>(android.content.Intent().setClassName(InstrumentationRegistry.getInstrumentation().targetContext.packageName, "com.almekhlafi.FPRO.PlainWebActivity")).use { scenario ->
             Thread.sleep(25_000)
             val complete = CountDownLatch(1)
@@ -39,8 +41,7 @@ class WebViewRenderingTest {
                 }
             }
             assertTrue("Native baseline must answer JavaScript", complete.await(5, TimeUnit.SECONDS))
-            val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
-            android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/fpro-baseline.png")).use { it.readBytes() }
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(nativeAutomation.executeShellCommand("screencap -p /data/local/tmp/fpro-baseline.png")).use { it.readBytes() }
             println("PLAIN_BASELINE: " + evidence.get())
         }
     }
@@ -48,6 +49,7 @@ class WebViewRenderingTest {
     /** A separate, real HTTPS smoke test. No credentials, mock response or DOM replacement. */
     @Test fun liveFacebookLoggedOutSmoke() {
         org.junit.Assume.assumeTrue("Live site requires a recent system WebView", android.os.Build.VERSION.SDK_INT >= 35)
+        val browserAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation(android.app.UiAutomation.FLAG_DONT_USE_ACCESSIBILITY)
         ActivityScenario.launch<android.app.Activity>(android.content.Intent().setClassName(InstrumentationRegistry.getInstrumentation().targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
             val ready = CountDownLatch(1)
             val state = java.util.concurrent.atomic.AtomicReference("no callback")
@@ -67,11 +69,11 @@ class WebViewRenderingTest {
             }
             val loaded = ready.await(50, TimeUnit.SECONDS)
             val instrumentation = InstrumentationRegistry.getInstrumentation()
-            val bitmap = instrumentation.uiAutomation.takeScreenshot()
+            val bitmap = browserAutomation.takeScreenshot()
             val target = instrumentation.targetContext.getExternalFilesDir(null)!!
             if (bitmap != null) java.io.File(target, "facebook-live.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
             android.util.Log.i("FPRO_EVIDENCE", "COMPOSE_SITE: " + state.get())
-            android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("screencap -p /data/local/tmp/fpro-compose.png")).use { it.readBytes() }
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(browserAutomation.executeShellCommand("screencap -p /data/local/tmp/fpro-compose.png")).use { it.readBytes() }
             println("LIVE_WEB: " + state.get())
             assertTrue("Live Facebook must deliver actual content/controls: " + state.get(), loaded)
         }

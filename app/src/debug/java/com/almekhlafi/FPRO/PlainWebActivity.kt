@@ -6,6 +6,8 @@ class PlainWebActivity : android.app.Activity() {
     @android.annotation.SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(state: android.os.Bundle?) {
         super.onCreate(state)
+        val accessibility = getSystemService(android.view.accessibility.AccessibilityManager::class.java)
+        android.util.Log.i("FPRO_EVIDENCE", "BASELINE_ACCESSIBILITY=" + accessibility.isEnabled)
         browser = android.webkit.WebView(this)
         setContentView(browser)
         browser.settings.javaScriptEnabled = true
