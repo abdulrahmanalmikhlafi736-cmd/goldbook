@@ -70,6 +70,60 @@ class WebViewRenderingTest {
         }
     }
 
+    /** Local fixture, but real Android touch injection and native fullscreen callback. */
+    @Test fun cTouchDoubleTapEntersNativeFullscreenWithoutVideoTools() {
+        org.junit.Assume.assumeTrue(android.os.Build.VERSION.SDK_INT >= 35)
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val automation = instrumentation.getUiAutomation(android.app.UiAutomation.FLAG_DONT_USE_ACCESSIBILITY)
+        ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            Thread.sleep(2300)
+            val ready = CountDownLatch(1)
+            val point = FloatArray(2)
+            scenario.onActivity { activity ->
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                val location = IntArray(2); web.getLocationOnScreen(location)
+                point[0] = location[0] + web.width / 2f; point[1] = location[1] + web.height / 2f
+                web.stopLoading()
+                web.loadDataWithBaseURL("https://fixture.invalid/", """
+                    <html><meta name="viewport" content="width=device-width,initial-scale=1">
+                    <body style="margin:0"><video style="position:fixed;inset:0;width:100%;height:100%"></video>
+                    <div style="position:fixed;inset:0" role="button" aria-label="Play"></div></body></html>
+                """.trimIndent(), "text/html", "UTF-8", null)
+                web.postDelayed({
+                    val script = activity.assets.open("facebook.js").bufferedReader().use { it.readText() }
+                        .replace("__CONFIG__", "{\"enhance\":false,\"doubleTapFullscreen\":true,\"downloads\":false,\"rainbow\":false}")
+                    web.evaluateJavascript(script) {
+                        web.evaluateJavascript("!!window.__fpro && !document.querySelector('.fpro-video-tools')") { result ->
+                            if (result == "true") ready.countDown()
+                        }
+                    }
+                }, 700)
+            }
+            assertTrue("Gesture-only script must initialize without video overlays", ready.await(5, TimeUnit.SECONDS))
+            repeat(2) {
+                val down = android.os.SystemClock.uptimeMillis()
+                val press = android.view.MotionEvent.obtain(down, down, android.view.MotionEvent.ACTION_DOWN, point[0], point[1], 0)
+                press.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+                assertTrue(automation.injectInputEvent(press, true)); press.recycle()
+                Thread.sleep(50)
+                val release = android.view.MotionEvent.obtain(down, android.os.SystemClock.uptimeMillis(), android.view.MotionEvent.ACTION_UP, point[0], point[1], 0)
+                release.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+                assertTrue(automation.injectInputEvent(release, true)); release.recycle()
+                if (it == 0) Thread.sleep(70)
+            }
+            var nativeFullscreen = false
+            repeat(25) {
+                scenario.onActivity { activity ->
+                    val field = MainActivity::class.java.getDeclaredField("fullView"); field.isAccessible = true
+                    nativeFullscreen = field.get(activity) != null
+                }
+                if (!nativeFullscreen) Thread.sleep(100)
+            }
+            assertTrue("Two real touch taps through the player cover must trigger WebChromeClient native fullscreen", nativeFullscreen)
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("input keyevent KEYCODE_BACK")).use { it.readBytes() }
+        }
+    }
+
     /** A separate, real HTTPS smoke test. No credentials, mock response or DOM replacement. */
     @Test fun liveFacebookLoggedOutSmoke() {
         org.junit.Assume.assumeTrue("Live site requires a recent system WebView", android.os.Build.VERSION.SDK_INT >= 35)

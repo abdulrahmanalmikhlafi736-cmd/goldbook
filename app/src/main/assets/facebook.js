@@ -4,7 +4,7 @@
  if (!document.body) return;
  if (window.__fpro) { window.__fpro.update(initial); return; }
  let cfg = initial, pending = null;
- const style = document.createElement('style'); style.id = 'fpro-style'; const nonce=document.querySelector('style[nonce],script[nonce]'); if(nonce)style.nonce=nonce.nonce; document.head.appendChild(style);
+ const style = document.createElement('style'); style.id = 'fpro-style'; const nonce=document.querySelector('style[nonce],script[nonce]'); if(nonce)style.nonce=nonce.nonce;
  const colors = {'طبيعي':'#1877f2','ذهبي':'#d4af37','أحمر':'#c62828','أخضر':'#17833e','بنفسجي':'#8643c5','برتقالي':'#ed701b','فيروزي':'#008c95','وردي':'#d34489','بني':'#805539','فضي':'#9ba6b0','أبيض':'#ffffff'};
  const norm = s => (s || '').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');
  const words = {
@@ -37,7 +37,13 @@
   return null;
  }
  function appBanner(link, explicitLabel = false) {
-  if(link.closest('[role="article"],article,[data-pagelet^="FeedUnit"]')) return;
+  const control=link.closest('a,button,[role="button"]');
+  const inPost=link.closest('[role="article"],article,[data-pagelet^="FeedUnit"]');
+  // Reels place the Open App control inside the player/article. Hide that
+  // control only, never the reel or its search/profile/navigation siblings.
+  if(inPost) { if(explicitLabel && control) hide(control); return; }
+  const header=control && control.closest('header,nav,[role="banner"],[role="navigation"]');
+  if(explicitLabel && header && header.querySelectorAll('a,button,[role="button"]').length>1) { hide(control); return; }
   const href = link.getAttribute('href') || '';
   if (!explicitLabel && !/^(intent:|fb:|fb-messenger:|android-app:)/i.test(href) && !/(play\.google\.com\/store\/apps|apps\.apple\.com\/|\/marketplace\/app_redirect|\/r\.php\?.*app_id|\/openinapp|\/native_app|\/intent\/)/i.test(href)) return;
   let block = link;
@@ -63,12 +69,14 @@
   }
  }
  function scan() {
+  if(cfg.enhance===false)return;
   restoreHidden();
-  const labels = document.querySelectorAll('a,span,abbr,strong,b,button,[role="button"],[role="heading"],[aria-label]');
+  const labels = document.querySelectorAll('a,span,abbr,strong,b,button,[role="button"],div[dir="auto"],[role="heading"],[aria-label]');
   for (let i=0;i<Math.min(labels.length,2400);i++) {
    const label=labels[i]; if(label.closest('.fpro-video-tools')) continue;
    const text=norm(label.getAttribute('aria-label') || label.innerText || label.textContent);
-   if(cfg.appBanner && ['open app','open in app','get the app','get facebook for android and browse faster','حمل تطبيق فيسبوك','فتح التطبيق','افتح التطبيق','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق'].includes(text)) appBanner(label,true);
+   const appText=text.replace(/^(facebook|فيسبوك|f)\s*/,'').replace(/\s*(facebook|فيسبوك|f)$/,'');
+   if(cfg.appBanner && ['open app','open in app','get the app','get facebook for android and browse faster','حمل تطبيق فيسبوك','فتح التطبيق','افتح التطبيق','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق'].includes(appText)) appBanner(label,true);
    if(!text || text.length>100) continue;
    for(const key of Object.keys(words)) if(cfg[key] && words[key].some(w=>text===norm(w))) hide(section(label,key));
   }
@@ -96,7 +104,7 @@
  function attachVideo(video) {
   if(videos.has(video)) return;
   const overlay=document.createElement('div'); overlay.className='fpro-video-tools';
-  const button=document.createElement('button'); button.className='fpro-download';button.type='button';button.textContent='↓';button.setAttribute('aria-label','تنزيل الفيديو');
+  const button=document.createElement('button'); button.className='fpro-download';button.type='button';button.innerHTML='<svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true" focusable="false"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';button.setAttribute('aria-label','تنزيل الفيديو');
   const track=document.createElement('div');track.className='fpro-track';
   const fill=document.createElement('div');fill.className='fpro-fill';
   const ball=document.createElement('span');ball.className='fpro-ball';ball.textContent='⚽';fill.appendChild(ball);track.appendChild(fill);
@@ -117,20 +125,72 @@
   function progress(){const valid=Number.isFinite(video.duration)&&video.duration>0;const fraction=valid?Math.max(0,Math.min(1,video.currentTime/video.duration)):0;fill.style.width=(fraction*100)+'%';seek.value=String(Math.round(fraction*1000));seek.disabled=!valid;seek.setAttribute('aria-valuetext',valid?Math.floor(video.currentTime)+' / '+Math.floor(video.duration)+' ثانية':'بث مباشر أو مدة غير متاحة');}
   seek.oninput=e=>{e.stopPropagation();if(Number.isFinite(video.duration)&&video.duration>0){try{video.currentTime=Number(seek.value)/1000*video.duration;}catch(_){}progress();}};
   seek.onclick=e=>e.stopPropagation();
-  const doubleClick=e=>{e.preventDefault();if(document.fullscreenElement){document.exitFullscreen?.();}else{const result=video.requestFullscreen?.();if(result&&result.catch)result.catch(()=>{});}};
-  video.addEventListener('dblclick',doubleClick);
   const events=['timeupdate','durationchange','loadedmetadata','seeking','ended','emptied'];events.forEach(name=>video.addEventListener(name,progress));
   if(resize)resize.observe(video);
-  videos.set(video,{layout(){const r=video.getBoundingClientRect();const dialog=Array.from(document.querySelectorAll('[role="dialog"]')).find(el=>{const b=el.getBoundingClientRect(),s=getComputedStyle(el);return b.width>0&&b.height>0&&s.visibility!=='hidden'&&s.display!=='none'&&s.opacity!=='0';});overlay.hidden=!(r.width>0&&r.height>0&&r.bottom>0&&r.right>0&&r.top<innerHeight&&r.left<innerWidth) || !!(dialog&&!dialog.contains(video));overlay.style.left=r.left+'px';overlay.style.top=r.top+'px';overlay.style.width=r.width+'px';overlay.style.height=r.height+'px';button.hidden=!cfg.downloads;track.hidden=!cfg.rainbow;placeButton();progress();},dispose(){if(resize)resize.unobserve(video);clearTimeout(timer);video.removeEventListener('dblclick',doubleClick);events.forEach(name=>video.removeEventListener(name,progress));overlay.remove();}});
+  videos.set(video,{layout(){const r=video.getBoundingClientRect();const dialog=Array.from(document.querySelectorAll('[role="dialog"]')).find(el=>{const b=el.getBoundingClientRect(),s=getComputedStyle(el);return b.width>0&&b.height>0&&s.visibility!=='hidden'&&s.display!=='none'&&s.opacity!=='0';});overlay.hidden=!(r.width>0&&r.height>0&&r.bottom>0&&r.right>0&&r.top<innerHeight&&r.left<innerWidth) || !!(dialog&&!dialog.contains(video));overlay.style.left=r.left+'px';overlay.style.top=r.top+'px';overlay.style.width=r.width+'px';const reel=/^\/reels?(?:\/|$)/.test(location.pathname) && r.height>innerHeight*0.6;const viewportBottom=window.visualViewport?Math.min(innerHeight,window.visualViewport.offsetTop+window.visualViewport.height):innerHeight;overlay.style.height=(reel?Math.max(0,viewportBottom-r.top):r.height)+'px';button.hidden=!cfg.downloads;track.hidden=!cfg.rainbow;placeButton();progress();},dispose(){if(resize)resize.unobserve(video);clearTimeout(timer);events.forEach(name=>video.removeEventListener(name,progress));overlay.remove();}});
  }
+ // A document-level capture listener also sees touches on Facebook's player
+ // cover layers. It is independent of download/progress overlay attachment.
+ let touch=null,lastTap=null,lastFullscreen= -Infinity;
+ function gestureVideo(e) {
+  if(cfg.doubleTapFullscreen===false || e.isPrimary===false)return null;
+  const target=e.target.nodeType===1?e.target:e.target.parentElement;
+  if(!target || target.closest('.fpro-video-tools,input,textarea,select,[contenteditable="true"]'))return null;
+  const candidates=Array.from(document.querySelectorAll('video')).filter(v=>{
+   const r=v.getBoundingClientRect(), c=getComputedStyle(v);
+   return r.width>0&&r.height>0&&e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom&&c.display!=='none'&&c.visibility!=='hidden';
+  });
+  const video=candidates.find(v=>v===target || v.contains(target)) || candidates.find(v=>target.closest('[role="article"],article')?.contains(v)) || candidates[0];
+  if(!video)return null;
+  const dialog=target.closest('[role="dialog"]');if(dialog&&!dialog.contains(video))return null;
+  const control=target.closest('a,button,[role="button"]');
+  if(control){const r=control.getBoundingClientRect(),v=video.getBoundingClientRect();const label=norm(control.getAttribute('aria-label') || control.textContent);
+   if(r.width*r.height<v.width*v.height*.2 && label && !/play|pause|تشغيل|إيقاف/.test(label))return null;
+  }
+  return video;
+ }
+ function toggleFullscreen(video) {
+  const now=performance.now();if(now-lastFullscreen<450)return;lastFullscreen=now;
+  function failed(){location.href='fpro://fullscreen-error';}
+  try {
+   let result;
+   if(document.fullscreenElement || document.webkitFullscreenElement){
+    const exit=document.exitFullscreen || document.webkitExitFullscreen;
+    if(!exit){failed();return;}result=exit.call(document);
+   }else{
+    const enter=video.requestFullscreen || video.webkitRequestFullscreen || video.webkitEnterFullscreen;
+    if(!enter){failed();return;}result=enter.call(video);
+   }
+   if(result&&typeof result.catch==='function')result.catch(failed);
+  }catch(_){failed();}
+ }
+ document.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse' && e.button!==0)return;
+  const video=gestureVideo(e);touch=video?{video,id:e.pointerId,x:e.clientX,y:e.clientY,time:performance.now(),moved:false}:null;
+ },true);
+ document.addEventListener('pointermove',e=>{if(touch&&touch.id===e.pointerId && Math.hypot(e.clientX-touch.x,e.clientY-touch.y)>14){touch.moved=true;lastTap=null;}},true);
+ document.addEventListener('pointercancel',()=>{touch=null;lastTap=null;},true);
+ document.addEventListener('pointerup',e=>{
+  const current=touch;touch=null;
+  if(!current || current.id!==e.pointerId || current.moved || performance.now()-current.time>450 || Math.hypot(e.clientX-current.x,e.clientY-current.y)>14){lastTap=null;return;}
+  const video=gestureVideo(e),now=performance.now();
+  if(video!==current.video){lastTap=null;return;}
+  if(lastTap && lastTap.video===video && now-lastTap.time<=320 && Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<=36){
+   lastTap=null;e.preventDefault();e.stopPropagation();toggleFullscreen(video);
+  }else lastTap={video,time:now,x:e.clientX,y:e.clientY};
+ },true);
+ document.addEventListener('dblclick',e=>{const video=gestureVideo(e);if(video){e.preventDefault();e.stopPropagation();toggleFullscreen(video);}},true);
  function layoutVideos(){videos.forEach(entry=>entry.layout());}
  let frame=null;
- function scheduleLayout(){if(frame===null)frame=requestAnimationFrame(()=>{frame=null;layoutVideos();});}
+ function scheduleLayout(){if(videos.size===0)return;if(frame===null)frame=requestAnimationFrame(()=>{frame=null;layoutVideos();});}
  window.addEventListener('scroll',scheduleLayout,true);window.addEventListener('resize',scheduleLayout);
  const resize=typeof ResizeObserver==='function'?new ResizeObserver(scheduleLayout):null;
- if(resize)resize.observe(document.body);
  function update(c){
   cfg=c;style.textContent='';restoreHidden();painted.forEach(el=>['bg','fg','border'].forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));painted.clear();
+  if(c.enhance===false){observer.disconnect();if(resize)resize.disconnect();videos.forEach(entry=>entry.dispose());videos.clear();style.remove();lastTap=null;touch=null;return;}
+  if(resize)resize.observe(document.body);
+  if(!style.isConnected)document.head.appendChild(style);
+  observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','href','src']});
   const accent=colors[c.color];
   const foreground=c.dark?accent:({'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'}[c.color] || accent);
   const contrast=['ذهبي','فضي','أبيض','برتقالي'].includes(c.color)?'#111':'#fff';
@@ -144,18 +204,18 @@
    ${c.reverse?'body{direction:ltr!important}':''}
    .fpro-video-tools{direction:ltr;position:fixed;z-index:10000;pointer-events:none;overflow:hidden}
    .fpro-video-tools[hidden],.fpro-video-tools [hidden]{display:none!important}
-   .fpro-download{position:absolute;pointer-events:auto;min-width:44px;min-height:44px;border:1px solid #fff9;border-radius:24px;background:#111b;color:white;touch-action:none;-webkit-user-select:none;font-size:24px}
-   .fpro-track{position:absolute;bottom:0;left:8px;right:8px;height:28px;pointer-events:auto;background:#2229;border-radius:14px}
-   .fpro-fill{position:absolute;bottom:8px;left:0;height:6px;border-radius:4px;background:linear-gradient(90deg,red,orange,yellow,lime,cyan,blue,violet);width:0}
-   .fpro-ball{position:absolute;right:-9px;top:-7px;font-size:18px;line-height:20px}
+   .fpro-download{position:absolute;pointer-events:auto;box-sizing:border-box;display:grid;place-items:center;width:44px!important;height:44px!important;min-width:44px;min-height:44px;padding:0!important;border:1px solid #ffffff80!important;border-radius:50%!important;background:rgba(255,255,255,.12)!important;box-shadow:none!important;color:#fff!important;backdrop-filter:blur(2px);touch-action:none;-webkit-user-select:none;line-height:1}.fpro-download svg{pointer-events:none;color:inherit!important;background:none!important}
+   .fpro-track{position:absolute;bottom:0;left:8px;right:8px;height:24px;pointer-events:auto;background:transparent!important;box-shadow:none!important;border:0!important}
+   .fpro-fill{position:absolute;bottom:0;left:0;height:3px;border-radius:4px;background:linear-gradient(90deg,red,orange,yellow,lime,cyan,blue,violet);width:0}
+   .fpro-ball{position:absolute;right:-7px;top:-5px;font-size:13px;line-height:14px}
    .fpro-seek{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;pointer-events:auto;touch-action:pan-y}
   `;
   scan();
  }
  const observer=new MutationObserver(records=>{
+  if(cfg.enhance===false)return;
   if(!records.some(r=>!((r.target.nodeType===1?r.target:r.target.parentElement)?.closest('#fpro-style,.fpro-video-tools'))))return;
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
- observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','href','src']});
  window.__fpro={update};update(initial);
 })();

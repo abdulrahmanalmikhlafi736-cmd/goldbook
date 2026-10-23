@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, whatsapp: () -> Unit, downloads: () -> Unit, diagnostics: String, reload: () -> Unit, testDisplay: () -> Unit, copyDiagnostics: () -> Unit) {
+fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, whatsapp: () -> Unit, diagnostics: String, reload: () -> Unit, testDisplay: () -> Unit, copyDiagnostics: () -> Unit) {
     var revision by remember { mutableIntStateOf(0) }
     fun update() { revision++; change() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -26,15 +26,16 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         Toggle("الرسم البرمجي — جرّبه إذا بقيت الشاشة رمادية", "software", prefs, revision) { update() }
         Text("اختبار العرض ليس فيسبوك. إذا ظهر أخضر فالمحرك يرسم؛ انسخ التشخيص لتحديد سبب تعطل الموقع. الرسم البرمجي قد يقلل أداء الفيديو.", style = MaterialTheme.typography.bodySmall)
         HorizontalDivider()
+        Toggle("ضغطتان على الفيديو لملء الشاشة — مستقل عن أدوات التنزيل", "doubleTapFullscreen", prefs, revision, default = true) { update() }
         Toggle("تفعيل أدوات وتعديلات الصفحة — اختياري", "pageEnhancements", prefs, revision) { update() }
         Text("اختيار أداة أو لون أدناه يفعّل تعديلات الصفحة تلقائياً. يمكنك إيقافها جميعاً بهذا المفتاح؛ إيقافه يعيد تحميل الصفحة الأصلية ويحفظ اختياراتك.", style = MaterialTheme.typography.bodySmall)
         HorizontalDivider()
         Text("التنزيل", style = MaterialTheme.typography.titleLarge)
         Toggle("إظهار زر التنزيل القابل للسحب", "downloads", prefs, revision) { update() }
-        var pkg by remember { mutableStateOf(prefs.text("package")) }
-        OutlinedTextField(value = pkg, onValueChange = { pkg = it; prefs.set("package", it.trim()) }, label = { Text("حزمة تطبيق التنزيل الخارجي (اختياري)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-        Text("المشاركة إلى تطبيق آخر تفتح واجهته؛ لا يمكن تضمينها هنا دون API منه. التنزيل الداخلي متاح للروابط المباشرة فقط، وليس blob أو DRM.", style = MaterialTheme.typography.bodySmall)
-        OutlinedButton(onClick = downloads) { Text("إدارة التنزيلات الداخلية") }
+        var pkg by remember { mutableStateOf(prefs.text("package", "com.junkfood.seal")) }
+        OutlinedTextField(value = pkg, onValueChange = { pkg = it; prefs.set("package", it.trim()) }, label = { Text("حزمة تطبيق التنزيل الخارجي (مطلوبة)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+        Text("التنزيل خارجي فقط. زر الفيديو يرسل الرابط مباشرةً إلى الحزمة المحددة دون قائمة مشاركة. Seal يستخدم نافذة التنزيل السريع فوق FPRO مباشرةً؛ النافذة يديرها Seal وليست واجهة مضمّنة. باقي الحزم يحدد التطبيق المستقبِل شكل نافذتها.", style = MaterialTheme.typography.bodySmall)
+        Text("في Seal فعّل «ضبط الإعدادات قبل التنزيل» (Configure before download) لتظهر قائمة التنزيل بدلاً من البدء التلقائي. الفيديو الخاص قد يحتاج إعداداً داخل Seal؛ لا يرسل FPRO كوكيز حسابك.", style = MaterialTheme.typography.bodySmall)
         HorizontalDivider()
         Text("المظهر والألوان", style = MaterialTheme.typography.titleLarge)
         var expanded by remember { mutableStateOf(false) }
@@ -54,7 +55,7 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         HorizontalDivider()
         Text("الأدوات", style = MaterialTheme.typography.titleLarge)
         listOf("شريط تقدم فيديو قابل للسحب — قوس قزح مع كرة" to "rainbow", "التكبير بالإصبعين" to "zoom", "تثبيت شريط التنقل" to "sticky", "وضع سطح المكتب (يعيد تحميل الصفحة)" to "desktop", "عكس اتجاه الصفحة" to "reverse", "صورة داخل صورة عند المغادرة (Android 8+)" to "pip", "الوضع المغمور" to "immersive").forEach { (label,key) -> Toggle(label,key,prefs,revision) { update() } }
-        Text("انقر مرتين على الفيديو عند تفعيل أدوات الفيديو أو استخدم زر ملء الشاشة الأصلي. نسخ النص متاح بتحديده حيث يسمح الموقع. الرسائل متاحة وفق دعم فيسبوك للويب. إشعارات الويب والعمل الصوتي الدائم في الخلفية غير مضمونين؛ لا توجد خدمة إشعارات Meta أصلية في هذا التطبيق.", style = MaterialTheme.typography.bodySmall)
+        Text("الضغطتان لملء الشاشة تعملان بالمفتاح المستقل أعلاه حتى عند تعطيل التنزيل وشريط التقدم؛ يبقى زر ملء الشاشة الأصلي متاحاً. نسخ النص متاح بتحديده حيث يسمح الموقع. الرسائل متاحة وفق دعم فيسبوك للويب. إشعارات الويب والعمل الصوتي الدائم في الخلفية غير مضمونين؛ لا توجد خدمة إشعارات Meta أصلية في هذا التطبيق.", style = MaterialTheme.typography.bodySmall)
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Text("تم التطوير بواسطة عبدالرحمن المخلافي 🧑🏻‍💻", style = MaterialTheme.typography.titleMedium)

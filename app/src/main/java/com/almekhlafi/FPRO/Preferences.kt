@@ -9,6 +9,12 @@ class Preferences(context: Context) {
     fun text(key: String, default: String = "") = store.getString(key, default) ?: default
     private val pageKeys = setOf("ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads", "dark", "amoled", "liveColor")
     init {
+        if (!store.getBoolean("sealQuickSetupV9", false)) {
+            store.edit().apply {
+                if (store.getString("package", null).isNullOrBlank()) putString("package", "com.junkfood.seal")
+                putBoolean("sealQuickSetupV9", true)
+            }.apply()
+        }
         // Migrate selected tools only when the user never explicitly chose the
         // master switch. Preserve an intentional master-off choice.
         if (!store.contains("pageEnhancements") && (pageKeys.any { store.getBoolean(it, false) } || store.getString("color", "تلقائي") != "تلقائي")) {
@@ -29,6 +35,8 @@ class Preferences(context: Context) {
     }
     fun scriptConfig(): String = JSONObject().apply {
         listOf("ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads").forEach { put(it, flag(it)) }
+        put("enhance", flag("pageEnhancements"))
+        put("doubleTapFullscreen", flag("doubleTapFullscreen", true))
         put("color", text("color", "تلقائي"))
         put("dark", flag("dark")); put("amoled", flag("amoled"))
     }.toString()
