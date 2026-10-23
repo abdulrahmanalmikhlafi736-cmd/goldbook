@@ -15,6 +15,7 @@ android {
     experimentalProperties["android.experimental.self-instrumenting"] = true
     buildTypes.create("compact") {
         isDebuggable = true
+        signingConfig = signingConfigs.getByName("debug")
         matchingFallbacks += listOf("compact")
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
