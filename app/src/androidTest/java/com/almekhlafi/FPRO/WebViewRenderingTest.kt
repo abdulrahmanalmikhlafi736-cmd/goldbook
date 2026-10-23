@@ -241,12 +241,14 @@ class WebViewRenderingTest {
             // The user's selected theme is RED. Exercise other Facebook-style
             // avatar renderers, not only IMG + ordinary border in the first phase.
             val green = android.util.Base64.encodeToString("""<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#20b060"/></svg>""".toByteArray(), android.util.Base64.NO_WRAP)
+            val encodedRing = android.util.Base64.encodeToString("""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 53 53"><circle cx="26.5" cy="26.5" r="25" fill="none" stroke="#0866ff" stroke-width="2"/></svg>""".toByteArray(), android.util.Base64.NO_WRAP)
             val redReady = CountDownLatch(1)
-            val redPoints = FloatArray(14)
+            val redPoints = FloatArray(18)
             scenario.onActivity { activity ->
                 val web = requireNotNull(findWeb(activity.window.decorView))
                 val html = """
                     <style>:root{--primary-button-background:#0866ff;--accent:#0866ff}.token-chip{position:absolute;left:24px;top:110px;width:120px;height:32px;background:var(--primary-button-background);color:var(--primary-button-text)}.pseudo:after{content:"";position:absolute;inset:-3px;border:3px solid rgb(8,102,255);border-radius:50%;box-sizing:border-box;pointer-events:none}</style>
+                    <div id="encodedFrame" style="position:absolute;left:240px;top:110px;width:53px;height:53px;background-image:url(data:image/svg+xml;base64,$encodedRing);background-size:100% 100%"><div style="position:absolute;left:6px;top:6px;width:41px;height:41px"><img src="data:image/svg+xml;base64,$green" style="width:41px;height:41px;border-radius:50%"></div></div>
                     <div id="looseRing" style="position:absolute;left:170px;top:110px;width:40px;height:40px;border:3px solid rgb(8,102,255);border-radius:50%;box-sizing:border-box"></div><span id="nativeHash" style="color:rgb(8,102,255)!important">#خبر</span>
                     <div id="tokenChip" class="token-chip">Token</div>
                     <a id="cssFrame" class="pseudo" href="/profile.php" style="position:absolute;left:24px;top:24px;width:40px;height:40px"><div role="img" style="width:40px;height:40px;border-radius:50%;background-image:url(data:image/svg+xml;base64,$green)"></div></a>
@@ -256,13 +258,13 @@ class WebViewRenderingTest {
                 """.trimIndent()
                 web.evaluateJavascript("document.body.innerHTML=" + org.json.JSONObject.quote(html) + ";window.__fpro.update({enhance:true,color:'أحمر',experimentalColorVars:true});") {
                     web.evaluateJavascript("""
-                        (()=>{const a=document.querySelector('#cssFrame').getBoundingClientRect(),b=document.querySelector('#svgFrame').getBoundingClientRect(),c=document.querySelector('#shadowFrame').getBoundingClientRect(),d=document.querySelector('#outlineFrame').getBoundingClientRect();return JSON.stringify({active:window.__fpro.colorReport().experimentalColorVarsActive,width:innerWidth,points:[a.left-2,a.top+20,b.left+2,b.top+23,c.left-2,c.top+20,d.left-2,d.top+20,a.left+20,a.top+20,134,115,171,130]});})()
+                        (()=>{const a=document.querySelector('#cssFrame').getBoundingClientRect(),b=document.querySelector('#svgFrame').getBoundingClientRect(),c=document.querySelector('#shadowFrame').getBoundingClientRect(),d=document.querySelector('#outlineFrame').getBoundingClientRect();return JSON.stringify({active:window.__fpro.colorReport().experimentalColorVarsActive,width:innerWidth,points:[a.left-2,a.top+20,b.left+2,b.top+23,c.left-2,c.top+20,d.left-2,d.top+20,a.left+20,a.top+20,134,115,171,130,242,136.5,266.5,136.5]});})()
                     """.trimIndent()) { result ->
                         val data = org.json.JSONObject(org.json.JSONArray("[$result]").getString(0))
                         val offset = IntArray(2); web.getLocationOnScreen(offset)
                         val scale = web.width / data.getDouble("width")
                         assertTrue("RC token experiment must be active", data.getBoolean("active"))
-                        for (n in 0..13) redPoints[n] = (data.getJSONArray("points").getDouble(n) * scale + offset[n % 2]).toFloat()
+                        for (n in 0..17) redPoints[n] = (data.getJSONArray("points").getDouble(n) * scale + offset[n % 2]).toFloat()
                         web.postVisualStateCallback(13, object : WebView.VisualStateCallback() {
                             override fun onComplete(requestId: Long) { redReady.countDown() }
                         })
@@ -276,6 +278,10 @@ class WebViewRenderingTest {
                 val pixel = redBitmap.getPixel(redPoints[n*2].toInt(), redPoints[n*2+1].toInt())
                 assertTrue("Pseudo/SVG/shadow/outline ring $n must be RED, not blue: ${Integer.toHexString(pixel)}", Color.red(pixel) > 150 && Color.green(pixel) < 90 && Color.blue(pixel) < 90)
             }
+            val encodedPixel = redBitmap.getPixel(redPoints[14].toInt(), redPoints[15].toInt())
+            assertTrue("Embedded SVG background ring on square 53px wrapper must paint red", Color.red(encodedPixel) > 150 && Color.green(encodedPixel) < 90 && Color.blue(encodedPixel) < 90)
+            val nestedPhoto = redBitmap.getPixel(redPoints[16].toInt(), redPoints[17].toInt())
+            assertTrue("Nested 41px portrait must stay green", Color.green(nestedPhoto) > 130 && Color.red(nestedPhoto) < 80)
             val detachedPixel = redBitmap.getPixel(redPoints[12].toInt(), redPoints[13].toInt())
             assertTrue("RC must paint a detached CSS ring red without an avatar descendant", Color.red(detachedPixel) > 150 && Color.green(detachedPixel) < 90 && Color.blue(detachedPixel) < 90)
             val tokenPixel = redBitmap.getPixel(redPoints[10].toInt(), redPoints[11].toInt())

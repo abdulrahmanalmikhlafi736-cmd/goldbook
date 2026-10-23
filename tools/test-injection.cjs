@@ -303,6 +303,24 @@ function fixture(html,config={},captureDownload=false) {
   rc.run({enhance:true,color:'أحمر',experimentalColorVars:true});rc.run({enhance:false,color:'أحمر',experimentalColorVars:true});assert.equal(accentToken(),'#0866ff','Master off must remove all experimental token overrides');
   assert.equal(rc.doc.querySelector('#meta-original').textContent,originalMeta,'Never rewrite source styles, border widths, or zero alpha');
   assert.equal(rc.doc.querySelector('#rcPhoto').getAttribute('style'),originalPhoto,'Never rewrite photo inline declarations');
+  const svgRingSource='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 53 53"><circle cx="26.5" cy="26.5" r="25" fill="none" stroke="#0866ff" stroke-width="2"/></svg>';
+  const ringData='url("data:image/svg+xml,'+encodeURIComponent(svgRingSource)+'")';
+  const svgPhotoSource='<svg xmlns="http://www.w3.org/2000/svg"><image href="private-photo.jpg"/><circle stroke="#0866ff" r="20"/></svg>';
+  const dataRings=fixture('<div id="encoded"><img id="encodedPhoto" src="portrait.jpg" style="border-radius:50%"></div><div id="rejectEmbeddedPhoto"><img id="safePhoto" src="portrait2.jpg" style="border-radius:50%"></div><div id="vectorPortrait" role="img"></div><span id="author">Author <span id="glyph" style="color:rgb(8,102,255)">\ue001</span></span><nav><span id="navGlyph" style="color:rgb(8,102,255)">\ue001</span></nav>',{enhance:true,color:'أحمر',experimentalColorVars:true});
+  for(const id of ['encoded','rejectEmbeddedPhoto','vectorPortrait']){const el=dataRings.doc.querySelector('#'+id);el.style.backgroundImage=id==='rejectEmbeddedPhoto'?'url("data:image/svg+xml,'+encodeURIComponent(svgPhotoSource)+'")':ringData;el.getBoundingClientRect=()=>({width:53,height:53,left:10,top:10,right:63,bottom:63});}
+  for(const id of ['encodedPhoto','safePhoto'])dataRings.doc.querySelector('#'+id).getBoundingClientRect=()=>({width:41,height:41,left:16,top:16,right:57,bottom:57});
+  for(const id of ['glyph','navGlyph'])dataRings.doc.querySelector('#'+id).getBoundingClientRect=()=>({width:17,height:17,left:16,top:16,right:33,bottom:33});
+  dataRings.run({enhance:true,color:'أحمر',experimentalColorVars:true});
+  const encoded=dataRings.doc.querySelector('#encoded');
+  assert(encoded.hasAttribute('data-fpro-accent-svg-bg'),'A square avatar wrapper can draw its ring as embedded SVG background');
+  assert(decodeURIComponent(encoded.style.getPropertyValue('--fpro-ring-svg')).includes('198,40,40'),'Replace vector ring stroke, not photo pixels');
+  assert(!dataRings.doc.querySelector('#rejectEmbeddedPhoto').hasAttribute('data-fpro-accent-svg-bg'),'Never rewrite SVG containing an embedded photo or external reference');
+  assert(!dataRings.doc.querySelector('#vectorPortrait').hasAttribute('data-fpro-accent-svg-bg'),'A standalone SVG background avatar is a photo source, not a known decoration');
+  assert(dataRings.doc.querySelector('#glyph').hasAttribute('data-fpro-accent-fg'),'Recognize blue private-use glyph beside author text');
+  assert(!dataRings.doc.querySelector('#navGlyph').hasAttribute('data-fpro-accent-fg'),'Do not recolor navigation glyphs');
+  const rendererReport=dataRings.window.__fpro.colorReport();assert(rendererReport.avatarFrames.some(a=>a.levels.some(l=>l.backgroundKind==='embedded-svg')),'Report background renderer kind without URL');
+  assert(!/private-photo|portrait.jpg|data:image|<svg/.test(JSON.stringify(rendererReport)),'Never export SVG/image source from renderer diagnostics');
+  dataRings.run({enhance:false,color:'أحمر',experimentalColorVars:true});assert.equal(encoded.style.backgroundImage,ringData);assert.equal(encoded.style.getPropertyValue('--fpro-ring-svg'),'');
   const quick=fixture('<main id="quickFeed"></main>',{enhance:true,color:'أحمر'});
   const quickSpan=quick.doc.createElement('span');quickSpan.textContent='#سريع';quickSpan.style.setProperty('color','rgb(8,102,255)','important');quick.doc.querySelector('#quickFeed').appendChild(quickSpan);
   await Promise.resolve();
