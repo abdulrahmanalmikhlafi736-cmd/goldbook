@@ -28,11 +28,16 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re, urllib.request, urllib.parse
           seen = set()
+          scripts = set()
           for log in Path('previous-diagnostics').rglob('logcat.txt'):
               selected = []
               for line in log.read_text(errors='replace').splitlines():
                   if any(word in line.lower() for word in ('console', 'net::', 'chromium', 'webviewfactory')):
+                      if 'getElementsByTagName' in line:
+                          match = re.search(r'source: (https://[^ ]+)', line)
+                          if match: scripts.add(match.group(1))
                       message = line[:1500]
                       if message not in seen:
                           seen.add(message)
@@ -42,4 +47,15 @@ jobs:
               evidence = errors[-8:] or useful[-8:]
               for line in evidence:
                   print('::notice title=Chromium evidence::' + line.replace('%','%25'))
+          for url in list(scripts)[:1]:
+              host = urllib.parse.urlparse(url).hostname or ''
+              if not host.endswith('.fbcdn.net'): continue
+              try:
+                  request = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
+                  code = urllib.request.urlopen(request, timeout=25).read(4000000).decode('utf-8', errors='replace')
+                  contexts = [code[max(0,m.start()-350):m.end()+350] for m in re.finditer('getElementsByTagName', code)]
+                  for context in contexts[:6]:
+                      print('::notice title=Public script context::' + context.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+              except Exception as error:
+                  print('::notice::Public source unavailable: ' + str(error))
           PY
