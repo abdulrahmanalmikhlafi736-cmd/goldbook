@@ -6,7 +6,7 @@
  let cfg = initial, pending = null;
  const style = document.createElement('style'); style.id = 'fpro-style'; document.head.appendChild(style);
  const colors = {'طبيعي':'#1877f2','ذهبي':'#d4af37','أحمر':'#c62828','أخضر':'#17833e','بنفسجي':'#8643c5','برتقالي':'#ed701b','فيروزي':'#008c95','وردي':'#d34489','بني':'#805539','فضي':'#9ba6b0','أبيض':'#ffffff'};
- const norm = s => (s || '').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim();
+ const norm = s => (s || '').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');
  const words = {
   ads:['sponsored','ممول','إعلان','اعلان','إعلان ممول','publicité','gesponsert','patrocinado','sponsorizzato'],
   suggested:['suggested for you','مقترح لك','مقترحة لك','مقترحات لك'],
@@ -37,7 +37,7 @@
   return null;
  }
  function appBanner(link, explicitLabel = false) {
-  if(link.closest(postSelector)) return;
+  if(link.closest('[role="article"],article,[data-pagelet^="FeedUnit"]')) return;
   const href = link.getAttribute('href') || '';
   if (!explicitLabel && !/^(intent:|fb:|fb-messenger:|android-app:)/i.test(href) && !/(play\.google\.com\/store\/apps|apps\.apple\.com\/|\/marketplace\/app_redirect|\/r\.php\?.*app_id|\/openinapp|\/native_app|\/intent\/)/i.test(href)) return;
   let block = link;
@@ -68,7 +68,7 @@
   for (let i=0;i<Math.min(labels.length,2400);i++) {
    const label=labels[i]; if(label.closest('.fpro-video-tools')) continue;
    const text=norm(label.getAttribute('aria-label') || label.innerText || label.textContent);
-   if(cfg.appBanner && ['open app','open in app','get the app','فتح التطبيق','افتح التطبيق','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق'].includes(text)) appBanner(label,true);
+   if(cfg.appBanner && ['open app','open in app','get the app','get facebook for android and browse faster','حمل تطبيق فيسبوك','فتح التطبيق','افتح التطبيق','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق'].includes(text)) appBanner(label,true);
    if(!text || text.length>100) continue;
    for(const key of Object.keys(words)) if(cfg[key] && words[key].some(w=>text===norm(w))) hide(section(label,key));
   }
@@ -104,8 +104,8 @@
   overlay.appendChild(button);overlay.appendChild(track);document.body.appendChild(overlay);
   let pos={x:12,y:12};try{pos=JSON.parse(localStorage.getItem('fpro-button')) || pos;}catch(_){}
   let start=null,moving=false,held=false,timer=null;
-  function placeButton(){button.style.left=Math.max(0,Math.min(Math.max(0,overlay.clientWidth-44),pos.x))+'px';button.style.top=Math.max(0,Math.min(Math.max(0,overlay.clientHeight-44),pos.y))+'px';}
-  button.onpointerdown=e=>{start={x:e.clientX,y:e.clientY,left:pos.x,top:pos.y};moving=false;held=false;timer=setTimeout(()=>{held=true;try{button.setPointerCapture(e.pointerId);}catch(_){}},400);e.stopPropagation();};
+  function placeButton(){const top=parseFloat(overlay.style.top)||0;const minY=Math.max(0,-top+4);const maxY=Math.min(overlay.clientHeight-44,innerHeight-top-44);button.style.left=Math.max(0,Math.min(Math.max(0,overlay.clientWidth-44),pos.x))+'px';button.style.top=Math.max(0,Math.min(Math.max(0,maxY),Math.max(minY,pos.y)))+'px';}
+  button.onpointerdown=e=>{start={x:e.clientX,y:e.clientY,left:button.offsetLeft,top:button.offsetTop};moving=false;held=false;timer=setTimeout(()=>{held=true;try{button.setPointerCapture(e.pointerId);}catch(_){}},400);e.stopPropagation();};
   button.onpointermove=e=>{if(!held || !start)return;moving=true;pos={x:start.left+e.clientX-start.x,y:start.top+e.clientY-start.y};placeButton();};
   button.onpointerup=()=>{clearTimeout(timer);if(moving)try{localStorage.setItem('fpro-button',JSON.stringify(pos));}catch(_){}start=null;};
   button.onpointercancel=()=>{clearTimeout(timer);start=null;};
