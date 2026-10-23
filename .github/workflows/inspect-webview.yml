@@ -92,17 +92,19 @@ jobs:
               except Exception as error:
                   print('::notice::Public source unavailable: ' + str(error))
           PY
+      - name: Install screenshot reader
+        run: timeout 90 python3 -m pip install --disable-pip-version-check --timeout 20 Pillow
       - name: Inspect native baseline screenshot
         run: |
           file=$(find previous-diagnostics -name plain-baseline.png | head -1)
           if [ -n "$file" ]; then
-            convert "$file" -resize 360x640 -quality 55 /tmp/baseline.jpg
+            python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]).convert("RGB"); im.thumbnail((360,640)); im.save("/tmp/baseline.jpg", quality=55)' "$file"
             python3 -c 'import base64; s=base64.b64encode(open("/tmp/baseline.jpg","rb").read()).decode(); [print("::notice title=BASELINE_JPEG_"+str(i//3000)+"::"+s[i:i+3000]) for i in range(0,len(s),3000)]'
           fi
       - name: Inspect Compose screenshot
         run: |
           file=$(find previous-diagnostics -name compose-facebook.png | head -1)
           if [ -n "$file" ]; then
-            convert "$file" -resize 360x640 -quality 55 /tmp/compose.jpg
+            python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]).convert("RGB"); im.thumbnail((360,640)); im.save("/tmp/compose.jpg", quality=55)' "$file"
             python3 -c 'import base64; s=base64.b64encode(open("/tmp/compose.jpg","rb").read()).decode(); [print("::notice title=COMPOSE_JPEG_"+str(i//3000)+"::"+s[i:i+3000]) for i in range(0,len(s),3000)]'
           fi
