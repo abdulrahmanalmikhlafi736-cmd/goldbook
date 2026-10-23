@@ -68,6 +68,14 @@ function fixture(html,config={},captureDownload=false) {
   recycled.removeAttribute('data-video-id');
   swipe.doc.querySelector('.fpro-download').click();
   assert.equal(new URL(swipe.window.__download).searchParams.get('link'),'','Missing identity must not reuse the first video');
+  const stale=fixture(`<article><a href="/watch/?v=1">Original entry</a><div data-store='{"videoData":[{"sd_src":"https://cdn.example/one.mp4"}]}'><video src="blob:https://m.facebook.com/one"></video></div></article>`,{downloads:true},true);
+  stale.doc.querySelector('video').src='blob:https://m.facebook.com/twenty';stale.doc.querySelector('.fpro-download').click();
+  assert.equal(new URL(stale.window.__download).searchParams.get('media'),'','Recycled blob player must not use stale metadata');
+  assert.equal(new URL(stale.window.__download).searchParams.get('link'),'','Recycled player must not use unchanged entry permalink');
+  stale.doc.querySelector('a').href='/watch/?v=20';stale.doc.querySelector('.fpro-download').click();
+  assert.equal(new URL(stale.window.__download).searchParams.get('link'),'https://m.facebook.com/watch/?v=20','Accept freshly updated player permalink');
+  const multiple=fixture(`<div data-store='{"videoData":[{"videoID":"1","sd_src":"https://cdn.example/one.mp4"},{"videoID":"20","sd_src":"https://cdn.example/twenty.mp4"}]}'><video data-video-id="20"></video></div>`,{downloads:true},true);
+  multiple.doc.querySelector('.fpro-download').click();assert.equal(new URL(multiple.window.__download).searchParams.get('media'),'https://cdn.example/twenty.mp4','Match current identity instead of the first metadata item');
   const homeStories=fixture('<main><div id="tray"><div><a href="/stories/1">One</a></div><div><a href="/stories/2">Two</a></div></div><article id="storyPost"><a href="/stories/3">Stories</a></article><article>Normal</article></main>',{homeStories:true});
   assert.equal(homeStories.doc.querySelector('#tray').style.display,'none','Hide an unlabeled home carousel');
   assert.equal(homeStories.doc.querySelector('#storyPost').style.display,'','Keep ordinary posts that link to stories');
@@ -173,6 +181,6 @@ function fixture(html,config={},captureDownload=false) {
   await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'none','Observe dynamically added cards');
   dynamic.doc.querySelector('#late span').textContent='Ordinary post';
   await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'','Recycled feed cards are restored');
-  console.log('DOM tests passed: ads, stories, install banner, accents, dynamic feed, video controls, progress, seeking, restoration, independent touch fullscreen and Seal routing.');
+  console.log('DOM tests passed: home-only anchored gear, 20 recycled videos, stale metadata rejection, nonoverlapping tools, homepage story tray, surfaces/SVG restoration; ads, stories, install banner, accents, dynamic feed, video controls, progress, seeking, restoration, independent touch fullscreen and Seal routing.');
  } finally {windows.forEach(w=>w.close());}
 })().catch(error=>{console.error(error);process.exitCode=1;});

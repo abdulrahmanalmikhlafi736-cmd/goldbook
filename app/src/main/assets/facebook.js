@@ -16,7 +16,7 @@
  };
  const postSelector = '[role="article"],article,[data-pagelet^="FeedUnit"],[data-ft]';
  function postFor(el){return el.closest('[role="article"],article,[data-pagelet^="FeedUnit"]') || el.closest('div[data-ft]');}
- const hidden = new Map(), painted = new Set(), videos = new Map();
+ const hidden = new Map(), painted = new Set(), videos = new Map(), identityBaseline = new WeakMap();
  function hide(el) {
   if (!el || /^(BODY|HTML|MAIN)$/.test(el.tagName) || ['main','feed','navigation'].includes(el.getAttribute('role'))) return;
   if (!hidden.has(el)) hidden.set(el, {value:el.style.getPropertyValue('display'),priority:el.style.getPropertyPriority('display')});
@@ -113,22 +113,31 @@
   if(cfg.downloads || cfg.rainbow) document.querySelectorAll('video').forEach(attachVideo);
   layoutVideos();
  }
+ function signature(video){return [video.src,video.currentSrc].join('|');}
+ function videoIdentity(video){
+  let owner=video;
+  for(let d=0;owner&&d<4;d++,owner=owner.parentElement){for(const attr of ['data-video-id','data-videoid']){const value=owner.getAttribute(attr);if(value&&/^\d+$/.test(value))return value;}}
+  return '';
+ }
+ function metadata(video){
+  const store=video.closest('[data-store]');if(!store)return [];
+  try{const raw=store.getAttribute('data-store');if(!raw||raw.length>100000)return [];const data=JSON.parse(raw),items=data.videoData||[data];const list=Array.isArray(items)?items:[items];const id=videoIdentity(video);
+   // A multi-video store is not evidence that its first item is the current clip.
+   return list.filter(item=>item&&(id?String(item.videoID||item.video_id||item.id||'')===id:list.length===1&&store.querySelectorAll('video').length===1));
+  }catch(_){return [];}
+ }
+ function staleIdentity(video){const old=identityBaseline.get(video);return old&&old.source.replace(/\|/g,'')&&old.source!==signature(video);}
  function mediaSource(video) {
   const candidates=[video.readyState>=2?video.currentSrc:video.src,video.src,video.currentSrc,...Array.from(video.querySelectorAll('source[src]'),el=>el.src)];
-  const store=video.closest('[data-store]');
-  if(store) try {
-   const raw=store.getAttribute('data-store');
-   if(raw && raw.length<100000) {
-    const data=JSON.parse(raw), items=data.videoData || [data];
-    for(const item of Array.isArray(items)?items.slice(0,4):[items]) if(item) for(const key of ['hd_src','sd_src','playable_url_quality_hd','playable_url','video_url']) candidates.push(item[key]);
-   }
-  }catch(_){}
-  return candidates.find(url=>typeof url==='string' && /^https:\/\//i.test(url)) || video.currentSrc || video.src || '';
+  const store=video.closest('[data-store]');const old=identityBaseline.get(video);
+  if(!staleIdentity(video)||!old||old.store!==(store?store.getAttribute('data-store'):null)){
+   for(const item of metadata(video))for(const key of ['hd_src','sd_src','playable_url_quality_hd','playable_url','video_url'])candidates.push(item[key]);
+  }
+  return candidates.find(url=>typeof url==='string' && /^https:\/\//i.test(url)) || '';
  }
- function videoPermalink(video){
-  const attrs=['data-video-id','data-videoid'];let owner=video,id='';
-  for(let d=0;owner&&d<4;d++,owner=owner.parentElement){for(const attr of attrs){const value=owner.getAttribute(attr);if(value&&/^\d+$/.test(value)){id=value;break;}}if(id)break;}
-  if(id)return 'https://www.facebook.com/watch/?v='+id;
+ function rawPermalink(video){
+  let id=videoIdentity(video);if(!id){const item=metadata(video)[0];if(item)id=String(item.videoID||item.video_id||item.id||'');}
+  if(/^\d+$/.test(id))return 'https://www.facebook.com/watch/?v='+id;
   let scope=video.parentElement;
   for(let d=0;scope&&d<4;d++,scope=scope.parentElement){
    if(/^(BODY|HTML|MAIN)$/.test(scope.tagName)||['feed','main'].includes(scope.getAttribute('role')))break;
@@ -136,10 +145,15 @@
    const link=Array.from(scope.querySelectorAll('a[href]')).find(a=>{try{const u=new URL(a.href);return (u.hostname==='facebook.com'||u.hostname.endsWith('.facebook.com'))&&/\/reel\/|\/videos\/|\/watch\/?\?|\/video\.php\?|story_fbid=/.test(u.pathname+u.search);}catch(_){return false;}});
    if(link)return link.href;
   }
-  return ''; // A SPA can leave location.href pointing at its first video.
+  return '';
+ }
+ function videoPermalink(video){
+  const link=rawPermalink(video),old=identityBaseline.get(video);
+  return staleIdentity(video)&&old&&link===old.link?'':link; // Never reuse the entry clip of a recycled player.
  }
  function attachVideo(video) {
   if(videos.has(video)) return;
+  const store=video.closest('[data-store]');identityBaseline.set(video,{source:signature(video),link:rawPermalink(video),store:store?store.getAttribute('data-store'):null});
   const overlay=document.createElement('div'); overlay.className='fpro-video-tools';
   const button=document.createElement('button'); button.className='fpro-download';button.type='button';button.innerHTML='<svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true" focusable="false"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';button.setAttribute('aria-label','تنزيل الفيديو');
   const track=document.createElement('div');track.className='fpro-track';
