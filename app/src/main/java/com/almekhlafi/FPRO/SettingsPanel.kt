@@ -41,7 +41,9 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         }
         SettingsGroup("المظهر والألوان", "ألوان خفيفة دون تغيير صورك") {
         var expanded by remember { mutableStateOf(false) }
-        Text("تلوين خفيف للتفاصيل: الهاشتاجات والمتابعة والصداقة والتوثيق وحلقات القصص؛ دون تغيير خلفيات الموقع.", style = MaterialTheme.typography.bodySmall)
+        Toggle("محرك التلوين الشامل وإخفاء لافتة التطبيق — الكود المرسل", "referenceEngine", prefs, revision, default = true) { update() }
+        Text("عند تفعيله يوسّع اللون المختار إلى خلفيات وأزرار وأنماط الواجهة وفق المحرك الذي أرسلته. يعمل مع تعديلات الصفحة ولون غير طبيعي/تلقائي؛ إيقافه يرجع للتلوين المحدود. إخفاء اللافتة يبقى تابعًا لمفتاحه في الحجب. لا يغيّر صور الحساب أو الفيديو.", style = MaterialTheme.typography.bodySmall)
+        Text("عند إيقاف المحرك الشامل، تلوين خفيف للتفاصيل: الهاشتاجات والمتابعة والصداقة والتوثيق وحلقات القصص؛ دون تغيير خلفيات الموقع.", style = MaterialTheme.typography.bodySmall)
         Toggle("تجربة متغيرات ألوان فيسبوك", "experimentalColorVars", prefs, revision) { update() }
         Text("تجريبي ومغلق افتراضياً: يوسّع التعرف على بعض الزخارف الصغيرة. توافق حلقات القصص يختلف حسب نسخة فيسبوك، وليس مضمونًا. لا يعمل مع طبيعي أو تلقائي؛ إيقافه يستعيد أنماط الموقع الأصلية.", style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = copyColorDiagnostics) { Text("نسخ تشخيص التلوين — دون بيانات الحساب") }
@@ -58,7 +60,7 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         SettingsGroup("الحجب والإخفاء", "اختر ما تريد إخفاءه من الصفحة") {
         Toggle("إخفاء شريط القصص في الصفحة الرئيسية فقط", "homeStories", prefs, revision) { update() }
         Text("مرشحات اجتهادية تعتمد على بنية موقع فيسبوك؛ قد لا تتعرف على جميع اللغات أو النسخ.", style = MaterialTheme.typography.bodySmall)
-        listOf("الإعلانات والمحتوى الممول" to "ads", "المنشورات المقترحة" to "suggested", "الريلز" to "reels", "القصص" to "stories", "أشخاص قد تعرفهم" to "people", "المجموعات المقترحة" to "groups", "شريط فتح التطبيق أو تثبيته" to "appBanner").forEach { (label,key) -> Toggle("إخفاء $label",key,prefs,revision) { update() } }
+        listOf("الإعلانات والمحتوى الممول" to "ads", "المنشورات المقترحة" to "suggested", "الريلز" to "reels", "القصص" to "stories", "أشخاص قد تعرفهم" to "people", "المجموعات المقترحة" to "groups", "شريط فتح التطبيق أو تثبيته" to "appBanner").forEach { (label,key) -> Toggle("إخفاء $label",key,prefs,revision, default = key == "appBanner") { update() } }
         }
         SettingsGroup("الأدوات", "التصفح والعرض وملء الشاشة") {
         listOf("شريط تقدم فيديو قابل للسحب — قوس قزح مع كرة" to "rainbow", "التكبير بالإصبعين" to "zoom", "تثبيت شريط التنقل" to "sticky", "وضع سطح المكتب (يعيد تحميل الصفحة)" to "desktop", "عكس اتجاه الصفحة" to "reverse", "صورة داخل صورة عند المغادرة (Android 8+)" to "pip", "الوضع المغمور" to "immersive").forEach { (label,key) -> Toggle(label,key,prefs,revision) { update() } }

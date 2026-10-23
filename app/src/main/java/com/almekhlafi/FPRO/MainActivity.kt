@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
     private val pageInfoQuery by lazy {
         "(window.__fproPageInfo ? JSON.stringify(window.__fproPageInfo()) : " + pageInfoScript.trim().removeSuffix(";") + ")"
     }
-    private val script by lazy { assets.open("facebook.js").bufferedReader().use { it.readText() } }
+    private val script by lazy { assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -387,7 +387,7 @@ class MainActivity : ComponentActivity() {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 21 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 22 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {

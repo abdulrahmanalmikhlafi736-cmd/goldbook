@@ -38,6 +38,8 @@ class Preferences(context: Context) {
         put("enhance", flag("pageEnhancements"))
         put("doubleTapFullscreen", flag("doubleTapFullscreen", true))
         put("textSelection", flag("textSelection", true))
+        put("referenceEngine", flag("referenceEngine", true))
+        put("appBanner", flag("appBanner", true))
         put("color", text("color", "تلقائي"))
         put("experimentalColorVars", flag("experimentalColorVars"))
         put("dark", flag("dark")); put("amoled", flag("amoled"))

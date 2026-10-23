@@ -123,6 +123,14 @@ class CompactUiTest {
         launch()
         assertNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 40_000))
         requireNotNull(waitObject(By.desc("الإعدادات"), 30_000)) { "Home gear must appear after the page is recognized" }.click()
+        // This regression checks the retained limited-accent mode. The newly
+        // approved broad engine intentionally may recolor the login button.
+        scrollToText("محرك التلوين الشامل وإخفاء لافتة التطبيق — الكود المرسل")
+        freshUi {
+            val y = requireNotNull(device.findObject(By.text("محرك التلوين الشامل وإخفاء لافتة التطبيق — الكود المرسل"))).visibleBounds.centerY()
+            val toggle = requireNotNull(device.findObjects(By.checkable(true)).minByOrNull { kotlin.math.abs(it.visibleBounds.centerY()-y) })
+            if(toggle.isChecked)toggle.click()
+        }
         scrollToText("اللون: تلقائي")
         freshUi { requireNotNull(device.findObject(By.textContains("اللون:"))).click() }
         assertNotNull(device.wait(Until.findObject(By.text("ذهبي")), 5000))
