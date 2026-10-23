@@ -60,7 +60,8 @@ class CompactUiTest {
             } catch (_: androidx.test.uiautomator.StaleObjectException) { /* DOM changed; read a fresh tree. */ }
             if (!visible) Thread.sleep(1000)
         }
-        screenshot("compact-facebook.png")
+        val capture = screenshot("compact-facebook.png")
+        device.dumpWindowHierarchy(File(capture.parentFile, "compact-ui.xml"))
         println("LIVE_WEB: " + text.take(1800))
         assertTrue("Facebook must deliver visible content; actual accessibility text: ${text.take(1000)}", visible)
     }

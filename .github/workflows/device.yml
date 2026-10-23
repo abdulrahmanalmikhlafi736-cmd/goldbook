@@ -48,9 +48,22 @@ jobs:
         if: always()
         run: |
           mkdir -p device-diagnostics
+          python3 -m pip install --quiet --disable-pip-version-check --break-system-packages pillow
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
+          import base64, io
+          from PIL import Image
+          # Temporary anonymous-device evidence, retrievable via the Checks API.
+          # The emulator has no signed-in account or credentials.
+          for screenshot in Path('device-diagnostics').rglob('compact-facebook.png'):
+              image = Image.open(screenshot).convert('RGB')
+              image.thumbnail((320, 640))
+              data = io.BytesIO()
+              image.save(data, format='JPEG', quality=45)
+              print('::notice title=Anonymous device screenshot::BASE64JPEG:' + base64.b64encode(data.getvalue()).decode())
+          for tree in Path('device-diagnostics').rglob('compact-ui.xml'):
+              print('::notice title=Anonymous UI tree::' + tree.read_text()[:20000].replace('%','%25').replace('\n','%0A'))
           log = Path('device-diagnostics/gradle.log')
           if log.exists():
               for line in log.read_text().splitlines():
