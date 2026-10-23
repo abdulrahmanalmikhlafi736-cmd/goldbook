@@ -191,9 +191,10 @@ class WebViewRenderingTest {
                 val web = requireNotNull(findWeb(activity.window.decorView))
                 web.stopLoading()
                 var injected = false
-                web.webViewClient = object : android.webkit.WebViewClient() {
-                    override fun onPageFinished(view: WebView, url: String?) {
-                        view.evaluateJavascript("!!document.querySelector('#palette-fixture')") { present ->
+                fun probeFixture(attempt: Int) {
+                    if (injected) return
+                    val view = web
+                    view.evaluateJavascript("!!document.querySelector('#palette-fixture')") { present ->
                             if (present == "true" && !injected) {
                                 injected = true
                                 val source = activity.assets.open("facebook.js").bufferedReader().use { it.readText() }
@@ -216,7 +217,10 @@ class WebViewRenderingTest {
                                 }
                             }
                         }
-                    }
+                    if (!injected && attempt < 60) view.postDelayed({ probeFixture(attempt + 1) }, 200)
+                }
+                web.webViewClient = object : android.webkit.WebViewClient() {
+                    override fun onPageFinished(view: WebView, url: String?) { probeFixture(60) }
                 }
                 web.loadDataWithBaseURL("https://fixture.invalid/", """
                     <html><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -226,8 +230,11 @@ class WebViewRenderingTest {
                     <main><div id="composer" style="height:40px">Composer</div><div id="slot" style="min-height:190px;padding:12px"><div style="height:190px"><div data-sigil="m-story-tray"><a href="/stories/1">One</a><a href="/stories/2">Two</a></div></div><hr></div><article id="post" style="height:60px">Normal post</article></main>
                     </body></html>
                 """.trimIndent(), "text/html", "UTF-8", null)
+                // Local loadData can commit without a timely onPageFinished
+                // during slow emulator/network teardown; probe the real marker.
+                web.postDelayed({ probeFixture(0) }, 100)
             }
-            assertTrue("Local palette must produce a visual frame: ${evidence.get()}", ready.await(12, TimeUnit.SECONDS))
+            assertTrue("Local palette must produce a visual frame: ${evidence.get()}", ready.await(20, TimeUnit.SECONDS))
             assertTrue("Story slot including min-height/padding must collapse without a gap: ${evidence.get()}", collapsed)
             Thread.sleep(400)
             val bitmap = requireNotNull(automation.takeScreenshot())
