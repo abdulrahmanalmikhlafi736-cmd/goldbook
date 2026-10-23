@@ -47,7 +47,7 @@ object Navigation {
     fun downloadSource(media: String, permalink: String): String? {
         val direct = try { java.net.URI(media).let { it.scheme == "https" && !it.host.isNullOrBlank() } } catch (_: Exception) { false }
         if (direct) return media
-        return if (isFacebook(permalink) && Regex("/reels?/|/videos/|/watch(?:/|\\?)|/video\\.php|[?&](?:story_fbid|fbid|v)=").containsMatchIn(permalink)) permalink else null
+        return if (isFacebook(permalink) && Regex("/stories/[^/]+/[^/?]+|/story\\.php\\?|/reels?/|/videos/|/watch(?:/|\\?)|/video\\.php|[?&](?:story_fbid|fbid|v)=").containsMatchIn(permalink)) permalink else null
     }
 
     fun browserAgent(agent: String): String {

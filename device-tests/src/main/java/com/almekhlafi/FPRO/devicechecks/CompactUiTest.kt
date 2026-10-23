@@ -137,12 +137,12 @@ class CompactUiTest {
         Thread.sleep(1200)
         val bounds = freshUi { requireNotNull(device.findObject(By.text("Log in"))).visibleBounds }
         val image = BitmapFactory.decodeFile(screenshot("compact-gold-tools.png").absolutePath)
-        // Sample away from the white button text, within the actual native web button.
-        val goldSamples = (1..9).count { fraction ->
+        // Conservative accents must NOT recolor the real login button or page.
+        val originalBlueSamples = (1..9).count { fraction ->
             val pixel = image.getPixel(bounds.left + bounds.width()*fraction/10, bounds.centerY())
-            Color.red(pixel) > 150 && Color.green(pixel) > 100 && Color.blue(pixel) < 120
+            Color.blue(pixel) > 180 && Color.red(pixel) < 100 && Color.green(pixel) > 50
         }
-        assertTrue("Selected gold must recolor Facebook, not only native settings; samples=$goldSamples", goldSamples >= 2)
+        assertTrue("Accent theme must preserve the original Facebook login button; blue samples=$originalBlueSamples", originalBlueSamples >= 2)
         val text = freshUi { device.findObject(By.clazz("android.webkit.WebView"))?.let { textTree(it) }.orEmpty() }
         assertFalse("Install/open-app banner must disappear", text.contains("Get Facebook for Android", ignoreCase=true))
         assertNotNull("Login inputs remain accessible after hiding banner", device.findObject(By.clazz("android.widget.EditText")))

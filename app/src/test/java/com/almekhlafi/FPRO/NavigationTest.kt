@@ -33,6 +33,11 @@ class NavigationTest {
         assertNull(Navigation.downloadSource("javascript:alert(1)", "https://facebook.com.evil/reel/20"))
     }
 
+    @Test fun currentStoryPermalinksAreSupportedWithoutUsingTheStoryTray() {
+        assertEquals("https://m.facebook.com/stories/123/456/", Navigation.downloadSource("blob:https://m.facebook.com/story", "https://m.facebook.com/stories/123/456/"))
+        assertNull(Navigation.downloadSource("", "https://m.facebook.com/stories/123/"))
+    }
+
     @Test fun trustedHosts() {
         assertTrue(Navigation.isFacebook("https://m.facebook.com/reel/123"))
         assertTrue(Navigation.isFacebook("https://www.messenger.com/"))

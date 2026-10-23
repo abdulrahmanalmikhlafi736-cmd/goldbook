@@ -22,8 +22,8 @@ function fixture(html,config={},captureDownload=false) {
  try {
   for(const text of ['مُـمَوَّل','Sponsored','<span>Spon</span><span>sored</span>']) {
    const surfaces=fixture('<header style="background-color:white"><svg><path id="bluepath" style="fill:rgb(8,102,255)"></path></svg></header><article style="background-color:rgb(242,242,242)">Post<img id="untouched"><video id="untouchedVideo"></video></article>',{color:'ذهبي'});
-  assert.equal(surfaces.doc.querySelector('header').getAttribute('data-fpro-surface'),'light','Tint actual Facebook header surfaces');
-  assert(surfaces.doc.querySelector('#bluepath').hasAttribute('data-fpro-accent-fill'),'Override explicitly colored vector paths');
+  assert(!surfaces.doc.querySelector('header').hasAttribute('data-fpro-surface'),'Do not tint header surfaces');
+  assert(!surfaces.doc.querySelector('#bluepath').hasAttribute('data-fpro-accent-fill'),'Do not color arbitrary blue vectors');
   assert(!surfaces.doc.querySelector('#untouched').hasAttribute('data-fpro-surface'));
   assert(!surfaces.doc.querySelector('#untouchedVideo').hasAttribute('data-fpro-surface'));
   surfaces.run({color:'تلقائي'});
@@ -88,10 +88,42 @@ function fixture(html,config={},captureDownload=false) {
   for(const path of ['/reel/20','/watch/?v=20','/videos/20','/profile.php?id=2','/messages/']){page.window.history.replaceState({},'',path);assert.equal(page.window.__fproPageInfo().home,false,'No gear on '+path);}
   page.window.history.replaceState({},'','/login/');assert.equal(page.window.__fproPageInfo().home,true,'Settings stay available during staged email-only login, without a password field');
   page.window.history.replaceState({},'','/');
-  const modal=page.doc.createElement('div');modal.setAttribute('role','dialog');modal.innerHTML='<video></video>';modal.getBoundingClientRect=()=>({width:300,height:500});page.doc.body.append(modal);
+  const modal=page.doc.createElement('div');modal.setAttribute('role','dialog');modal.innerHTML='<video></video>';modal.getBoundingClientRect=()=>({width:300,height:500});modal.querySelector('video').getBoundingClientRect=()=>({width:300,height:500});page.doc.body.append(modal);
   assert.equal(page.window.__fproPageInfo().home,false,'Root URL with a video viewer is not home');
   modal.remove();Object.defineProperty(page.doc,'fullscreenElement',{value:page.doc.querySelector('svg')});
   assert.equal(page.window.__fproPageInfo().home,false,'No gear in fullscreen');
+  const accents=fixture('<header style="background:white"><svg aria-label="Facebook"><path style="fill:rgb(8,102,255)"></path></svg></header><article><a id="hash" href="/hashtag/test" style="color:rgb(8,102,255)">#test</a><button id="follow" style="background:rgb(8,102,255)">متابعة</button><button id="login" style="background:rgb(8,102,255)">Log in</button><svg aria-label="Verified"><path id="badge" style="fill:rgb(8,102,255)"></path></svg><a href="/stories/1"><div id="ring" style="border:2px solid rgb(8,102,255)"><img src="avatar.jpg"></div></a></article>',{color:'ذهبي'});
+  assert(accents.doc.querySelector('#hash').hasAttribute('data-fpro-accent-fg'));
+  assert(accents.doc.querySelector('#follow').hasAttribute('data-fpro-accent-bg'));
+  assert(accents.doc.querySelector('#badge').hasAttribute('data-fpro-accent-fill'));
+  assert(accents.doc.querySelector('#ring').hasAttribute('data-fpro-accent-border'));
+  assert(!accents.doc.querySelector('#login').hasAttribute('data-fpro-accent-bg'));
+  assert(!accents.doc.querySelector('[data-fpro-surface]'));
+  accents.run({color:'تلقائي'});assert(!accents.doc.querySelector('[data-fpro-accent-fg],[data-fpro-accent-fill],[data-fpro-accent-border]'));
+  const scroll=fixture('<header><svg aria-label="Facebook"></svg></header>');
+  scroll.doc.querySelector('svg').getBoundingClientRect=()=>({left:700,top:8,width:150,height:40});
+  assert.equal(scroll.window.__fproPageInfo().gearVisible,true);
+  Object.defineProperty(scroll.window,'scrollY',{configurable:true,value:180});
+  assert.equal(scroll.window.__fproPageInfo().gearVisible,false,'Gear must disappear on scroll');
+  assert.equal(scroll.window.__fproPageInfo().home,true,'Scrolling must not deactivate home-only filters');
+  Object.defineProperty(scroll.window,'scrollY',{configurable:true,value:0});assert.equal(scroll.window.__fproPageInfo().gearVisible,true);
+  const buttonTray=fixture('<main><div id="buttons" style="display:flex;flex-direction:row;overflow-x:auto"><div role="button"><span>إنشاء قصة</span><img src="me.jpg"></div><div role="button"><img src="story.jpg"></div></div><article id="kept">Feed post</article></main>',{homeStories:true});
+  assert.equal(buttonTray.doc.querySelector('#buttons').style.display,'none','Hide button-based story carousel, not only story links');
+  assert.equal(buttonTray.doc.querySelector('#kept').style.display,'');
+  buttonTray.run({homeStories:false});assert.equal(buttonTray.doc.querySelector('#buttons').style.display,'flex');
+  const story=fixture('<main><img id="photo" src="https://cdn.example/story-one.jpg"></main>',{},true);
+  story.window.history.replaceState({},'', '/stories/123/456/');const photo=story.doc.querySelector('#photo');
+  photo.getBoundingClientRect=()=>({left:0,top:0,width:320,height:600,right:320,bottom:600});
+  story.run({downloads:true});assert(story.doc.querySelector('.fpro-story-tools'));
+  story.doc.querySelector('.fpro-download').click();assert.equal(new URL(story.window.__download).searchParams.get('media'),'https://cdn.example/story-one.jpg');
+  photo.src='https://cdn.example/story-two.jpg';story.window.history.replaceState({},'', '/stories/123/789/');story.doc.querySelector('.fpro-download').click();
+  assert.equal(new URL(story.window.__download).searchParams.get('media'),'https://cdn.example/story-two.jpg');
+  assert.equal(new URL(story.window.__download).searchParams.get('link'),'https://m.facebook.com/stories/123/789/');
+  story.window.history.replaceState({},'', '/');story.run({downloads:true});assert(!story.doc.querySelector('.fpro-story-tools'),'No photo download control on feed thumbnails');
+  const backgroundStory=fixture('<div id="bg" style="background-image:url(https://cdn.example/background.jpg)"></div>',{},true);backgroundStory.window.history.replaceState({},'', '/stories/123/456/');backgroundStory.doc.querySelector('#bg').getBoundingClientRect=()=>({left:0,top:0,width:320,height:600,right:320,bottom:600});backgroundStory.run({downloads:true});backgroundStory.doc.querySelector('.fpro-download').click();assert.equal(new URL(backgroundStory.window.__download).searchParams.get('media'),'https://cdn.example/background.jpg');
+  const stable=fixture('<article><b>Sponsored</b></article>',{ads:true});let styleWrites=0;const observe=new stable.window.MutationObserver(records=>{styleWrites+=records.filter(r=>r.attributeName==='style').length;});observe.observe(stable.doc.querySelector('article'),{attributes:true});stable.run({ads:true});await Promise.resolve();assert.equal(styleWrites,0,'Repeated injection must not restore/rehide the same card or reset CSS');observe.disconnect();
+  const storyVideo=fixture('<video src="blob:https://m.facebook.com/current"></video>',{},true);storyVideo.window.history.replaceState({},'', '/stories/123/456/');storyVideo.run({downloads:true});storyVideo.doc.querySelector('.fpro-download').click();
+  assert.equal(new URL(storyVideo.window.__download).searchParams.get('link'),'https://m.facebook.com/stories/123/456/','Blob story videos have a current story permalink fallback');
   const feed=fixture('<section id="stories" aria-label="Stories"><a href="/stories/123">Someone</a></section><article id="post"><b>أشخاص قد تعرفهم</b></article><article id="normal">A normal post about stories and sponsored work</article>',{stories:true,people:true});
   assert.equal(feed.doc.querySelector('#stories').style.display,'none');
   assert.equal(feed.doc.querySelector('#post').style.display,'none');
@@ -111,9 +143,9 @@ function fixture(html,config={},captureDownload=false) {
   assert.equal(banner.doc.querySelector('#postlink').style.display,'');
   banner.run({appBanner:false});assert.equal(banner.doc.querySelector('#install').style.display,'');
   const tint=fixture('<button id="blue" style="background-color:rgb(8,102,255);color:white">Like</button><img id="photo" src="photo.jpg">',{color:'ذهبي'});
-  assert(tint.doc.querySelector('#blue').hasAttribute('data-fpro-accent-bg'),'Real blue inline styles get accent override');
+  assert(!tint.doc.querySelector('#blue').hasAttribute('data-fpro-accent-bg'),'Ordinary Like/login buttons keep their original colors');
   assert(tint.doc.querySelector('#fpro-style').textContent.includes('#d4af37'));
-  tint.run({color:'أحمر'});assert(tint.doc.querySelector('#blue').hasAttribute('data-fpro-accent-bg'));
+  tint.run({color:'أحمر'});assert(!tint.doc.querySelector('#blue').hasAttribute('data-fpro-accent-bg'));
   tint.run({color:'تلقائي'});assert(!tint.doc.querySelector('#blue').hasAttribute('data-fpro-accent-bg'));
   assert.equal(tint.doc.querySelector('#blue').style.backgroundColor,'rgb(8, 102, 255)','Original inline color preserved');
   assert(!tint.doc.querySelector('#photo').hasAttribute('data-fpro-accent-bg'));
@@ -182,6 +214,6 @@ function fixture(html,config={},captureDownload=false) {
   await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'none','Observe dynamically added cards');
   dynamic.doc.querySelector('#late span').textContent='Ordinary post';
   await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'','Recycled feed cards are restored');
-  console.log('DOM tests passed: home-only anchored gear, 20 recycled videos, stale metadata rejection, nonoverlapping tools, homepage story tray, surfaces/SVG restoration; ads, stories, install banner, accents, dynamic feed, video controls, progress, seeking, restoration, independent touch fullscreen and Seal routing.');
+  console.log('DOM tests passed: scroll-bound emoji gear, lightweight accents, button story trays, story images/backgrounds/videos, stable filtering, 20 recycled videos, stale metadata rejection, nonoverlapping tools, homepage story tray, surfaces/SVG restoration; ads, stories, install banner, accents, dynamic feed, video controls, progress, seeking, restoration, independent touch fullscreen and Seal routing.');
  } finally {windows.forEach(w=>w.close());}
 })().catch(error=>{console.error(error);process.exitCode=1;});

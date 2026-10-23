@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
                                     progress = { loadingProgress / 100f },
                                     modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
                                 )
-                                if (homeControls) FilledTonalIconButton(
+                                if (homeControls) IconButton(
                                     onClick = {
                                         web.clearFocus()
                                         WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.ime())
@@ -119,7 +119,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset {
                                         IntOffset((gearX - 22.dp.toPx()).toInt().coerceAtLeast(0), (gearY - 22.dp.toPx()).toInt().coerceAtLeast(0))
                                     }.size(44.dp).semantics { contentDescription = "الإعدادات" }
-                                ) { Text("⚙", style = MaterialTheme.typography.headlineSmall) }
+                                ) { Text("⚙️", style = MaterialTheme.typography.headlineSmall) }
                                 failure?.let { message ->
                                     Card(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp)) {
                                         Column(Modifier.padding(16.dp)) {
@@ -185,6 +185,7 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWebView(): WebView = WebView(this).apply {
         layoutDirection = View.LAYOUT_DIRECTION_LTR
+        setOnScrollChangeListener { _, _, y, _, _ -> if (y >= 4) homeControls = false }
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
@@ -206,6 +207,11 @@ class MainActivity : ComponentActivity() {
                 enhancementsInstalled = false
                 pageSequence++
                 loadState = "بدء تحميل: $url"
+            }
+            override fun onPageCommitVisible(view: WebView, url: String?) {
+                // Install lightweight filters once real content has committed;
+                // do not wait for all Facebook resources or reload the player.
+                if (Navigation.isFacebook(url.orEmpty())) inject()
             }
             override fun onPageFinished(view: WebView, url: String?) {
                 CookieManager.getInstance().flush()
@@ -334,7 +340,7 @@ class MainActivity : ComponentActivity() {
         try {
             if (result == null || result == "null") { homeControls = false; return }
             val data = org.json.JSONObject(JSONArray("[$result]").getString(0))
-            homeControls = data.optBoolean("home")
+            homeControls = data.optBoolean("gearVisible", data.optBoolean("home")) && web.scrollY < 4
             val scale = web.width / data.optDouble("width", 1.0).coerceAtLeast(1.0)
             gearX = (data.optDouble("x") * scale).toFloat().coerceIn(0f, web.width.toFloat())
             gearY = (data.optDouble("y") * scale).toFloat().coerceAtLeast(0f)
@@ -363,7 +369,7 @@ class MainActivity : ComponentActivity() {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 10 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 11 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {
