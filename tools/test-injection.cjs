@@ -99,6 +99,7 @@ function fixture(html,config={},captureDownload=false) {
   assert(accents.doc.querySelector('#ring').hasAttribute('data-fpro-accent-border'));
   assert(!accents.doc.querySelector('#login').hasAttribute('data-fpro-accent-bg'));
   assert(!accents.doc.querySelector('[data-fpro-surface]'));
+  accents.run({color:'ذهبي'});assert(accents.doc.querySelector('#badge').hasAttribute('data-fpro-accent-fill'));assert(accents.doc.querySelector('#ring').hasAttribute('data-fpro-accent-border'));
   accents.run({color:'تلقائي'});assert(!accents.doc.querySelector('[data-fpro-accent-fg],[data-fpro-accent-fill],[data-fpro-accent-border]'));
   const scroll=fixture('<header><svg aria-label="Facebook"></svg></header>');
   scroll.doc.querySelector('svg').getBoundingClientRect=()=>({left:700,top:8,width:150,height:40});

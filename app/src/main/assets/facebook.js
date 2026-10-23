@@ -78,12 +78,12 @@
    if(!/^(verified|verified account|حساب موثق|موثق|تم التحقق|تم التحقق من الحساب)$/.test(label))continue;
    const icon=el.closest('svg')||el.querySelector('svg')||el;
    if(icon.closest('.fpro-video-tools'))continue;
-   mark(icon,'fg');for(const path of icon.querySelectorAll('path,circle'))if(blue(getComputedStyle(path).fill))mark(path,'fill');
+   mark(icon,'fg');for(const path of icon.querySelectorAll('path,circle'))if(blue(getComputedStyle(path).fill)||path.hasAttribute('data-fpro-accent-fill'))mark(path,'fill');
   }
   // Story rings only: preserve photos, tile backgrounds and unrelated borders.
   for(const ring of document.querySelectorAll('a[href*="/stories/"],a[href*="/stories/"] *,[data-sigil~="m-story-tray"] *,[data-pagelet*="Stories"] *')){
    if(ring.matches('img,video,canvas')||ring.closest('.fpro-video-tools'))continue;
-   const c=getComputedStyle(ring);if(parseFloat(c.borderTopWidth)>0&&blue(c.borderTopColor))mark(ring,'border');
+   const c=getComputedStyle(ring);if(parseFloat(c.borderTopWidth)>0&&(blue(c.borderTopColor)||ring.hasAttribute('data-fpro-accent-border')))mark(ring,'border');
   }
   painted.forEach(el=>{if(!next.has(el))for(const attr of ['bg','fg','border','fill','stroke'])el.removeAttribute('data-fpro-accent-'+attr);});
   painted.clear();next.forEach(el=>painted.add(el));
@@ -306,7 +306,7 @@
   tint();
   style.textContent=`
    body{-webkit-user-select:text!important}
-   ${accent?`[data-fpro-accent-bg]{background-color:${accent}!important;color:${contrast}!important}[data-fpro-accent-bg] *{color:${contrast}!important}[data-fpro-accent-fg]{color:${foreground}!important}[data-fpro-accent-border]{border-color:${accent}!important}[data-fpro-accent-fill]{fill:${accent}!important}[data-fpro-accent-stroke]{stroke:${accent}!important}`:''}
+   ${accent?`[data-fpro-accent-bg]{background-color:${accent}!important;color:${contrast}!important}[data-fpro-accent-bg] *{color:${contrast}!important}[data-fpro-accent-fg]{color:${foreground}!important}[data-fpro-accent-border]{border-color:${foreground}!important}[data-fpro-accent-fill]{fill:${foreground}!important}[data-fpro-accent-stroke]{stroke:${foreground}!important}`:''}
    ${c.dark?`html,body,[role="main"]{background:${c.amoled?'#000':'#18191a'}!important;color:#eee!important;color-scheme:dark}`:''}
    ${c.sticky?'[role="banner"]{position:sticky!important;top:0!important;z-index:1000!important}':''}
    ${c.reverse?'body{direction:ltr!important}':''}
