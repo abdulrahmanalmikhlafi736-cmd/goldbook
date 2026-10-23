@@ -481,15 +481,20 @@ class WebViewRenderingTest {
                 web.postDelayed({ probe(0) }, 200)
             }
             assertTrue("Native selection fixture must render", ready.await(10, TimeUnit.SECONDS))
-            fun hasCopy(node: android.view.accessibility.AccessibilityNodeInfo?): Boolean {
-                if(node == null)return false
-                val label = node.text?.toString().orEmpty()
-                if(label.equals(instrumentation.targetContext.getString(android.R.string.copy), ignoreCase=true))return true
-                for(index in 0 until node.childCount)if(hasCopy(node.getChild(index)))return true
-                return false
+            fun copyAction(node: android.view.accessibility.AccessibilityNodeInfo?): android.view.accessibility.AccessibilityNodeInfo? {
+                if(node == null)return null
+                val label=node.text?.toString().orEmpty()
+                if(label.equals(instrumentation.targetContext.getString(android.R.string.copy),ignoreCase=true))return node
+                for(index in 0 until node.childCount)copyAction(node.getChild(index))?.let { return it }
+                return null
+            }
+            fun nativeCopyAction(): android.view.accessibility.AccessibilityNodeInfo? {
+                copyAction(automation.rootInActiveWindow)?.let { return it }
+                for(window in automation.windows)copyAction(window.root)?.let { return it }
+                return null
             }
             for(id in listOf("post", "comment", "hashtag")) {
-                val coordinates = FloatArray(4)
+                val coordinates = FloatArray(2)
                 val measured = CountDownLatch(1)
                 scenario.onActivity { activity ->
                     val web = requireNotNull(findWeb(activity.window.decorView))
@@ -501,8 +506,6 @@ class WebViewRenderingTest {
                         val scale=web.width/data.getDouble("w")
                         coordinates[0]=(offset[0]+data.getDouble("x")*scale).toFloat()
                         coordinates[1]=(offset[1]+data.getDouble("y")*scale).toFloat()
-                        coordinates[2]=offset[0]+web.width*.9f
-                        coordinates[3]=offset[1]+web.height*.8f
                         web.postVisualStateCallback(21, object : WebView.VisualStateCallback() { override fun onComplete(requestId: Long) { measured.countDown() } })
                     }
                 }
@@ -529,21 +532,16 @@ class WebViewRenderingTest {
                 var copyVisible=false
                 repeat(15) {
                     if(android.os.Build.VERSION.SDK_INT>=33)automation.clearCache()
-                    if(hasCopy(automation.rootInActiveWindow)||automation.windows.any { hasCopy(it.root) })copyVisible=true
+                    if(nativeCopyAction()!=null)copyVisible=true
                     if(!copyVisible)Thread.sleep(100)
                 }
                 assertTrue("Android's native Copy action must appear for $id",copyVisible)
-                // Dismiss handles/toolbar by a real tap on blank page space,
-                // just as a user does before selecting a different paragraph.
-                val cancelDown=android.os.SystemClock.uptimeMillis()
-                val cancelPress=android.view.MotionEvent.obtain(cancelDown,cancelDown,android.view.MotionEvent.ACTION_DOWN,coordinates[2],coordinates[3],0)
-                cancelPress.source=android.view.InputDevice.SOURCE_TOUCHSCREEN
-                automation.injectInputEvent(cancelPress,false);cancelPress.recycle()
-                Thread.sleep(60)
-                val cancelUp=android.view.MotionEvent.obtain(cancelDown,android.os.SystemClock.uptimeMillis(),android.view.MotionEvent.ACTION_UP,coordinates[2],coordinates[3],0)
-                cancelUp.source=android.view.InputDevice.SOURCE_TOUCHSCREEN
-                automation.injectInputEvent(cancelUp,false);cancelUp.recycle()
+                // Use the actual Android Copy action. Unlike a page tap,
+                // this also dismisses selection when the site's root cancels taps.
+                val copy= requireNotNull(nativeCopyAction())
+                assertTrue("Native Copy action must be clickable",copy.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)||copy.parent?.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)==true)
                 Thread.sleep(350)
+
             }
         }
     }
