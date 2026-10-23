@@ -9,8 +9,33 @@
  // copy popup, clipboard bridge or touch/scroll interception.
  const selectionStyle=document.createElement('style');selectionStyle.id='fpro-selection-style';
  if(nonce)selectionStyle.nonce=nonce.nonce;
+ // Android treats a long-pressed anchor as a link, not selectable text.
+ // Temporarily disarm only hashtag hrefs while the finger is down; Android
+ // then performs its own word selection. Restore before an ordinary click.
+ let selectionLink=null;
+ function restoreSelectionLink(){
+  const entry=selectionLink;if(!entry)return;selectionLink=null;clearTimeout(entry.timer);
+  // A recycled Facebook node may already have acquired a NEW destination.
+  if(!entry.link.hasAttribute('href'))entry.link.setAttribute('href',entry.href);
+ }
+ document.addEventListener('pointerdown',e=>{
+  restoreSelectionLink();
+  if(cfg.textSelection===false||e.isPrimary===false||e.pointerType==='mouse'&&e.button!==0)return;
+  const el=e.target.nodeType===1?e.target:e.target.parentElement;
+  if(!el||el.closest('button,[role="button"],input,textarea,select,[contenteditable],.fpro-video-tools'))return;
+  const link=el.closest('a[href]');if(!link)return;
+  const href=link.getAttribute('href'),text=(link.textContent||'').trim();
+  if(!/(?:\/hashtag\/|[?&]hashtag=)/i.test(href)||!/^#[^\s#]+$/.test(text))return;
+  selectionLink={link,href,x:e.clientX,y:e.clientY,id:e.pointerId,timer:setTimeout(restoreSelectionLink,1500)};
+  link.removeAttribute('href');
+ },true);
+ document.addEventListener('pointermove',e=>{if(selectionLink&&selectionLink.id===e.pointerId&&Math.hypot(e.clientX-selectionLink.x,e.clientY-selectionLink.y)>14)restoreSelectionLink();},true);
+ document.addEventListener('pointerup',restoreSelectionLink,true);
+ document.addEventListener('pointercancel',()=>{if(selectionLink)setTimeout(restoreSelectionLink,0);},true);
+ document.addEventListener('click',restoreSelectionLink,true);
+ window.addEventListener('blur',restoreSelectionLink);
  function updateSelection(){
-  if(cfg.textSelection===false){selectionStyle.remove();return;}
+  if(cfg.textSelection===false){restoreSelectionLink();selectionStyle.remove();return;}
   if(!selectionStyle.textContent)selectionStyle.textContent=`
    body p,body span,body [dir="auto"],body [role="article"],body [role="article"] *,body article,body article *,body a[href*="/hashtag/"],body a[href*="hashtag="],body [data-ad-preview="message"],body [data-ad-comet-preview="message"]{-webkit-user-select:text!important;user-select:text!important}
    body button,body button *,body [role="button"],body [role="button"] *,body select,body video,body canvas,.fpro-video-tools,.fpro-video-tools *{-webkit-user-select:none!important;user-select:none!important}
@@ -646,6 +671,6 @@
   }
   return report;
  }
- document.addEventListener('visibilitychange',()=>{if(!document.hidden)scan();});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)restoreSelectionLink();else scan();});
  window.__fpro={update,colorReport};update(initial);
 })();

@@ -226,6 +226,14 @@ function fixture(html,config={},captureDownload=false) {
   const start=new selection.window.Event('selectstart',{bubbles:true,cancelable:true});selection.doc.querySelector('#text').dispatchEvent(start);
   assert.equal(start.defaultPrevented,false,'Keep native selection default; stop site bubble cancellation only on reading text');
   selection.doc.querySelector('textarea').dispatchEvent(new selection.window.Event('selectstart',{bubbles:true,cancelable:true}));assert.equal(blocked,1,'Editor selection keeps normal site handlers');
+  const hashLink=selection.doc.querySelector('a');hashLink.textContent='#test';
+  function selectPointer(type,x=50){const e=new selection.window.MouseEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:40});Object.defineProperties(e,{pointerId:{value:7},pointerType:{value:'touch'},isPrimary:{value:true}});hashLink.dispatchEvent(e);return e;}
+  assert.equal(selectPointer('pointerdown').defaultPrevented,false,'Do not cancel browser-native long press');
+  assert.equal(hashLink.getAttribute('href'),null,'Temporarily let the native engine hit-test hashtag text, not its destination');
+  selectPointer('pointerup');assert.equal(hashLink.getAttribute('href'),'/hashtag/test','Restore original destination before a normal click');
+  selectPointer('pointerdown');selectPointer('pointermove',90);assert.equal(hashLink.getAttribute('href'),'/hashtag/test','Scrolling restores the link immediately');
+  selectPointer('pointerdown');hashLink.setAttribute('href','/hashtag/new');selectPointer('pointerup');assert.equal(hashLink.getAttribute('href'),'/hashtag/new','Never restore a stale recycled hashtag destination');
+  selectPointer('pointerdown');selection.run({enhance:false,textSelection:false});assert.equal(hashLink.getAttribute('href'),'/hashtag/new','Disabling selection restores any held link');
   selection.run({enhance:false,textSelection:false});assert.equal(selection.doc.querySelector('#fpro-selection-style'),null,'Selection preference restores site CSS without reloading');
   const disabledStart=new selection.window.Event('selectstart',{bubbles:true,cancelable:true});selection.doc.querySelector('#text').dispatchEvent(disabledStart);assert(disabledStart.defaultPrevented,'Disable restores original site selectstart behavior');
   const gesture=fixture('<article><video id="player"></video><div id="cover"></div><button id="like" aria-label="Like">Like</button></article>',{enhance:false,doubleTapFullscreen:true,ads:true,downloads:false,rainbow:false});
