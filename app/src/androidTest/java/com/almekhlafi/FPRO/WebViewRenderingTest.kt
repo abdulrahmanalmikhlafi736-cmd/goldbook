@@ -25,6 +25,8 @@ class WebViewRenderingTest {
     @Test fun websiteActuallyPaintsInsideCompose() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             val ready = CountDownLatch(1)
+            val state = java.util.concurrent.atomic.AtomicReference("no JavaScript callback")
+            val nativeState = java.util.concurrent.atomic.AtomicReference("")
             scenario.onActivity { activity ->
                 val web = requireNotNull(findWeb(activity.window.decorView))
                 assertTrue("WebView must be attached", web.isAttachedToWindow)
@@ -37,14 +39,20 @@ class WebViewRenderingTest {
                 """.trimIndent(), "text/html", "UTF-8", null)
                 fun probe(attempt: Int) {
                     web.evaluateJavascript("document.body?.dataset.ready === 'yes'") { value ->
+                        state.set("JS=$value; visual frame pending")
                         if (value == "true") web.postVisualStateCallback(1, object : WebView.VisualStateCallback() {
-                            override fun onComplete(requestId: Long) { ready.countDown() }
+                            override fun onComplete(requestId: Long) { state.set("frame received"); ready.countDown() }
                         }) else if (attempt < 30) web.postDelayed({ probe(attempt + 1) }, 300)
                     }
                 }
                 web.postDelayed({ probe(0) }, 300)
             }
-            assertTrue("WebView must execute JavaScript and submit a visual frame", ready.await(15, TimeUnit.SECONDS))
+            val painted = ready.await(15, TimeUnit.SECONDS)
+            scenario.onActivity { activity ->
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                nativeState.set("url=${web.url}; progress=${web.progress}; JS=${web.settings.javaScriptEnabled}; size=${web.width}x${web.height}; shown=${web.isShown}; lifecycle=${activity.lifecycle.currentState}")
+            }
+            assertTrue("WebView failed: ${state.get()}; ${nativeState.get()}", painted)
             // Wait past the custom splash and a few rendered frames before screenshot.
             Thread.sleep(2200)
             val instrumentation = InstrumentationRegistry.getInstrumentation()
