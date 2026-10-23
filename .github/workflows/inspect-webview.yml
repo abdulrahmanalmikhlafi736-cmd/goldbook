@@ -1,0 +1,42 @@
+name: Inspect WebView console
+on:
+  push:
+    paths: ['.github/workflows/inspect-webview.yml']
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Locate completed emulator evidence
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id=$(gh run list --workflow device.yml --branch "$GITHUB_REF_NAME" --status completed --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "run=$id" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.source.outputs.run }}
+          name: webview-device-diagnostics-35-compact
+          path: previous-diagnostics
+      - name: Summarize Chromium failures
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          seen = set()
+          for log in Path('previous-diagnostics').rglob('logcat.txt'):
+              selected = []
+              for line in log.read_text(errors='replace').splitlines():
+                  if any(word in line.lower() for word in ('console', 'net::', 'chromium', 'webviewfactory')):
+                      message = line[:1500]
+                      if message not in seen:
+                          seen.add(message)
+                          selected.append(message)
+              for line in selected[-35:]:
+                  print('::notice title=Chromium evidence::' + line.replace('%','%25'))
+          PY
