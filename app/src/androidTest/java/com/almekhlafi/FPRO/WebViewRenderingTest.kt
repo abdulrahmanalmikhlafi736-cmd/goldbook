@@ -194,7 +194,7 @@ class WebViewRenderingTest {
                 fun probeFixture(attempt: Int) {
                     if (injected) return
                     val view = web
-                    view.evaluateJavascript("!!document.querySelector('#palette-fixture')") { present ->
+                    view.evaluateJavascript("!!document.querySelector('#palette-fixture') && document.readyState==='complete' && Array.from(document.images).every(img=>img.complete&&img.naturalWidth>0)") { present ->
                             if (present == "true" && !injected) {
                                 injected = true
                                 val source = activity.assets.open("facebook.js").bufferedReader().use { it.readText() }
