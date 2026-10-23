@@ -47,7 +47,10 @@ class CompactUiTest {
         launch()
         val settings = requireNotNull(waitObject(By.desc("الإعدادات"), 30_000)) { "Settings button must be accessible" }
         settings.click()
-        val check = requireNotNull(device.wait(Until.findObject(By.text("اختبار عرض محلي بلا إنترنت")), 10_000)) { "Display self-test must be reachable" }
+        // Diagnostics now live after everyday settings; reach them by a real
+        // user scroll rather than assuming the button is on the first screen.
+        val check = scrollToText("اختبار عرض محلي بلا إنترنت")
+        assertNotNull("Settings header remains visible while scrolling", device.findObject(By.text("إعدادات FPRO")))
         check.click()
         assertNotNull("Local HTML must be accessible in actual WebView", device.wait(Until.findObject(By.textContains("اختبار عرض WebView")), 15_000))
         Thread.sleep(800)
@@ -102,13 +105,13 @@ class CompactUiTest {
 
     private fun scrollToText(text: String): UiObject2 {
         val selector = if (text.startsWith("اللون:")) By.textContains("اللون:") else By.text(text)
-        repeat(18) {
+        repeat(28) {
             val node = freshUi { device.findObject(selector)?.takeIf { !it.visibleBounds.isEmpty } }
             if (node != null) return node
             // Use the visible native settings viewport, not a possibly retained
             // scrollable WebView node behind the Compose settings overlay.
             device.swipe(device.displayWidth/2, device.displayHeight*3/4,
-                device.displayWidth/2, device.displayHeight*11/20, 75)
+                device.displayWidth/2, device.displayHeight*7/20, 75)
             Thread.sleep(500)
         }
         device.executeShellCommand("screencap -p /data/local/tmp/fpro-tools.png")
