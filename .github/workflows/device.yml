@@ -51,7 +51,7 @@ jobs:
           log = Path('device-diagnostics/gradle.log')
           if log.exists():
               for line in log.read_text().splitlines():
-                  if line.startswith('e: ') or 'FAILED' in line or 'AssertionError' in line or 'ERROR:' in line or 'Missing class' in line:
+                  if line.startswith('e: ') or 'FAILED' in line or 'AssertionError' in line or 'ERROR:' in line or 'Missing class' in line or 'Exception' in line or 'Test run failed' in line or 'INSTRUMENTATION' in line or 'Caused by' in line or 'No tests found' in line or 'Process crashed' in line:
                       print('::error::' + line.replace('%','%25'))
           for report in Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'):
               for failure in ET.parse(report).iter('failure'):
