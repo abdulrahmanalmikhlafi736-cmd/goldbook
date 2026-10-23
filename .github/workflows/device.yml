@@ -1,0 +1,105 @@
+name: WebView device regression
+on:
+  push:
+    paths: ['app/**', 'device-tests/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew*', '.github/workflows/device.yml']
+  workflow_dispatch:
+jobs:
+  rendering:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api: 29
+            variant: debug
+            task: Debug
+            module: app
+          - api: 35
+            variant: debug
+            task: Debug
+            module: app
+          - api: 35
+            variant: compact
+            task: Compact
+            module: device-tests
+          - api: 36
+            variant: compact
+            task: Compact
+            module: device-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            adb shell wm size 720x1280
+            adb shell wm density 280
+            mkdir -p device-diagnostics
+            if ./gradlew :${{ matrix.module }}:connected${{ matrix.task }}AndroidTest --stacktrace > device-diagnostics/gradle.log 2>&1; then echo PASS > device-diagnostics/result; else echo FAIL > device-diagnostics/result; fi
+            timeout 15 adb logcat -d > device-diagnostics/logcat.txt || true
+            for pkg in $(adb shell pm list packages | cut -d: -f2 | tr -d '\r' | grep '^com.almekhlafi.FPRO'); do timeout 15 adb pull "/sdcard/Android/data/$pkg/files/" "device-diagnostics/$pkg/" || true; done
+            timeout 15 adb pull /data/local/tmp/fpro-facebook.png device-diagnostics/compact-facebook.png || true
+            timeout 15 adb pull /data/local/tmp/fpro-ui.xml device-diagnostics/compact-ui.xml || true
+            timeout 15 adb pull /data/local/tmp/fpro-baseline.png device-diagnostics/plain-baseline.png || true
+            timeout 15 adb pull /data/local/tmp/fpro-compose.png device-diagnostics/compose-facebook.png || true
+            timeout 15 adb pull /data/local/tmp/fpro-tools.png device-diagnostics/compact-tools.png || true
+            cat device-diagnostics/gradle.log
+            test "$(cat device-diagnostics/result)" = PASS
+      - name: Collect device diagnostics
+        if: always()
+        run: |
+          mkdir -p device-diagnostics
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          import base64
+          # Temporary anonymous-device evidence, retrievable via the Checks API.
+          # Use only Python stdlib; diagnostics must never wait for pip/network.
+          for screenshot in Path('device-diagnostics').rglob('compact-facebook.png'):
+              encoded = base64.b64encode(screenshot.read_bytes()).decode()
+              chunks = [encoded[i:i+3000] for i in range(0, len(encoded), 3000)]
+              for index, chunk in enumerate(chunks):
+                  print(f'::notice title=Anonymous screen {index+1}/{len(chunks)}::PNGCHUNK:{index}:{len(chunks)}:{chunk}')
+          for tree in Path('device-diagnostics').rglob('compact-ui.xml'):
+              print('::notice title=Anonymous UI tree::' + tree.read_text()[:20000].replace('%','%25').replace('\n','%0A'))
+          log = Path('device-diagnostics/gradle.log')
+          if log.exists():
+              for line in log.read_text().splitlines():
+                  if line.startswith('e: ') or 'FAILED' in line or 'AssertionError' in line or 'ERROR:' in line or 'Missing class' in line or 'Exception' in line or 'Test run failed' in line or 'INSTRUMENTATION' in line or 'Caused by' in line or 'No tests found' in line or 'Process crashed' in line:
+                      print('::error::' + line.replace('%','%25'))
+          for report in Path('.').glob('*/build/outputs/androidTest-results/**/TEST-*.xml'):
+              for failure in ET.parse(report).iter('failure'):
+                  message = (failure.get('message') or failure.text or 'Device test failed').splitlines()[0]
+                  print('::error::' + message.replace('%','%25'))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: webview-device-diagnostics-${{ matrix.api }}-${{ matrix.variant }}
+          path: |
+            device-diagnostics/
+            */build/reports/androidTests/
+            */build/outputs/androidTest-results/
+      - name: Publish the exact device-tested compact APK
+        if: success() && matrix.variant == 'compact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: FPRO-compact-device-verified-API${{ matrix.api }}
+          path: app/build/outputs/apk/compact/app-compact.apk
+          if-no-files-found: error

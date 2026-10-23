@@ -2,9 +2,9 @@ package com.almekhlafi.FPRO
 
 import android.annotation.SuppressLint
 import android.app.PictureInPictureParams
-import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.ComponentName
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.net.Uri
@@ -26,13 +26,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.AbsoluteAlignment
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -41,16 +47,20 @@ import org.json.JSONArray
 
 class MainActivity : ComponentActivity() {
     private lateinit var prefs: Preferences
-    private lateinit var downloads: DownloadStore
     private lateinit var web: WebView
     private var settings by mutableStateOf(false)
-    private var downloadPanel by mutableStateOf(false)
-    private var progress by mutableIntStateOf(0)
+    private var homeControls by mutableStateOf(false)
+    private var gearX by mutableFloatStateOf(0f)
+    private var gearY by mutableFloatStateOf(0f)
+    private var loadingProgress by mutableIntStateOf(0)
     private var revision by mutableIntStateOf(0)
     private var splash by mutableStateOf(true)
     private var pip by mutableStateOf(false)
+    private var pageSequence by mutableIntStateOf(0)
+    private var pageConfirmed = false
+    private var enhancementsInstalled = false
+    private var loadState by mutableStateOf("تهيئة محرك الويب")
     private var failure by mutableStateOf<String?>(null)
-    private var media by mutableStateOf<Pair<String,String>?>(null)
     private var pageColor by mutableStateOf(Color(0xFF1877F2))
     private var fullView: View? = null
     private var fullCallback: WebChromeClient.CustomViewCallback? = null
@@ -59,16 +69,27 @@ class MainActivity : ComponentActivity() {
         fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data)); fileCallback = null
     }
     private val mobileAgent by lazy { WebSettings.getDefaultUserAgent(this) }
-    private val script by lazy { assets.open("facebook.js").bufferedReader().use { it.readText() } }
+    private val pageInfoScript by lazy { assets.open("page-info.js").bufferedReader().use { it.readText() } }
+    private val pageInfoQuery by lazy {
+        "(window.__fproPageInfo ? JSON.stringify(window.__fproPageInfo()) : " + pageInfoScript.trim().removeSuffix(";") + ")"
+    }
+    private val script by lazy { assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        prefs = Preferences(this); downloads = DownloadStore(this)
+        prefs = Preferences(this)
         web = createWebView()
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         applySettings(false)
-        if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) web.loadUrl("https://m.facebook.com/")
-        setContent {
+        // Keep Chromium in a real native view hierarchy, matching the working
+        // browser baseline. Compose draws only transparent controls above it;
+        // no AndroidView render-node interop is involved in website painting.
+        val controls = ComposeView(this)
+        setContentView(FrameLayout(this).apply {
+            addView(web, FrameLayout.LayoutParams(-1, -1))
+            addView(controls, FrameLayout.LayoutParams(-1, -1))
+        })
+        controls.setContent {
             val dark = prefs.flag("dark")
             val scheme = when {
                 prefs.flag("dynamic") && Build.VERSION.SDK_INT >= 31 -> if (dark) dynamicDarkColorScheme(this) else dynamicLightColorScheme(this)
@@ -79,47 +100,98 @@ class MainActivity : ComponentActivity() {
             @Suppress("UNUSED_VARIABLE") val currentRevision = revision
             MaterialTheme(colorScheme = scheme) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    Surface(Modifier.fillMaxSize()) {
-                        Box(Modifier.fillMaxSize().then(if (pip) Modifier else Modifier.safeDrawingPadding())) {
-                            Column(Modifier.fillMaxSize()) {
-                                if (!pip) {
-                                    Row(Modifier.fillMaxWidth().background(if (prefs.flag("liveColor")) pageColor else MaterialTheme.colorScheme.primary), verticalAlignment = Alignment.CenterVertically) {
-                                        TextButton(onClick = { settings = true }) { Text("⚙", color = Color.White, style = MaterialTheme.typography.headlineSmall) }
-                                        Text("FPRO", color = Color.White, modifier = Modifier.weight(1f))
-                                        TextButton(onClick = { web.loadUrl("https://m.facebook.com/messages/") }) { Text("الرسائل", color = Color.White) }
-                                        TextButton(onClick = { web.loadUrl("https://m.facebook.com/") }) { Text("فيسبوك", color = Color.White) }
-                                    }
-                                    if (progress in 1..99) LinearProgressIndicator(progress = { progress / 100f }, modifier = Modifier.fillMaxWidth())
-                                }
-                                AndroidView(factory = { web }, modifier = Modifier.weight(1f).fillMaxWidth())
+                    Box(Modifier.fillMaxSize()) {
+                        Box(Modifier.fillMaxSize()) {
+                            // The website owns the whole viewport; no replacement Facebook toolbar.
+                            // RTL belongs to native Arabic controls, not the browser viewport.
+                            // Let Facebook's own HTML dir/CSS control its text direction.
+                            if (!pip) {
+                                if (loadingProgress in 1..99) LinearProgressIndicator(
+                                    progress = { loadingProgress / 100f },
+                                    modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
+                                )
+                                if (homeControls) IconButton(
+                                    onClick = {
+                                        web.clearFocus()
+                                        WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.ime())
+                                        settings = true
+                                    },
+                                    modifier = Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset {
+                                        IntOffset((gearX - 22.dp.toPx()).toInt().coerceAtLeast(0), (gearY - 22.dp.toPx()).toInt().coerceAtLeast(0))
+                                    }.size(44.dp).semantics { contentDescription = "الإعدادات" }
+                                ) { Text("⚙️", style = MaterialTheme.typography.headlineSmall) }
                                 failure?.let { message ->
-                                    if (!pip) Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(message, Modifier.weight(1f).padding(8.dp))
-                                        TextButton(onClick = { failure = null; web.reload() }) { Text("إعادة المحاولة") }
+                                    Card(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp)) {
+                                        Column(Modifier.padding(16.dp)) {
+                                            Text(message)
+                                            Text(diagnostics(), style = MaterialTheme.typography.bodySmall)
+                                            Row {
+                                                TextButton(onClick = { failure = null; web.reload() }) { Text("إعادة المحاولة") }
+                                                TextButton(onClick = { failure = null; web.loadUrl("https://m.facebook.com/") }) { Text("الصفحة الرئيسية") }
+                                            }
+                                        }
                                     }
                                 }
                             }
-                            if (settings && !pip) Surface(Modifier.fillMaxSize()) {
-                                SettingsPanel(prefs, change = { revision++; applySettings(true) }, close = { settings = false }, whatsapp = { external("https://wa.me/967781764759") }, downloads = { downloadPanel = true })
+                            if (settings && !pip) Dialog(
+                                onDismissRequest = { settings = false },
+                                properties = DialogProperties(usePlatformDefaultWidth = false)
+                            ) {
+                                Surface(Modifier.fillMaxSize()) {
+                                SettingsPanel(prefs, change = { revision++; applySettings(true) }, close = { settings = false }, whatsapp = { external("https://wa.me/967781764759") }, diagnostics = diagnostics(),
+                                    reload = { settings = false; web.loadUrl("https://m.facebook.com/") },
+                                    testDisplay = { settings = false; showDisplayTest() },
+                                    copyColorDiagnostics = {
+                                        web.evaluateJavascript("window.__fpro ? JSON.stringify(window.__fpro.colorReport()) : null") { result ->
+                                            try {
+                                                val report = JSONArray("[$result]").getString(0)
+                                                if (report == "null") toast("انتظر اكتمال تحميل فيسبوك ثم أعد المحاولة")
+                                                else {
+                                                    getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("FPRO color report", report))
+                                                    toast("تم نسخ وصف تقني للألوان فقط؛ دون نصوص أو صور أو روابط الحساب")
+                                                }
+                                            } catch (_: Exception) { toast("تعذر قراءة تشخيص التلوين؛ أعد فتح الصفحة") }
+                                        }
+                                    },
+                                    copyDiagnostics = {
+                                        getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("FPRO diagnostics", diagnostics()))
+                                        toast("تم نسخ التشخيص دون كوكيز أو كلمات مرور")
+                                    })
+                                }
                             }
                             if (splash && !pip) Splash()
                         }
-                        if (downloadPanel && !pip) DownloadDialog()
-                        media?.let { request ->
-                            AlertDialog(onDismissRequest = { media = null }, title = { Text("تنزيل الفيديو") }, text = {
-                                Text("يمكن تنزيل المصدر المباشر إن أتاحه الموقع. المشاركة إلى التطبيق المحدد تفتح ذلك التطبيق خارج FPRO. استخدم المحتوى الذي تملك إذناً بتنزيله فقط.")
-                            }, confirmButton = {
-                                TextButton(onClick = {
-                                    media = null
-                                    if (!request.first.startsWith("https://")) toast("المصدر مجزأ أو محمي؛ لا يتوفر رابط تنزيل مباشر")
-                                    else try { downloads.enqueue(request.first, web.settings.userAgentString); downloadPanel = true } catch (_: Exception) { toast("تعذّر بدء التنزيل") }
-                                }) { Text("تنزيل داخلي") }
-                            }, dismissButton = {
-                                TextButton(onClick = { media = null; share(request.second) }) { Text("مشاركة الرابط خارجياً") }
-                            })
-                        }
                         BackHandler { smartBack() }
-                        LaunchedEffect(Unit) { delay(1800); splash = false }
+                        LaunchedEffect(Unit) {
+                            // Begin network/bootstrap immediately, underneath the splash.
+                            web.post {
+                                if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) {
+                                    web.loadUrl("https://m.facebook.com/")
+                                }
+                            }
+                        }
+                        LaunchedEffect(Unit) {
+                            delay(600)
+                            splash = false
+                        }
+                        LaunchedEffect(Unit) {
+                            delay(1200)
+                            while (true) {
+                                if (!settings && web.hasWindowFocus() && Navigation.isFacebook(web.url.orEmpty())) {
+                                    web.evaluateJavascript(pageInfoQuery) { updateHomeControls(it) }
+                                } else homeControls = false
+                                // Player routes do not need frequent header-logo queries.
+                                delay(if (homeControls) 650 else 1200)
+                            }
+                        }
+                        // Native watchdog: it must NOT wait for a JavaScript callback to
+                        // report a stalled renderer, or depend on onPageStarted firing.
+                        LaunchedEffect(pageSequence) {
+                            delay(24_000)
+                            if (!pageConfirmed) web.evaluateJavascript("(function(){return !!document.body && document.body.innerText.replace(/\\s/g,'').length > 30;})()") { result -> pageConfirmed = result == "true" }
+                            delay(1_000)
+                            if (!pageConfirmed && failure == null) failure = "لم يؤكد محرك الويب عرض محتوى الصفحة. افتح الإعدادات ثم اختبار العرض لتمييز خلل المحرك من اتصال فيسبوك.\n${diagnostics()}"
+                        }
                     }
                 }
             }
@@ -128,6 +200,9 @@ class MainActivity : ComponentActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWebView(): WebView = WebView(this).apply {
+        layoutDirection = View.LAYOUT_DIRECTION_LTR
+        setOnScrollChangeListener { _, _, y, _, _ -> if (y >= 4) homeControls = false }
+        isLongClickable = true // Preserve WebView native text-selection ActionMode.
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
@@ -135,28 +210,52 @@ class MainActivity : ComponentActivity() {
         settings.allowContentAccess = false
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         settings.mediaPlaybackRequiresUserGesture = true
-        settings.setSupportMultipleWindows(true)
+        settings.setSupportMultipleWindows(false)
         CookieManager.getInstance().setAcceptCookie(true)
-        CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
         webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = route(request.url, request.isForMainFrame)
             @Deprecated("Required for Android 6")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = route(Uri.parse(url), true)
-            override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) { failure = null }
+            override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+                failure = null
+                homeControls = false
+                pageConfirmed = false
+                loadingProgress = 1
+                enhancementsInstalled = false
+                pageSequence++
+                loadState = "بدء تحميل: $url"
+            }
+            override fun onPageCommitVisible(view: WebView, url: String?) {
+                // Install lightweight filters once real content has committed;
+                // do not wait for all Facebook resources or reload the player.
+                if (Navigation.isFacebook(url.orEmpty())) inject()
+            }
             override fun onPageFinished(view: WebView, url: String?) {
                 CookieManager.getInstance().flush()
+                loadingProgress = 100
+                loadState = "انتهى التحميل: $url"
+                // Do not probe or mutate the DOM while Facebook's bootstrap is
+                // still initializing. The independent watchdog reads it later.
+                val engineMajor = Regex("Chrome/(\\d+)").find(mobileAgent)?.groupValues?.get(1)?.toIntOrNull()
+                if (Navigation.isFacebook(url.orEmpty()) && engineMajor != null && engineMajor < 80) {
+                    failure = "محرك Android System WebView قديم (Chromium $engineMajor) ولا يدعم صياغة JavaScript الحديثة. حدّث WebView أو Chrome من متجر التطبيقات ثم أعد فتح FPRO.\n${diagnostics()}"
+                }
+                web.evaluateJavascript(pageInfoScript) { updateHomeControls(it) }
                 inject()
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                if (request.isForMainFrame) failure = "تعذّر الاتصال. تحقق من الإنترنت ثم أعد المحاولة."
+                if (request.isForMainFrame) failure = "تعذّر تحميل الصفحة: ${error.description} (رمز ${error.errorCode}). تحقق من الاتصال وحدّث Android System WebView."
             }
             override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: WebResourceResponse) {
                 if (request.isForMainFrame) failure = "استجاب الموقع بخطأ ${response.statusCode}"
             }
-            // Default SSL handling cancels invalid certificates; never bypass it.
+            override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: android.net.http.SslError) {
+                handler.cancel()
+                failure = "تعذّر التحقق من شهادة الاتصال الآمن (${error.primaryError}). تحقق من تاريخ الجهاز والشبكة؛ لن يتم تجاوز حماية TLS."
+            }
         }
         webChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView, newProgress: Int) { progress = newProgress }
+            override fun onProgressChanged(view: WebView, newProgress: Int) { this@MainActivity.loadingProgress = newProgress }
             override fun onShowFileChooser(view: WebView, callback: ValueCallback<Array<Uri>>, params: FileChooserParams): Boolean {
                 fileCallback?.onReceiveValue(null); fileCallback = callback
                 return try { filePicker.launch(params.createIntent()); true } catch (_: ActivityNotFoundException) { fileCallback = null; false }
@@ -164,6 +263,7 @@ class MainActivity : ComponentActivity() {
             override fun onPermissionRequest(request: PermissionRequest) { request.deny() }
             override fun onShowCustomView(view: View, callback: CustomViewCallback) {
                 if (fullView != null) { callback.onCustomViewHidden(); return }
+                web.evaluateJavascript("window.__fproNativeFullscreen=true", null)
                 fullView = view; fullCallback = callback
                 (window.decorView as ViewGroup).addView(view, FrameLayout.LayoutParams(-1,-1))
                 systemBars(true)
@@ -183,18 +283,24 @@ class MainActivity : ComponentActivity() {
                 resultMsg.sendToTarget(); return true
             }
         }
-        setDownloadListener { url, _, _, _, _ -> media = url to (this.url ?: "https://m.facebook.com/") }
+        setDownloadListener { url, _, _, _, _ -> sendToDownloader(url, this.url.orEmpty()) }
     }
 
     private fun route(uri: Uri, mainFrame: Boolean): Boolean {
         if (uri.scheme == "fpro") {
+            if (mainFrame && Navigation.isFacebook(web.url ?: "") && uri.host == "fullscreen-error") {
+                toast("تعذّر فتح ملء الشاشة؛ جرّب زر ملء الشاشة الأصلي للفيديو")
+            }
             if (mainFrame && Navigation.isFacebook(web.url ?: "") && uri.host == "download") {
-                media = (uri.getQueryParameter("media") ?: "") to (uri.getQueryParameter("link") ?: web.url.orEmpty())
+                sendToDownloader(uri.getQueryParameter("media").orEmpty(), uri.getQueryParameter("link").orEmpty())
             }
             return true
         }
+        // Subframes are part of the page, not user navigation. Blocking non-Facebook
+        // HTTPS frames breaks embedded authentication/media supplied by other hosts.
+        if (!mainFrame) return !Navigation.allowEmbedded(uri.toString())
         if (Navigation.isFacebook(uri.toString())) return false
-        if (mainFrame) external(uri.toString())
+        external(uri.toString())
         return true
     }
 
@@ -205,32 +311,115 @@ class MainActivity : ComponentActivity() {
         catch (_: ActivityNotFoundException) { toast("لا يوجد تطبيق مناسب لفتح الرابط") }
     }
 
-    private fun share(url: String) {
-        if (!Navigation.isFacebook(url)) { toast("يلزم رابط منشور على فيسبوك"); return }
-        val intent = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, url)
-        val pkg = prefs.text("package").trim()
+    private fun sendToDownloader(mediaUrl: String, pageUrl: String) {
+        if (!Navigation.isFacebook(web.url.orEmpty())) { toast("يلزم فتح الفيديو في فيسبوك"); return }
+        val pkg = prefs.text("package", "com.junkfood.seal").trim()
+        if (pkg.isBlank()) {
+            toast("حدّد حزمة تطبيق التنزيل أولاً في الإعدادات")
+            settings = true
+            return
+        }
+        if (!Regex("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+").matches(pkg)) {
+            toast("اسم حزمة تطبيق التنزيل غير صحيح")
+            return
+        }
+        // A package-targeted handoff: no internal downloader and no chooser.
+        // The receiving app owns its window; this does not embed its UI in FPRO.
+        // Send an available media URL, otherwise let the downloader parse the
+        // Facebook permalink. Never export browser cookies or login credentials.
+        val source = Navigation.downloadSource(mediaUrl, pageUrl)
+        if (source == null) {
+            toast("لم يتوفر رابط موثوق للفيديو الحالي بعد؛ لن نستخدم رابط الفيديو الأول")
+            return
+        }
+        val intent = Intent(Intent.ACTION_SEND).setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, source).setPackage(pkg)
+            .addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION) // The quick dialog is not a Home/PiP request.
+        // Seal exports both MainActivity and the floating quick-download UI.
+        // Resolve its documented quick Activity explicitly, never its launcher.
+        val receiver = if (pkg == "com.junkfood.seal") {
+            val quick = ComponentName(pkg, "com.junkfood.seal.QuickDownloadActivity")
+            try {
+                val info = packageManager.getActivityInfo(quick, 0)
+                if (info.exported && info.enabled && (info.applicationInfo?.enabled == true)) quick else null
+            } catch (_: android.content.pm.PackageManager.NameNotFoundException) { null }
+        } else intent.resolveActivity(packageManager)
+        if (receiver == null || receiver.packageName != pkg) {
+            toast("لا توجد واجهة تنزيل محددة لهذه الحزمة؛ يلزم التحقق من التطبيق وطريقة تكامله")
+            return
+        }
+        intent.component = receiver // Never fall through to Android's share chooser.
+        try { startActivity(intent) }
+        catch (_: ActivityNotFoundException) { toast("التطبيق المحدد غير مثبت أو لا يدعم استقبال روابط التنزيل") }
+        catch (_: SecurityException) { toast("تطبيق التنزيل لا يسمح بفتح هذه الواجهة") }
+    }
+
+    private fun updateHomeControls(result: String?) {
         try {
-            if (pkg.isNotBlank()) startActivity(intent.setPackage(pkg))
-            else startActivity(Intent.createChooser(intent, "مشاركة رابط الفيديو"))
-        } catch (_: ActivityNotFoundException) { toast("التطبيق المحدد غير مثبت أو لا يدعم مشاركة الروابط") }
+            if (result == null || result == "null") { homeControls = false; return }
+            val data = org.json.JSONObject(JSONArray("[$result]").getString(0))
+            homeControls = data.optBoolean("gearVisible", data.optBoolean("home")) && web.scrollY < 4
+            val scale = web.width / data.optDouble("width", 1.0).coerceAtLeast(1.0)
+            gearX = (data.optDouble("x") * scale).toFloat().coerceIn(0f, web.width.toFloat())
+            gearY = (data.optDouble("y") * scale).toFloat().coerceAtLeast(0f)
+        } catch (_: Exception) { homeControls = false }
     }
 
     private fun applySettings(reloadDesktop: Boolean) {
-        val agent = if (prefs.flag("desktop")) "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" else mobileAgent
+        web.setLayerType(if (prefs.flag("software")) View.LAYER_TYPE_SOFTWARE else View.LAYER_TYPE_NONE, null)
+        val compatibleAgent = if (prefs.flag("browserAgent")) Navigation.browserAgent(mobileAgent) else mobileAgent
+        val agent = if (prefs.flag("desktop")) "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" else compatibleAgent
+        val cookieManager = CookieManager.getInstance()
+        val allowEmbeddedCookies = prefs.flag("thirdPartyCookies", true)
+        val cookiesChanged = cookieManager.acceptThirdPartyCookies(web) != allowEmbeddedCookies
+        cookieManager.setAcceptThirdPartyCookies(web, allowEmbeddedCookies)
         val changed = web.settings.userAgentString != agent
         web.settings.userAgentString = agent
         web.settings.setSupportZoom(prefs.flag("zoom"))
         web.settings.builtInZoomControls = prefs.flag("zoom")
         web.settings.displayZoomControls = false
-        web.settings.useWideViewPort = true; web.settings.loadWithOverviewMode = true
+        // Mobile pages need a device-width viewport, not a scaled desktop canvas.
+        web.settings.useWideViewPort = prefs.flag("desktop")
+        web.settings.loadWithOverviewMode = prefs.flag("desktop")
         systemBars(prefs.flag("immersive"))
-        if (reloadDesktop && changed) web.reload() else inject()
+        if (reloadDesktop && (changed || cookiesChanged)) web.reload() else inject()
+    }
+
+    private fun diagnostics(): String {
+        val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
+        return "FPRO code 23 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+    }
+
+    private fun showDisplayTest() {
+        web.stopLoading()
+        failure = null
+        pageConfirmed = false
+        pageSequence++
+        loadState = "اختبار محلي بلا إنترنت"
+        web.loadDataWithBaseURL("https://fpro.invalid/", """
+            <!doctype html><html dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="margin:0;background:#14b450;color:#101010;font:22px sans-serif;padding:70px 24px;min-height:100vh;box-sizing:border-box">
+            <h1>اختبار عرض WebView</h1><p>هذه صفحة تشخيص محلية وليست فيسبوك. ظهور الخلفية الخضراء وهذا النص يؤكد أن المحرك يرسم المحتوى.</p>
+            <p id="js">JavaScript لم يعمل بعد</p><script>document.getElementById('js').textContent='JavaScript يعمل';document.body.dataset.ready='yes';</script>
+            <a href="https://m.facebook.com/">فتح فيسبوك الحقيقي</a></body></html>
+        """.trimIndent(), "text/html", "UTF-8", null)
     }
 
     private fun inject() {
+        // The independent double-tap shortcut uses only delegated listeners.
+        // DOM filters/styles still require the page-enhancement master switch.
+        val enhance = prefs.flag("pageEnhancements")
+        if (!enhance) {
+            if (enhancementsInstalled) {
+                enhancementsInstalled = false
+                web.reload() // restore the original page and remove all old hooks
+                return
+            }
+        }
         if (!Navigation.isFacebook(web.url ?: "")) return
+        enhancementsInstalled = enhance
         web.evaluateJavascript(script.replace("__CONFIG__", prefs.scriptConfig()), null)
-        if (prefs.flag("liveColor")) web.evaluateJavascript("document.querySelector('meta[name=\"theme-color\"]')?.content || getComputedStyle(document.body).backgroundColor") { result ->
+        if (enhance && prefs.flag("liveColor")) web.evaluateJavascript("document.querySelector('meta[name=\"theme-color\"]')?.content || getComputedStyle(document.body).backgroundColor") { result ->
             try {
                 val value = JSONArray("[$result]").getString(0)
                 val parsed = if (value.startsWith("rgb")) {
@@ -244,8 +433,6 @@ class MainActivity : ComponentActivity() {
 
     private fun smartBack() {
         when {
-            downloadPanel -> downloadPanel = false
-            media != null -> media = null
             settings -> settings = false
             fullView != null -> closeFullscreen()
             else -> web.evaluateJavascript("""
@@ -267,6 +454,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun closeFullscreen() {
+        web.evaluateJavascript("window.__fproNativeFullscreen=false", null)
         fullView?.let { (it.parent as? ViewGroup)?.removeView(it) }; fullView = null
         fullCallback?.onCustomViewHidden(); fullCallback = null
         systemBars(prefs.flag("immersive"))
@@ -279,7 +467,7 @@ class MainActivity : ComponentActivity() {
     }
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (Build.VERSION.SDK_INT >= 26 && prefs.flag("pip") && !settings && !downloadPanel) {
+        if (Build.VERSION.SDK_INT >= 26 && prefs.flag("pip") && !settings) {
             web.evaluateJavascript("Array.from(document.querySelectorAll('video')).some(v=>!v.paused&&!v.ended)") { playing ->
                 if (playing == "true" && !isFinishing && !isDestroyed) try {
                     enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(Rational(16,9)).build())
@@ -299,34 +487,7 @@ class MainActivity : ComponentActivity() {
     }
     private fun toast(message: String) { Toast.makeText(this, message, Toast.LENGTH_LONG).show() }
 
-    @Composable
-    private fun DownloadDialog() {
-        var items by remember { mutableStateOf(emptyList<DownloadStore.Item>()) }
-        LaunchedEffect(Unit) { while (true) { items = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { downloads.list() }; delay(1000) } }
-        AlertDialog(onDismissRequest = { downloadPanel = false }, title = { Text("التنزيلات الداخلية") }, text = {
-            androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 440.dp)) {
-                if (items.isEmpty()) item { Text("لا توجد تنزيلات. اضغط ↓ على فيديو لبدء التنزيل.") }
-                items(items.size, key = { items[it].id }) { index ->
-                    val item = items[index]
-                    Column(Modifier.padding(vertical = 8.dp)) {
-                        Text(item.title)
-                        val status = when(item.status) {
-                            DownloadManager.STATUS_SUCCESSFUL -> "اكتمل"
-                            DownloadManager.STATUS_FAILED -> "فشل: المصدر منتهي الصلاحية أو غير مدعوم"
-                            DownloadManager.STATUS_PAUSED -> "متوقف مؤقتاً بواسطة النظام"
-                            else -> "${item.progress}%"
-                        }
-                        Text(status, style = MaterialTheme.typography.bodySmall)
-                        LinearProgressIndicator(progress = { item.progress / 100f }, modifier = Modifier.fillMaxWidth())
-                        Row {
-                            if (item.status == DownloadManager.STATUS_SUCCESSFUL) TextButton(onClick = { try { downloads.open(item.id) } catch (_: Exception) { toast("لا يوجد مشغل متاح") } }) { Text("فتح") }
-                            TextButton(onClick = { downloads.remove(item.id) }) { Text("حذف / إلغاء") }
-                        }
-                    }
-                }
-            }
-        }, confirmButton = { TextButton(onClick = { downloadPanel = false }) { Text("إغلاق") } })
-    }
+
 }
 
 @Composable
