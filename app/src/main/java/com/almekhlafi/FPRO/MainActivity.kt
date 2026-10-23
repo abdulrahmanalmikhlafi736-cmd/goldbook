@@ -138,7 +138,9 @@ class MainActivity : ComponentActivity() {
                         // Native watchdog: it must NOT wait for a JavaScript callback to
                         // report a stalled renderer, or depend on onPageStarted firing.
                         LaunchedEffect(pageSequence) {
-                            delay(25_000)
+                            delay(24_000)
+                            if (!pageConfirmed) web.evaluateJavascript("(function(){return !!document.body && document.body.innerText.replace(/\\s/g,'').length > 30;})()") { result -> pageConfirmed = result == "true" }
+                            delay(1_000)
                             if (!pageConfirmed && failure == null) failure = "لم يؤكد محرك الويب عرض محتوى الصفحة. افتح الإعدادات ثم اختبار العرض لتمييز خلل المحرك من اتصال فيسبوك.\n${diagnostics()}"
                         }
                     }
@@ -177,10 +179,9 @@ class MainActivity : ComponentActivity() {
                 view.evaluateJavascript("(function(){return !!document.body && document.body.innerText.replace(/\\s/g,'').length > 30;})()") { result ->
                     pageConfirmed = result == "true"
                 }
-                if (Navigation.isFacebook(url.orEmpty())) {
-                    view.evaluateJavascript("(function(){try{new Function('return ({x:1})?.x ?? 0');return true;}catch(e){return false;}})()") { modern ->
-                        if (modern != "true") failure = "محرك Android System WebView قديم ولا يدعم JavaScript الحديث الذي يحتاجه الموقع. حدّث WebView أو Chrome من متجر التطبيقات ثم أعد فتح FPRO.\n${diagnostics()}"
-                    }
+                val engineMajor = Regex("Chrome/(\\d+)").find(mobileAgent)?.groupValues?.get(1)?.toIntOrNull()
+                if (Navigation.isFacebook(url.orEmpty()) && engineMajor != null && engineMajor < 80) {
+                    failure = "محرك Android System WebView قديم (Chromium $engineMajor) ولا يدعم صياغة JavaScript الحديثة. حدّث WebView أو Chrome من متجر التطبيقات ثم أعد فتح FPRO.\n${diagnostics()}"
                 }
                 inject()
             }
