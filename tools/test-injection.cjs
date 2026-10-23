@@ -43,7 +43,7 @@ function fixture(html,config={},captureDownload=false) {
   tint.run({color:'تلقائي'});assert(!tint.doc.querySelector('#blue').hasAttribute('data-fpro-accent-bg'));
   assert.equal(tint.doc.querySelector('#blue').style.backgroundColor,'rgb(8, 102, 255)','Original inline color preserved');
   assert(!tint.doc.querySelector('#photo').hasAttribute('data-fpro-accent-bg'));
-  const f=fixture('<article><video src="https://example.invalid/test.mp4"></video></article>');
+  const f=fixture('<div role="dialog" hidden>Preloaded dialog</div><article><video src="https://example.invalid/test.mp4"></video></article>');
   const video=f.doc.querySelector('video');
   video.getBoundingClientRect=()=>({left:10,top:30,right:330,bottom:230,width:320,height:200});
   Object.defineProperty(video,'duration',{configurable:true,value:120});video.currentTime=30;
