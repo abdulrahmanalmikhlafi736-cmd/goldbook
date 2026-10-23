@@ -6,7 +6,7 @@ on:
     inputs:
       run_id:
         description: Completed emulator run to inspect
-        default: '40007182672'
+        default: '40023782818'
         required: true
 jobs:
   inspect:
@@ -21,13 +21,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id="${{ github.event.inputs.run_id || '40007182672' }}"
+          id="${{ github.event.inputs.run_id || '40023782818' }}"
           echo "run=$id" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
           run-id: ${{ steps.source.outputs.run }}
-          pattern: webview-device-diagnostics-36-*
+          pattern: webview-device-diagnostics-*-debug
           path: previous-diagnostics
       - name: Summarize baseline comparisons
         run: |
