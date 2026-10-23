@@ -185,12 +185,14 @@ class MainActivity : ComponentActivity() {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 failure = null
                 pageConfirmed = false
+                loadingProgress = 1
                 enhancementsInstalled = false
                 pageSequence++
                 loadState = "بدء تحميل: $url"
             }
             override fun onPageFinished(view: WebView, url: String?) {
                 CookieManager.getInstance().flush()
+                loadingProgress = 100
                 loadState = "انتهى التحميل: $url"
                 // Do not probe or mutate the DOM while Facebook's bootstrap is
                 // still initializing. The independent watchdog reads it later.
@@ -296,7 +298,7 @@ class MainActivity : ComponentActivity() {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 7 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 8 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {

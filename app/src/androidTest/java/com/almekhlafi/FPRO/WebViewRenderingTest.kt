@@ -46,6 +46,30 @@ class WebViewRenderingTest {
         }
     }
 
+    @Test fun bSelectedToolsActivateMasterWithoutOverridingExplicitOff() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val store = context.getSharedPreferences("fpro", android.content.Context.MODE_PRIVATE)
+        val keys = listOf("pageEnhancements", "downloads", "color")
+        val old = store.all.filterKeys { it in keys }
+        try {
+            val prefs = Preferences(context)
+            prefs.set("pageEnhancements", false)
+            prefs.set("downloads", true)
+            assertTrue(prefs.flag("pageEnhancements"))
+            prefs.set("pageEnhancements", false)
+            assertFalse(Preferences(context).flag("pageEnhancements"))
+            prefs.set("color", "ذهبي")
+            assertTrue(prefs.flag("pageEnhancements"))
+            store.edit().remove("pageEnhancements").commit()
+            assertTrue(Preferences(context).flag("pageEnhancements"))
+        } finally {
+            store.edit().apply {
+                keys.forEach { remove(it) }
+                old.forEach { (key,value) -> when(value) { is Boolean -> putBoolean(key,value); is String -> putString(key,value) } }
+            }.commit()
+        }
+    }
+
     /** A separate, real HTTPS smoke test. No credentials, mock response or DOM replacement. */
     @Test fun liveFacebookLoggedOutSmoke() {
         org.junit.Assume.assumeTrue("Live site requires a recent system WebView", android.os.Build.VERSION.SDK_INT >= 35)

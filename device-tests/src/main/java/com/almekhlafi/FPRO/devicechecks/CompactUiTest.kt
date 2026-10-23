@@ -77,4 +77,44 @@ class CompactUiTest {
             device.wait(Until.hasObject(By.clazz("android.widget.EditText").focused(true)), 5000))
         // No account data is entered and no login request is submitted.
     }
+    private fun scrollToText(text: String): UiObject2 {
+        repeat(18) {
+            device.findObject(By.text(text))?.let { return it }
+            val scroll = device.findObject(By.scrollable(true))
+                ?: throw AssertionError("Settings must remain scrollable: $text")
+            scroll.scroll(androidx.test.uiautomator.Direction.DOWN, 0.7f)
+            Thread.sleep(180)
+        }
+        throw AssertionError("Setting not found: $text")
+    }
+
+    @Test fun selectedPageToolsAffectRealFacebook() {
+        launch()
+        assertNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 40_000))
+        requireNotNull(device.findObject(By.text("⚙"))).click()
+        val color = scrollToText("اللون: تلقائي")
+        color.click()
+        requireNotNull(device.wait(Until.findObject(By.text("ذهبي")), 5000)).click()
+        val label = scrollToText("إخفاء شريط فتح التطبيق أو تثبيته")
+        val toggle = requireNotNull(device.findObjects(By.checkable(true)).minByOrNull {
+            kotlin.math.abs(it.visibleBounds.centerY() - label.visibleBounds.centerY())
+        }) { "Banner switch must be accessible" }
+        if (!toggle.isChecked) toggle.click()
+        device.pressBack()
+        val login = requireNotNull(device.wait(Until.findObject(By.text("Log in")), 15_000)) { "Enhancements must preserve the real login form" }
+        Thread.sleep(1200)
+        val bounds = login.visibleBounds
+        val image = BitmapFactory.decodeFile(screenshot("compact-gold-tools.png").absolutePath)
+        // Sample away from the white button text, within the actual native web button.
+        val goldSamples = (1..9).count { fraction ->
+            val pixel = image.getPixel(bounds.left + bounds.width()*fraction/10, bounds.centerY())
+            Color.red(pixel) > 150 && Color.green(pixel) > 100 && Color.blue(pixel) < 120
+        }
+        assertTrue("Selected gold must recolor Facebook, not only native settings; samples=$goldSamples", goldSamples >= 2)
+        val text = device.findObject(By.clazz("android.webkit.WebView"))?.let { textTree(it) }.orEmpty()
+        assertFalse("Install/open-app banner must disappear", text.contains("Get Facebook for Android", ignoreCase=true))
+        assertNotNull("Login inputs remain accessible after hiding banner", device.findObject(By.clazz("android.widget.EditText")))
+        device.executeShellCommand("screencap -p /data/local/tmp/fpro-tools.png")
+    }
+
 }

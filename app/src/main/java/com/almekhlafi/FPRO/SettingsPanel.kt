@@ -27,7 +27,7 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         Text("اختبار العرض ليس فيسبوك. إذا ظهر أخضر فالمحرك يرسم؛ انسخ التشخيص لتحديد سبب تعطل الموقع. الرسم البرمجي قد يقلل أداء الفيديو.", style = MaterialTheme.typography.bodySmall)
         HorizontalDivider()
         Toggle("تفعيل أدوات وتعديلات الصفحة — اختياري", "pageEnhancements", prefs, revision) { update() }
-        Text("يفتح فيسبوك دون تغيير محتوى الصفحة افتراضياً. شغّل هذا الخيار فقط لاستخدام الفلاتر وألوان الموقع وأدوات الفيديو أدناه. تعطيله يعيد تحميل الصفحة الأصلية.", style = MaterialTheme.typography.bodySmall)
+        Text("اختيار أداة أو لون أدناه يفعّل تعديلات الصفحة تلقائياً. يمكنك إيقافها جميعاً بهذا المفتاح؛ إيقافه يعيد تحميل الصفحة الأصلية ويحفظ اختياراتك.", style = MaterialTheme.typography.bodySmall)
         HorizontalDivider()
         Text("التنزيل", style = MaterialTheme.typography.titleLarge)
         Toggle("إظهار زر التنزيل القابل للسحب", "downloads", prefs, revision) { update() }
@@ -50,11 +50,11 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         HorizontalDivider()
         Text("الحجب والإخفاء", style = MaterialTheme.typography.titleLarge)
         Text("مرشحات اجتهادية تعتمد على بنية موقع فيسبوك؛ قد لا تتعرف على جميع اللغات أو النسخ.", style = MaterialTheme.typography.bodySmall)
-        listOf("الإعلانات والمحتوى الممول" to "ads", "المنشورات المقترحة" to "suggested", "الريلز" to "reels", "القصص" to "stories", "أشخاص قد تعرفهم" to "people", "المجموعات المقترحة" to "groups").forEach { (label,key) -> Toggle("إخفاء $label",key,prefs,revision) { update() } }
+        listOf("الإعلانات والمحتوى الممول" to "ads", "المنشورات المقترحة" to "suggested", "الريلز" to "reels", "القصص" to "stories", "أشخاص قد تعرفهم" to "people", "المجموعات المقترحة" to "groups", "شريط فتح التطبيق أو تثبيته" to "appBanner").forEach { (label,key) -> Toggle("إخفاء $label",key,prefs,revision) { update() } }
         HorizontalDivider()
         Text("الأدوات", style = MaterialTheme.typography.titleLarge)
-        listOf("تقدم قوس قزح مع كرة" to "rainbow", "التكبير بالإصبعين" to "zoom", "تثبيت شريط التنقل" to "sticky", "وضع سطح المكتب (يعيد تحميل الصفحة)" to "desktop", "عكس اتجاه الصفحة" to "reverse", "صورة داخل صورة عند المغادرة (Android 8+)" to "pip", "الوضع المغمور" to "immersive").forEach { (label,key) -> Toggle(label,key,prefs,revision) { update() } }
-        Text("انقر مرتين على الفيديو لملء الشاشة. نسخ النص متاح بتحديده حيث يسمح الموقع. الرسائل متاحة وفق دعم فيسبوك للويب. إشعارات الويب والعمل الصوتي الدائم في الخلفية غير مضمونين؛ لا توجد خدمة إشعارات Meta أصلية في هذا التطبيق.", style = MaterialTheme.typography.bodySmall)
+        listOf("شريط تقدم فيديو قابل للسحب — قوس قزح مع كرة" to "rainbow", "التكبير بالإصبعين" to "zoom", "تثبيت شريط التنقل" to "sticky", "وضع سطح المكتب (يعيد تحميل الصفحة)" to "desktop", "عكس اتجاه الصفحة" to "reverse", "صورة داخل صورة عند المغادرة (Android 8+)" to "pip", "الوضع المغمور" to "immersive").forEach { (label,key) -> Toggle(label,key,prefs,revision) { update() } }
+        Text("انقر مرتين على الفيديو عند تفعيل أدوات الفيديو أو استخدم زر ملء الشاشة الأصلي. نسخ النص متاح بتحديده حيث يسمح الموقع. الرسائل متاحة وفق دعم فيسبوك للويب. إشعارات الويب والعمل الصوتي الدائم في الخلفية غير مضمونين؛ لا توجد خدمة إشعارات Meta أصلية في هذا التطبيق.", style = MaterialTheme.typography.bodySmall)
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Text("تم التطوير بواسطة عبدالرحمن المخلافي 🧑🏻‍💻", style = MaterialTheme.typography.titleMedium)

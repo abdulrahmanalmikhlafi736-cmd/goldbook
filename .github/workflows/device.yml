@@ -58,6 +58,7 @@ jobs:
             timeout 15 adb pull /data/local/tmp/fpro-ui.xml device-diagnostics/compact-ui.xml || true
             timeout 15 adb pull /data/local/tmp/fpro-baseline.png device-diagnostics/plain-baseline.png || true
             timeout 15 adb pull /data/local/tmp/fpro-compose.png device-diagnostics/compose-facebook.png || true
+            timeout 15 adb pull /data/local/tmp/fpro-tools.png device-diagnostics/compact-tools.png || true
             cat device-diagnostics/gradle.log
             test "$(cat device-diagnostics/result)" = PASS
       - name: Collect device diagnostics

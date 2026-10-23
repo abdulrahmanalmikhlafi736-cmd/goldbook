@@ -7,10 +7,28 @@ class Preferences(context: Context) {
     private val store = context.getSharedPreferences("fpro", Context.MODE_PRIVATE)
     fun flag(key: String, default: Boolean = false) = store.getBoolean(key, default)
     fun text(key: String, default: String = "") = store.getString(key, default) ?: default
-    fun set(key: String, value: Boolean) { store.edit().putBoolean(key, value).apply() }
-    fun set(key: String, value: String) { store.edit().putString(key, value).apply() }
+    private val pageKeys = setOf("ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads", "dark", "amoled", "liveColor")
+    init {
+        // Migrate selected tools only when the user never explicitly chose the
+        // master switch. Preserve an intentional master-off choice.
+        if (!store.contains("pageEnhancements") && (pageKeys.any { store.getBoolean(it, false) } || store.getString("color", "تلقائي") != "تلقائي")) {
+            store.edit().putBoolean("pageEnhancements", true).apply()
+        }
+    }
+    fun set(key: String, value: Boolean) {
+        store.edit().apply {
+            putBoolean(key, value)
+            if (value && key in pageKeys) putBoolean("pageEnhancements", true)
+        }.apply()
+    }
+    fun set(key: String, value: String) {
+        store.edit().apply {
+            putString(key, value)
+            if (key == "color" && value != "تلقائي") putBoolean("pageEnhancements", true)
+        }.apply()
+    }
     fun scriptConfig(): String = JSONObject().apply {
-        listOf("ads", "suggested", "reels", "stories", "people", "groups", "rainbow", "sticky", "reverse", "downloads").forEach { put(it, flag(it)) }
+        listOf("ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads").forEach { put(it, flag(it)) }
         put("color", text("color", "تلقائي"))
         put("dark", flag("dark")); put("amoled", flag("amoled"))
     }.toString()
