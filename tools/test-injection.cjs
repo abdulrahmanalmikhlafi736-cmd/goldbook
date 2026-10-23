@@ -259,6 +259,15 @@ function fixture(html,config={},captureDownload=false) {
   gesture.run({enhance:false,doubleTapFullscreen:true});
   const late=gesture.doc.createElement('video');late.getBoundingClientRect=player.getBoundingClientRect;late.requestFullscreen=()=>{entered++;return Promise.resolve();};
   gesture.doc.body.appendChild(late);player.remove();tap(3700);tap(3900);assert.equal(entered,2,'Dynamically replaced players work without attaching overlays or new listeners');
+  Object.defineProperty(gesture.doc,'webkitFullscreenElement',{value:late,writable:true});
+  tap(5000);tap(5200);assert.equal(entered,2,'Prefixed fullscreen must not trigger re-entry or exit');
+  gesture.doc.webkitFullscreenElement=null;late.webkitDisplayingFullscreen=true;
+  tap(6000);tap(6200);assert.equal(entered,2,'iOS/prefixed video-fullscreen flag remains entry-only');
+  late.webkitDisplayingFullscreen=false;
+  const selectedText=gesture.doc.createElement('span');selectedText.textContent='Select me';gesture.doc.body.appendChild(selectedText);
+  const selectedRange=gesture.doc.createRange();selectedRange.selectNodeContents(selectedText);gesture.window.getSelection().addRange(selectedRange);
+  tap(7000);tap(7200);assert.equal(entered,2,'An active text selection must not activate video double tap');
+  gesture.window.getSelection().removeAllRanges();
   assert.equal(gesture.doc.querySelector('.fpro-video-tools'),null);
   assert(nativeMain.includes('com.junkfood.seal.QuickDownloadActivity'),'Seal uses its exported quick-download dialog, not its launcher');
   const denied=fixture('<video></video>',{enhance:false,doubleTapFullscreen:true},true);
