@@ -85,7 +85,11 @@ class MainActivity : ComponentActivity() {
                     Surface(Modifier.fillMaxSize()) {
                         Box(Modifier.fillMaxSize().then(if (pip) Modifier else Modifier.safeDrawingPadding())) {
                             // The website owns the whole viewport; no replacement Facebook toolbar.
-                            AndroidView(factory = { web }, modifier = Modifier.fillMaxSize())
+                            // RTL belongs to native Arabic controls, not the browser viewport.
+                            // Let Facebook's own HTML dir/CSS control its text direction.
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                AndroidView(factory = { web }, modifier = Modifier.fillMaxSize())
+                            }
                             if (!pip) {
                                 if (loadingProgress in 1..99) LinearProgressIndicator(
                                     progress = { loadingProgress / 100f },
@@ -151,6 +155,7 @@ class MainActivity : ComponentActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWebView(): WebView = WebView(this).apply {
+        layoutDirection = View.LAYOUT_DIRECTION_LTR
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
