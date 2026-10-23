@@ -469,6 +469,10 @@ function fixture(html,config={},captureDownload=false) {
   assert(!instantPaintStyle.textContent.includes('#1877f2'),'New style rules must recolor before debounced full scan');
   instantPaint.style.backgroundColor='rgb(24,119,242)';
   await new Promise(resolve=>supplied.window.queueMicrotask(resolve));assert.equal(instantPaint.style.backgroundColor,'rgb(23, 131, 62)','Recycled inline styles recolor immediately too');
+  const looseComment=fixture('<div role="button"><div dir="auto"><span id="looseReading">A comment outside semantic article wrappers</span></div></div>',{textSelection:true});
+  looseComment.doc.addEventListener('pointerdown',e=>e.preventDefault(),true);
+  const loosePress=new looseComment.window.Event('pointerdown',{bubbles:true,cancelable:true});looseComment.doc.getElementById('looseReading').dispatchEvent(loosePress);
+  assert.equal(loosePress.defaultPrevented,false,'Nested comment spans must use their dir-auto ancestor as reading evidence');
   const bare=fixture('<div id="bareText" style="user-select:none!important">Reading text directly in a div</div>',{textSelection:true});
   const bareEl=bare.doc.getElementById('bareText');let cancelledContexts=0;
   bare.doc.addEventListener('contextmenu',e=>{cancelledContexts++;e.preventDefault();},true);

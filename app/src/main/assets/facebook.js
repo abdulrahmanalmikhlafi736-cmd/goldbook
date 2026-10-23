@@ -36,7 +36,7 @@
    const aria=control.getAttribute('aria-label')||'',visible=control.textContent||'';
    const label=aria.length<=90?norm(aria):'',visibleLabel=visible.length<=90?norm(visible):'';
    if(selectionControlLabels.has(label)||selectionControlLabels.has(visibleLabel))return null;
-   if(!el.closest('article,[role="article"],[data-commentid],[role="comment"]')&&!root.matches('[dir="auto"],p,[data-ad-preview],[data-ad-comet-preview]'))return null;
+   if(!el.closest('article,[role="article"],[data-commentid],[role="comment"]')&&!el.closest('[dir="auto"],p,[data-ad-preview],[data-ad-comet-preview]'))return null;
   }
   return {el,root,control};
  }
