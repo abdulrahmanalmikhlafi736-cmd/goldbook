@@ -111,7 +111,7 @@
   button.onpointercancel=()=>{clearTimeout(timer);start=null;};
   button.onclick=e=>{e.preventDefault();e.stopPropagation();if(moving)return;
    const article=postFor(video) || video.parentElement;
-   const permalink=article && Array.from(article.querySelectorAll('a[href]')).find(a=>/\/reel\/|\/videos\/|\/stories\/|story_fbid=/.test(a.href));
+   const permalink=article && Array.from(article.querySelectorAll('a[href]')).find(a=>{try{const u=new URL(a.href);return (u.hostname==='facebook.com'||u.hostname.endsWith('.facebook.com'))&&/\/reel\/|\/videos\/|\/stories\/|\/watch\/?\?|\/video\.php\?|story_fbid=/.test(u.pathname+u.search);}catch(_){return false;}});
    location.href='fpro://download?media='+encodeURIComponent(mediaSource(video))+'&link='+encodeURIComponent(permalink ? permalink.href : location.href);
   };
   function progress(){const valid=Number.isFinite(video.duration)&&video.duration>0;const fraction=valid?Math.max(0,Math.min(1,video.currentTime/video.duration)):0;fill.style.width=(fraction*100)+'%';seek.value=String(Math.round(fraction*1000));seek.disabled=!valid;seek.setAttribute('aria-valuetext',valid?Math.floor(video.currentTime)+' / '+Math.floor(video.duration)+' ثانية':'بث مباشر أو مدة غير متاحة');}

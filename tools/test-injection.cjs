@@ -22,10 +22,11 @@ function fixture(html,config={},captureDownload=false) {
   }
   const nested=fixture('<article id="post"><a data-ft="tracking"><span>Sponsored</span></a></article>',{ads:true});
   assert.equal(nested.doc.querySelector('#post').style.display,'none','Nested tracking attributes must not restrict hiding to the label');
-  const direct=fixture(`<div data-store='{"videoData":[{"hd_src":"https://example.invalid/available.mp4"}]}'><video></video></div>`,{downloads:true},true);
+  const direct=fixture(`<article><a href="https://unrelated.invalid/watch/?v=1">External link</a><a href="/watch/?v=42">Video permalink</a><div data-store='{"videoData":[{"hd_src":"https://example.invalid/available.mp4"}]}'><video></video></div></article>`,{downloads:true},true);
   Object.defineProperty(direct.doc.querySelector('video'),'currentSrc',{value:'blob:https://m.facebook.com/example'});
   direct.doc.querySelector('.fpro-download').click();
   assert.equal(new URL(direct.window.__download).searchParams.get('media'),'https://example.invalid/available.mp4','Use explicit available media metadata, not a blob URL, when the page supplies it');
+  assert.equal(new URL(direct.window.__download).searchParams.get('link'),'https://m.facebook.com/watch/?v=42','Share the actual Facebook watch permalink, never an unrelated external link');
   const feed=fixture('<section id="stories" aria-label="Stories"><a href="/stories/123">Someone</a></section><article id="post"><b>أشخاص قد تعرفهم</b></article><article id="normal">A normal post about stories and sponsored work</article>',{stories:true,people:true});
   assert.equal(feed.doc.querySelector('#stories').style.display,'none');
   assert.equal(feed.doc.querySelector('#post').style.display,'none');
