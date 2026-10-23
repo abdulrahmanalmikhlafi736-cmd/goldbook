@@ -33,7 +33,7 @@ class CompactUiTest {
 
     @Test fun localPagePaintsThroughRealSettingsButton() {
         launch()
-        val settings = requireNotNull(device.wait(Until.findObject(By.text("⚙")), 10_000)) { "Settings button must be accessible" }
+        val settings = requireNotNull(device.wait(Until.findObject(By.desc("الإعدادات")), 25_000)) { "Settings button must be accessible" }
         settings.click()
         val check = requireNotNull(device.wait(Until.findObject(By.text("اختبار عرض محلي بلا إنترنت")), 10_000)) { "Display self-test must be reachable" }
         check.click()
@@ -107,7 +107,7 @@ class CompactUiTest {
     @Test fun selectedPageToolsAffectRealFacebook() {
         launch()
         assertNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 40_000))
-        requireNotNull(device.findObject(By.text("⚙"))).click()
+        requireNotNull(device.wait(Until.findObject(By.desc("الإعدادات")), 25_000)) { "Home gear must appear after the page is recognized" }.click()
         scrollToText("اللون: تلقائي")
         freshUi { requireNotNull(device.findObject(By.textContains("اللون:"))).click() }
         assertNotNull(device.wait(Until.findObject(By.text("ذهبي")), 5000))
