@@ -130,3 +130,10 @@ jobs:
             python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]).convert("RGB"); im.thumbnail((360,640)); im.save("/tmp/compact.jpg", quality=55)' "$file"
             python3 -c 'import base64; s=base64.b64encode(open("/tmp/compact.jpg","rb").read()).decode(); [print("::notice title=COMPACT_JPEG_"+str(i//3000)+"::"+s[i:i+3000]) for i in range(0,len(s),3000)]'
           fi
+      - name: Inspect page tools settings screenshot
+        run: |
+          file=$(find previous-diagnostics -name compact-tools.png | head -1)
+          if [ -n "$file" ]; then
+            python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]).convert("RGB"); im.thumbnail((360,640)); im.save("/tmp/tools.jpg", quality=55)' "$file"
+            python3 -c 'import base64; s=base64.b64encode(open("/tmp/tools.jpg","rb").read()).decode(); [print("::notice title=TOOLS_JPEG_"+str(i//3000)+"::"+s[i:i+3000]) for i in range(0,len(s),3000)]'
+          fi
