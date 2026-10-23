@@ -130,26 +130,30 @@
     const r=root.getBoundingClientRect();if(root.matches('body,html,main,article,nav,header,[role="article"],[role="navigation"],[role="banner"]')||r.width>innerWidth*1.1||r.height>160)break;
     for(const canvas of root.querySelectorAll('canvas')){
      if(seen.has(canvas)||canvas.closest('.fpro-video-tools'))continue;const c=canvas.getBoundingClientRect();
-     if(c.width<=160&&c.height<=160&&c.width>=p.width&&c.width<=p.width+24&&c.height>=p.height&&c.height<=p.height+24&&Math.abs(c.left+c.width/2-p.left-p.width/2)<=4&&Math.abs(c.top+c.height/2-p.top-p.height/2)<=4){seen.add(canvas);pairs.push({canvas,photo});}
+     const compact=c.width<=160&&c.height<=160&&c.width>=p.width&&c.width<=p.width+24&&c.height>=p.height&&c.height<=p.height+24&&Math.abs(c.left+c.width/2-p.left-p.width/2)<=4&&Math.abs(c.top+c.height/2-p.top-p.height/2)<=4;
+     const row=c.width<=innerWidth*1.1&&c.height<=160&&c.left<=p.left&&c.top<=p.top&&c.right>=p.right&&c.bottom>=p.bottom;
+     if(compact||row){seen.add(canvas);pairs.push({canvas,photo});}
     }
    }
   }
   return pairs.slice(0,8);
  }
- function canvasRingEvidence(canvas){
+ function canvasRingEvidence(canvas,photo){
   const result={readable:false,blueRing:false,transparentCenter:false};
-  const w=canvas.width,h=canvas.height;if(w<24||h<24||w>512||h>512||Math.abs(w-h)>Math.min(w,h)*.15)return result;
+  const w=canvas.width,h=canvas.height,r=canvas.getBoundingClientRect(),p=photo?.getBoundingClientRect();if(!p||w<24||h<24||w>1024||h>512||r.width<=0||r.height<=0)return result;
+  const sx=w/r.width,sy=h/r.height;if(Math.abs(sx-sy)>Math.min(sx,sy)*.15)return result;
+  const size=Math.min(r.height,p.width+24)*sx,cx=(p.left+p.width/2-r.left)*sx,cy=(p.top+p.height/2-r.top)*sy;
   // Copy into an unattached sampler. Do not acquire/change the source canvas
   // rendering context, alter its pixels, or bypass cross-origin restrictions.
   let data;try{const sample=document.createElement('canvas');sample.width=w;sample.height=h;const context=sample.getContext('2d',{willReadFrequently:true});if(!context)return result;context.drawImage(canvas,0,0);data=context.getImageData(0,0,w,h).data;result.readable=true;}catch(_){return result;}
-  let visible=0,blue=0,interior=0,offRing=0;const bins=new Set(),size=Math.min(w,h),cx=(w-1)/2,cy=(h-1)/2;
+  let visible=0,blue=0,interior=0,offRing=0;const bins=new Set();
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){
    const i=(y*w+x)*4;if(data[i+3]<16)continue;visible++;
    const dx=x-cx,dy=y-cy,r=Math.hypot(dx,dy)/size;if(r<.33)interior++;if(r<.33||r>.56)offRing++;
    if(data[i+2]>data[i]+30&&data[i+2]>data[i+1]+20){blue++;bins.add(Math.min(23,Math.floor((Math.atan2(dy,dx)+Math.PI)/(2*Math.PI)*24)));}
   }
   result.transparentCenter=interior===0;
-  result.blueRing=visible>=w*h*.01&&visible<=w*h*.4&&interior===0&&offRing<=visible*.02&&blue>=visible*.9&&bins.size>=20;
+  result.blueRing=visible>=size*size*.01&&visible<=size*size*.4&&interior===0&&offRing<=visible*.02&&blue>=visible*.9&&bins.size>=20;
   return result;
  }
  function verifiedLabel(el){
@@ -286,9 +290,9 @@
   // A separate canvas with an empty center can draw a story ring while all
   // computed border/background/SVG fields are empty. Never filter a canvas
   // that contains portrait/media pixels or cannot be read safely.
-  if(cfg.experimentalColorVars)for(const {canvas} of avatarCanvasPairs()){
+  if(cfg.experimentalColorVars)for(const {canvas,photo} of avatarCanvasPairs()){
    const filter=getComputedStyle(canvas).filter;if(filter&&filter!=='none')continue;
-   if(canvasRingEvidence(canvas).blueRing){mark(canvas,'canvas-ring');filtered=true;}
+   if(canvasRingEvidence(canvas,photo).blueRing){mark(canvas,'canvas-ring');filtered=true;}
   }
   if(filtered)setIconPalette();else iconDefs.remove();
   painted.forEach(el=>{if(!next.has(el))for(const attr of accentAttrs)el.removeAttribute('data-fpro-accent-'+attr);});
@@ -602,10 +606,10 @@
    const levels=[];let el=photo;for(let depth=0;el&&depth<5;depth++,el=el.parentElement){if(el.matches('body,html,main,nav,[role="navigation"]'))break;levels.push(frame(el));}
    report.avatarFrames.push({kind:photo.matches('img')?'img':photo.matches('image')?'svg':'background',levels});
   }
-  const pairs=avatarCanvasPairs(),nearAvatar=new Set(pairs.map(pair=>pair.canvas));
+  const pairs=avatarCanvasPairs(),nearAvatar=new Map(pairs.map(pair=>[pair.canvas,pair.photo]));
   for(const canvas of document.querySelectorAll('canvas')){
    if(report.canvasLayers.length>=8)break;const r=canvas.getBoundingClientRect();if(r.width<8||r.height<8||r.bottom<=0||r.top>=innerHeight||canvas.closest('.fpro-video-tools'))continue;
-   const near=nearAvatar.has(canvas);report.canvasLayers.push({w:Math.round(r.width),h:Math.round(r.height),nearAvatar:near,...(near?canvasRingEvidence(canvas):{readable:false,blueRing:false,transparentCenter:false})});
+   const near=nearAvatar.has(canvas);report.canvasLayers.push({w:Math.round(r.width),h:Math.round(r.height),nearAvatar:near,...(near?canvasRingEvidence(canvas,nearAvatar.get(canvas)):{readable:false,blueRing:false,transparentCenter:false})});
   }
   for(const img of document.querySelectorAll('img')){
    if(report.smallImages.length>=12)break;const r=img.getBoundingClientRect();if(r.width<8||r.width>24||r.height<8||r.height>24||r.bottom<=0||r.top>=innerHeight)continue;

@@ -322,14 +322,17 @@ function fixture(html,config={},captureDownload=false) {
   const rendererReport=dataRings.window.__fpro.colorReport();assert(rendererReport.avatarFrames.some(a=>a.levels.some(l=>l.backgroundKind==='embedded-svg')),'Report background renderer kind without URL');
   assert(!/private-photo|portrait.jpg|data:image|<svg/.test(JSON.stringify(rendererReport)),'Never export SVG/image source from renderer diagnostics');
   dataRings.run({enhance:false,color:'أحمر',experimentalColorVars:true});assert.equal(encoded.style.backgroundImage,ringData);assert.equal(encoded.style.getPropertyValue('--fpro-ring-svg'),'');
-  const canvasFixture=fixture('<div id="wideCanvasRow"><div id="canvasWrap"><img id="canvasAvatar" src="private-avatar.jpg"></div><canvas id="ringCanvas" width="106" height="106"></canvas><canvas id="photoCanvas" width="106" height="106"></canvas><canvas id="taintedCanvas" width="106" height="106"></canvas></div>',{enhance:true,color:'أحمر',experimentalColorVars:true});
+  const canvasFixture=fixture('<div id="wideCanvasRow"><div id="canvasWrap"><img id="canvasAvatar" src="private-avatar.jpg"></div><canvas id="ringCanvas" width="106" height="106"></canvas><canvas id="rowCanvas" width="796" height="106"></canvas><canvas id="photoCanvas" width="106" height="106"></canvas><canvas id="taintedCanvas" width="106" height="106"></canvas></div>',{enhance:true,color:'أحمر',experimentalColorVars:true});
   canvasFixture.doc.querySelector('#wideCanvasRow').getBoundingClientRect=()=>({left:10,top:10,width:398,height:53,right:408,bottom:63});
   canvasFixture.doc.querySelector('#canvasWrap').getBoundingClientRect=()=>({left:10,top:10,width:53,height:53,right:63,bottom:63});
   canvasFixture.doc.querySelector('#canvasAvatar').getBoundingClientRect=()=>({left:16,top:16,width:41,height:41,right:57,bottom:57});
   for(const el of canvasFixture.doc.querySelectorAll('canvas'))el.getBoundingClientRect=()=>({left:10,top:10,width:53,height:53,right:63,bottom:63});
+  canvasFixture.doc.querySelector('#rowCanvas').getBoundingClientRect=()=>({left:10,top:10,width:398,height:53,right:408,bottom:63});
+  const rowPixels=new Uint8ClampedArray(796*106*4);for(let y=0;y<106;y++)for(let x=0;x<106;x++){if(Math.hypot(x-53,y-53)>=47&&Math.hypot(x-53,y-53)<=51)rowPixels.set([24,119,242,255],(y*796+x)*4);}
   const bluePixels=new Uint8ClampedArray(106*106*4),opaquePixels=new Uint8ClampedArray(106*106*4),greyPixels=new Uint8ClampedArray(106*106*4);
   for(let y=0;y<106;y++)for(let x=0;x<106;x++){const i=(y*106+x)*4,r=Math.hypot(x-52.5,y-52.5);opaquePixels.set([24,119,242,255],i);if(r>=47&&r<=51){bluePixels.set([24,119,242,255],i);greyPixels.set([128,128,128,255],i);}}
   const buffers=new Map([[canvasFixture.doc.querySelector('#ringCanvas'),bluePixels],[canvasFixture.doc.querySelector('#photoCanvas'),opaquePixels]]);
+  buffers.set(canvasFixture.doc.querySelector('#rowCanvas'),rowPixels);
   const originalBuffers=bluePixels.slice();let sourceContextTouched=false;
   canvasFixture.window.HTMLCanvasElement.prototype.getContext=function(){
    if(this.id){sourceContextTouched=true;throw new Error('Never bind or change source canvas context');}
@@ -337,6 +340,7 @@ function fixture(html,config={},captureDownload=false) {
   };
   canvasFixture.run({enhance:true,color:'أحمر',experimentalColorVars:true});
   assert(canvasFixture.doc.querySelector('#ringCanvas').hasAttribute('data-fpro-accent-canvas-ring'),'Detect a separate blue canvas annulus around a 41px avatar');
+  assert(canvasFixture.doc.querySelector('#rowCanvas').hasAttribute('data-fpro-accent-canvas-ring'),'A wide transparent row canvas may draw only the offset avatar ring');
   assert(!canvasFixture.doc.querySelector('#photoCanvas').hasAttribute('data-fpro-accent-canvas-ring'),'Never filter a canvas with opaque photograph/center content');
   assert(!canvasFixture.doc.querySelector('#taintedCanvas').hasAttribute('data-fpro-accent-canvas-ring'),'Respect cross-origin pixel-read protection');
   assert.equal(sourceContextTouched,false);assert.deepEqual(bluePixels,originalBuffers,'Do not rewrite source canvas pixels');

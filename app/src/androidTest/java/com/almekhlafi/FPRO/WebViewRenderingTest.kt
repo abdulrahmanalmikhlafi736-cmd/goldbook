@@ -262,11 +262,12 @@ class WebViewRenderingTest {
             val green = android.util.Base64.encodeToString("""<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#20b060"/></svg>""".toByteArray(), android.util.Base64.NO_WRAP)
             val encodedRing = android.util.Base64.encodeToString("""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 53 53"><circle cx="26.5" cy="26.5" r="25" fill="none" stroke="#0866ff" stroke-width="2"/></svg>""".toByteArray(), android.util.Base64.NO_WRAP)
             val redReady = CountDownLatch(1)
-            val redPoints = FloatArray(24)
+            val redPoints = FloatArray(28)
             scenario.onActivity { activity ->
                 val web = requireNotNull(findWeb(activity.window.decorView))
                 val html = """
                     <style>:root{--primary-button-background:#0866ff;--accent:#0866ff}.token-chip{position:absolute;left:24px;top:110px;width:120px;height:32px;background:var(--primary-button-background);color:var(--primary-button-text)}.pseudo:after{content:"";position:absolute;inset:-3px;border:3px solid rgb(8,102,255);border-radius:50%;box-sizing:border-box;pointer-events:none}</style>
+                    <div style="position:absolute;left:0;top:260px;width:398px;height:53px"><img src="data:image/svg+xml;base64,$green" style="position:absolute;left:6px;top:6px;width:41px;height:41px;border-radius:50%"><canvas id="wideCanvasRing" width="796" height="106" style="position:absolute;inset:0;width:398px;height:53px"></canvas></div>
                     <div style="position:absolute;left:24px;top:180px;width:53px;height:53px"><img src="data:image/svg+xml;base64,$green" style="position:absolute;left:6px;top:6px;width:41px;height:41px;border-radius:50%"><canvas id="canvasRing" width="106" height="106" style="position:absolute;inset:0;width:53px;height:53px"></canvas></div>
                     <div style="position:absolute;left:100px;top:180px;width:53px;height:53px"><img src="data:image/svg+xml;base64,$green" style="position:absolute;left:6px;top:6px;width:41px;height:41px;border-radius:50%"><canvas id="opaqueCanvas" width="106" height="106" style="position:absolute;inset:0;width:53px;height:53px"></canvas></div>
                     <div id="encodedFrame" style="position:absolute;left:240px;top:110px;width:53px;height:53px;background-image:url(data:image/svg+xml;base64,$encodedRing);background-size:100% 100%"><div style="position:absolute;left:6px;top:6px;width:41px;height:41px"><img src="data:image/svg+xml;base64,$green" style="width:41px;height:41px;border-radius:50%"></div></div>
@@ -277,15 +278,15 @@ class WebViewRenderingTest {
                     <img id="shadowFrame" src="data:image/svg+xml;base64,$green" style="position:absolute;left:170px;top:24px;width:40px;height:40px;border-radius:50%;box-shadow:0 0 0 3px rgb(8,102,255)">
                     <img id="outlineFrame" src="data:image/svg+xml;base64,$green" style="position:absolute;left:240px;top:24px;width:40px;height:40px;border-radius:50%;outline:3px solid rgb(8,102,255)">
                 """.trimIndent()
-                web.evaluateJavascript("document.body.innerHTML=" + org.json.JSONObject.quote(html) + ";const ringCtx=document.querySelector('#canvasRing').getContext('2d');ringCtx.strokeStyle='#1877f2';ringCtx.lineWidth=4;ringCtx.beginPath();ringCtx.arc(53,53,50,0,Math.PI*2);ringCtx.stroke();const opaqueCtx=document.querySelector('#opaqueCanvas').getContext('2d');opaqueCtx.fillStyle='#1877f2';opaqueCtx.fillRect(0,0,106,106);window.__fpro.update({enhance:true,color:'أحمر',experimentalColorVars:true});") {
+                web.evaluateJavascript("document.body.innerHTML=" + org.json.JSONObject.quote(html) + ";const ringCtx=document.querySelector('#canvasRing').getContext('2d');ringCtx.strokeStyle='#1877f2';ringCtx.lineWidth=4;ringCtx.beginPath();ringCtx.arc(53,53,50,0,Math.PI*2);ringCtx.stroke();const wideCtx=document.querySelector('#wideCanvasRing').getContext('2d');wideCtx.strokeStyle='#1877f2';wideCtx.lineWidth=4;wideCtx.beginPath();wideCtx.arc(53,53,50,0,Math.PI*2);wideCtx.stroke();const opaqueCtx=document.querySelector('#opaqueCanvas').getContext('2d');opaqueCtx.fillStyle='#1877f2';opaqueCtx.fillRect(0,0,106,106);window.__fpro.update({enhance:true,color:'أحمر',experimentalColorVars:true});") {
                     web.evaluateJavascript("""
-                        (()=>{const a=document.querySelector('#cssFrame').getBoundingClientRect(),b=document.querySelector('#svgFrame').getBoundingClientRect(),c=document.querySelector('#shadowFrame').getBoundingClientRect(),d=document.querySelector('#outlineFrame').getBoundingClientRect();return JSON.stringify({active:window.__fpro.colorReport().experimentalColorVarsActive,width:innerWidth,points:[a.left-2,a.top+20,b.left+2,b.top+23,c.left-2,c.top+20,d.left-2,d.top+20,a.left+20,a.top+20,134,115,171,130,242,136.5,266.5,136.5,25.5,206.5,50.5,206.5,126.5,206.5]});})()
+                        (()=>{const a=document.querySelector('#cssFrame').getBoundingClientRect(),b=document.querySelector('#svgFrame').getBoundingClientRect(),c=document.querySelector('#shadowFrame').getBoundingClientRect(),d=document.querySelector('#outlineFrame').getBoundingClientRect();return JSON.stringify({active:window.__fpro.colorReport().experimentalColorVarsActive,width:innerWidth,points:[a.left-2,a.top+20,b.left+2,b.top+23,c.left-2,c.top+20,d.left-2,d.top+20,a.left+20,a.top+20,134,115,171,130,242,136.5,266.5,136.5,25.5,206.5,50.5,206.5,126.5,206.5,1.5,286.5,26.5,286.5]});})()
                     """.trimIndent()) { result ->
                         val data = org.json.JSONObject(org.json.JSONArray("[$result]").getString(0))
                         val offset = IntArray(2); web.getLocationOnScreen(offset)
                         val scale = web.width / data.getDouble("width")
                         assertTrue("RC token experiment must be active", data.getBoolean("active"))
-                        for (n in 0..23) redPoints[n] = (data.getJSONArray("points").getDouble(n) * scale + offset[n % 2]).toFloat()
+                        for (n in 0..27) redPoints[n] = (data.getJSONArray("points").getDouble(n) * scale + offset[n % 2]).toFloat()
                         web.postVisualStateCallback(13, object : WebView.VisualStateCallback() {
                             override fun onComplete(requestId: Long) { redReady.countDown() }
                         })
@@ -299,6 +300,10 @@ class WebViewRenderingTest {
                 val pixel = redBitmap.getPixel(redPoints[n*2].toInt(), redPoints[n*2+1].toInt())
                 assertTrue("Pseudo/SVG/shadow/outline ring $n must be RED, not blue: ${Integer.toHexString(pixel)}", Color.red(pixel) > 150 && Color.green(pixel) < 90 && Color.blue(pixel) < 90)
             }
+            val rowPixel = redBitmap.getPixel(redPoints[24].toInt(), redPoints[25].toInt())
+            assertTrue("Wide row canvas with only an offset ring must paint red", Color.red(rowPixel) > 150 && Color.green(rowPixel) < 90 && Color.blue(rowPixel) < 90)
+            val rowPhoto = redBitmap.getPixel(redPoints[26].toInt(), redPoints[27].toInt())
+            assertTrue("Wide row canvas filtering must preserve its nested portrait", Color.green(rowPhoto) > 130 && Color.red(rowPhoto) < 80)
             val canvasPixel = redBitmap.getPixel(redPoints[18].toInt(), redPoints[19].toInt())
             assertTrue("Separate transparent-center canvas ring must paint red", Color.red(canvasPixel) > 150 && Color.green(canvasPixel) < 90 && Color.blue(canvasPixel) < 90)
             val canvasPhoto = redBitmap.getPixel(redPoints[20].toInt(), redPoints[21].toInt())
