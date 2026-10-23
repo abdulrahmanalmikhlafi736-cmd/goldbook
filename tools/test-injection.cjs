@@ -86,6 +86,7 @@ function fixture(html,config={},captureDownload=false) {
   assert.equal(page.window.__fproPageInfo().home,true);
   assert.equal(page.window.__fproPageInfo().x,720,'Gear follows the circled start of the RTL wordmark, not the screen edge');
   for(const path of ['/reel/20','/watch/?v=20','/videos/20','/profile.php?id=2','/messages/']){page.window.history.replaceState({},'',path);assert.equal(page.window.__fproPageInfo().home,false,'No gear on '+path);}
+  page.window.history.replaceState({},'','/login/');assert.equal(page.window.__fproPageInfo().home,true,'Settings stay available during staged email-only login, without a password field');
   page.window.history.replaceState({},'','/');
   const modal=page.doc.createElement('div');modal.setAttribute('role','dialog');modal.innerHTML='<video></video>';modal.getBoundingClientRect=()=>({width:300,height:500});page.doc.body.append(modal);
   assert.equal(page.window.__fproPageInfo().home,false,'Root URL with a video viewer is not home');

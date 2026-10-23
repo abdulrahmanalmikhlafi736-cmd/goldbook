@@ -4,7 +4,7 @@
   const visible=el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden'&&s.opacity!=='0';};
   const player=Array.from(document.querySelectorAll('[role="dialog"],[aria-modal="true"]')).some(el=>visible(el)&&!!el.querySelector('video'));
   const facebook=location.hostname==='facebook.com'||location.hostname.endsWith('.facebook.com');
-  const entry=/^\/(?:login(?:\.php)?|login\/.*)$/.test(path)&&!!document.querySelector('input[type="password"]');
+  const entry=/^\/(?:login(?:\.php)?|login\/.*)$/.test(path);
   const home=facebook&&(path==='/'||path==='/home.php'||path==='/index.php'||entry)&&!player&&!document.fullscreenElement&&!document.webkitFullscreenElement;
   let x=innerWidth*.71,y=28,anchored=false;
   if(home) {
