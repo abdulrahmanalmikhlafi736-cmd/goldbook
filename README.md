@@ -23,7 +23,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 يوجد Workflow في `.github/workflows/android.yml`: عند دفع التغييرات إلى GitHub أو تشغيله يختبر ويبني ويرفع APK إلى **Artifacts → FPRO-0.0.1-debug**. هذا ملف بناء مُعدّ للتنفيذ وليس ادعاءً بأنه نُفّذ بالفعل.
 
-**حالة التحقق في بيئة الإنشاء:** لا تتوفر Java أو Android SDK هنا ولم يُبنَ APK أو يُختبر على جهاز. اجتاز JavaScript فحص الصياغة واختبارات الحقن المحدودة أدناه. لا يمكن اعتبار ذلك بديلاً عن بناء Gradle واختبارات الأجهزة.
+**حالة التحقق:** لا تتوفر Java أو Android SDK محلياً في بيئة التحرير، لكن نجح [بناء GitHub Actions رقم 39884268393](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/39884268393) في تنفيذ `testDebugUnitTest lintDebug assembleDebug` واختبارات JavaScript، ورفع APK باسم `FPRO-0.0.1-debug` وتقارير الفحص. أُصلح إعداد SDK بتحديد الحزم المطلوبة دون حزمة `tools` القديمة. لم يُختبر التطبيق على جهاز فعلي بعد؛ نجاح البناء ليس ضماناً لسلوك فيسبوك الحي أو اكتمال الوظائف.
 
 ## ما ينفذه المشروع
 
