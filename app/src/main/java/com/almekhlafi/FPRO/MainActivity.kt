@@ -80,6 +80,13 @@ class MainActivity : ComponentActivity() {
             addView(controls, FrameLayout.LayoutParams(-1, -1))
         })
         controls.setContent {
+            // Settings cover the website visually: also exclude the covered
+            // browser from accessibility traversal, like a native modal dialog.
+            // Restore normal website accessibility immediately on closing it.
+            SideEffect {
+                val mode = if ((settings || splash) && !pip) View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS else View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+                if (web.importantForAccessibility != mode) web.importantForAccessibility = mode
+            }
             val dark = prefs.flag("dark")
             val scheme = when {
                 prefs.flag("dynamic") && Build.VERSION.SDK_INT >= 31 -> if (dark) dynamicDarkColorScheme(this) else dynamicLightColorScheme(this)
