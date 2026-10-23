@@ -281,6 +281,12 @@ class WebViewRenderingTest {
                     <img id="outlineFrame" src="data:image/svg+xml;base64,$green" style="position:absolute;left:240px;top:24px;width:40px;height:40px;border-radius:50%;outline:3px solid rgb(8,102,255)">
                 """.trimIndent()
                 web.evaluateJavascript("document.body.innerHTML=" + org.json.JSONObject.quote(html) + ";const ringCtx=document.querySelector('#canvasRing').getContext('2d');ringCtx.strokeStyle='#1877f2';ringCtx.lineWidth=4;ringCtx.beginPath();ringCtx.arc(53,53,50,0,Math.PI*2);ringCtx.stroke();const wideCtx=document.querySelector('#wideCanvasRing').getContext('2d');wideCtx.strokeStyle='#1877f2';wideCtx.lineWidth=4;wideCtx.beginPath();wideCtx.arc(53,53,50,0,Math.PI*2);wideCtx.stroke();const opaqueCtx=document.querySelector('#opaqueCanvas').getContext('2d');opaqueCtx.fillStyle='#1877f2';opaqueCtx.fillRect(0,0,106,106);window.__fpro.update({enhance:true,color:'أحمر',experimentalColorVars:true});") {
+                    fun measureCommittedRed(attempt: Int) {
+                        web.evaluateJavascript("!!document.querySelector('#cssFrame') && Array.from(document.images).every(i=>i.complete&&i.naturalWidth>0) && getComputedStyle(document.querySelector('#cssFrame'),'::after').borderLeftColor==='rgb(198, 40, 40)'") redProbe@{ committed ->
+                            if(committed != "true") {
+                                if(attempt<40)web.postDelayed({ measureCommittedRed(attempt+1) },150)
+                                return@redProbe
+                            }
                     web.evaluateJavascript("""
                         (()=>{const a=document.querySelector('#cssFrame').getBoundingClientRect(),b=document.querySelector('#svgFrame').getBoundingClientRect(),c=document.querySelector('#shadowFrame').getBoundingClientRect(),d=document.querySelector('#outlineFrame').getBoundingClientRect();return JSON.stringify({active:window.__fpro.colorReport().experimentalColorVarsActive,width:innerWidth,points:[a.left-2,a.top+20,b.left+2,b.top+23,c.left-2,c.top+20,d.left-2,d.top+20,a.left+20,a.top+20,134,115,171,130,242,136.5,266.5,136.5,25.5,206.5,50.5,206.5,126.5,206.5,1.5,286.5,26.5,286.5]});})()
                     """.trimIndent()) { result ->
@@ -290,9 +296,12 @@ class WebViewRenderingTest {
                         assertTrue("RC token experiment must be active", data.getBoolean("active"))
                         for (n in 0..27) redPoints[n] = (data.getJSONArray("points").getDouble(n) * scale + offset[n % 2]).toFloat()
                         web.postVisualStateCallback(13, object : WebView.VisualStateCallback() {
-                            override fun onComplete(requestId: Long) { redReady.countDown() }
+                            override fun onComplete(requestId: Long) { web.invalidate();web.postOnAnimation { redReady.countDown() } }
                         })
                     }
+                        }
+                    }
+                    measureCommittedRed(0)
                 }
             }
             assertTrue("Red layered avatar rings must produce a frame", redReady.await(12, TimeUnit.SECONDS))

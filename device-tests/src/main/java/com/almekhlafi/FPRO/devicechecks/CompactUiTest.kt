@@ -52,7 +52,7 @@ class CompactUiTest {
         val check = scrollToText("اختبار عرض محلي بلا إنترنت")
         assertNotNull("Settings header remains visible while scrolling", device.findObject(By.text("إعدادات FPRO")))
         check.click()
-        assertNotNull("Local HTML must be accessible in actual WebView", device.wait(Until.findObject(By.textContains("اختبار عرض WebView")), 15_000))
+        assertNotNull("Local HTML must be accessible in actual WebView", waitObject(By.textContains("اختبار عرض WebView"), 15_000))
         Thread.sleep(800)
         val bitmap = BitmapFactory.decodeFile(screenshot("compact-local.png").absolutePath)
         var greenSamples = 0
