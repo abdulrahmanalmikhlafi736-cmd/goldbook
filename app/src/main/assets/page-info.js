@@ -12,7 +12,9 @@
    for(const item of logos) {
     if(item.tagName.toLowerCase()==='title'&&!/facebook/i.test(item.textContent))continue;
     const el=item.tagName.toLowerCase()==='title'?item.closest('svg'):item;
-    if(!el)continue;logoPresent=true;if(!visible(el))continue;const r=el.getBoundingClientRect();
+    if(!el)continue;const r=el.getBoundingClientRect();
+    if(el.closest('header,[role="banner"]')||(r.top<120&&r.left>=innerWidth*.4))logoPresent=true;
+    if(!visible(el))continue;
     if(r.top<0||r.top>120||r.left<innerWidth*.4)continue;
     // On the RTL home header the circled F is at the left edge of the wordmark.
     x=r.left+Math.min(r.height/2,r.width/2);y=r.top+r.height/2;anchored=true;break;
@@ -21,7 +23,7 @@
   // Header control is not a floating action button. Keep route/home semantics
   // separate, so scrolling does not disable the home story filter.
   const scrolled=(window.scrollY||document.documentElement.scrollTop||0)>=4||Array.from(document.querySelectorAll('[role="main"],[role="feed"]')).some(el=>el.scrollTop>=4);
-  const gearVisible=home && !scrolled && (!logoPresent||anchored);
+  const gearVisible=home && !scrolled && (entry||!logoPresent||anchored);
   return {home,gearVisible,x,y,width:innerWidth,anchored};
  }
  window.__fproPageInfo=info;

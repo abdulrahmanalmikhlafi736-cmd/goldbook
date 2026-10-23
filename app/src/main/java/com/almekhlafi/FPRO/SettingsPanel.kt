@@ -39,8 +39,8 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         HorizontalDivider()
         Text("المظهر والألوان", style = MaterialTheme.typography.titleLarge)
         var expanded by remember { mutableStateOf(false) }
+        Text("تلوين خفيف للتفاصيل: الهاشتاجات والمتابعة والصداقة والتوثيق وحلقات القصص؛ دون تغيير خلفيات الموقع.", style = MaterialTheme.typography.bodySmall)
         Box {
-            Text("تلوين خفيف للتفاصيل: الهاشتاجات والمتابعة والصداقة والتوثيق وحلقات القصص؛ دون تغيير خلفيات الموقع.", style = MaterialTheme.typography.bodySmall)
             OutlinedButton(onClick = { expanded = true }) { Text("اللون: ${prefs.text("color", "تلقائي")}") }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 listOf("تلقائي", "طبيعي", "ذهبي", "أحمر", "أخضر", "بنفسجي", "برتقالي", "فيروزي", "وردي", "بني", "فضي", "أبيض").forEach { color ->

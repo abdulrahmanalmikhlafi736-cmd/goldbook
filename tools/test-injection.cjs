@@ -107,6 +107,7 @@ function fixture(html,config={},captureDownload=false) {
   assert.equal(scroll.window.__fproPageInfo().gearVisible,false,'Gear must disappear on scroll');
   assert.equal(scroll.window.__fproPageInfo().home,true,'Scrolling must not deactivate home-only filters');
   Object.defineProperty(scroll.window,'scrollY',{configurable:true,value:0});assert.equal(scroll.window.__fproPageInfo().gearVisible,true);
+  const loginLogo=fixture('<svg aria-label="Facebook"></svg>');loginLogo.doc.querySelector('svg').getBoundingClientRect=()=>({left:400,top:200,width:70,height:70});assert.equal(loginLogo.window.__fproPageInfo().gearVisible,true,'A centered login logo is not the scrolling home header');
   const buttonTray=fixture('<main><div id="buttons" style="display:flex;flex-direction:row;overflow-x:auto"><div role="button"><span>إنشاء قصة</span><img src="me.jpg"></div><div role="button"><img src="story.jpg"></div></div><article id="kept">Feed post</article></main>',{homeStories:true});
   assert.equal(buttonTray.doc.querySelector('#buttons').style.display,'none','Hide button-based story carousel, not only story links');
   assert.equal(buttonTray.doc.querySelector('#kept').style.display,'');
