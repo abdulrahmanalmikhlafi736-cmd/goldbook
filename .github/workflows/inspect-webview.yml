@@ -6,7 +6,7 @@ on:
     inputs:
       run_id:
         description: Completed emulator run to inspect
-        default: '39904680852'
+        default: '40007182672'
         required: true
 jobs:
   inspect:
@@ -21,13 +21,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id="${{ github.event.inputs.run_id || '39904680852' }}"
+          id="${{ github.event.inputs.run_id || '40007182672' }}"
           echo "run=$id" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
           run-id: ${{ steps.source.outputs.run }}
-          pattern: webview-device-diagnostics-35-*
+          pattern: webview-device-diagnostics-36-*
           path: previous-diagnostics
       - name: Summarize baseline comparisons
         run: |
@@ -61,6 +61,19 @@ jobs:
                   seen.add(text)
                   print('::notice title=Device test stack::'+text.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
           PYCODE
+      - name: Inspect Android app launch failures
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for log in Path('previous-diagnostics').rglob('logcat.txt'):
+              lines = log.read_text(errors='replace').splitlines()
+              selected = set()
+              for index, line in enumerate(lines):
+                  if 'FATAL EXCEPTION' in line or ('com.almekhlafi.FPRO' in line and any(word in line for word in ('crash', 'Exception', 'Unable', 'START', 'ActivityTaskManager', 'AndroidRuntime', 'denied'))):
+                      selected.update(range(max(0,index-2), min(len(lines),index+16)))
+              for index in sorted(selected)[-65:]:
+                  print('::notice title=Android launch evidence::'+lines[index][:1800].replace('%','%25').replace('\r','%0D'))
+          PY
       - name: Summarize Chromium failures
         run: |
           python3 - <<'PY'
