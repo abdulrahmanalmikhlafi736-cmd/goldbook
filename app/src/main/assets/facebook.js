@@ -142,7 +142,7 @@
    ${c.dark?`html,body,[role="main"]{background:${c.amoled?'#000':'#18191a'}!important;color:#eee!important;color-scheme:dark}`:''}
    ${c.sticky?'[role="banner"]{position:sticky!important;top:0!important;z-index:1000!important}':''}
    ${c.reverse?'body{direction:ltr!important}':''}
-   .fpro-video-tools{position:fixed;z-index:10000;pointer-events:none;overflow:hidden}
+   .fpro-video-tools{direction:ltr;position:fixed;z-index:10000;pointer-events:none;overflow:hidden}
    .fpro-video-tools[hidden],.fpro-video-tools [hidden]{display:none!important}
    .fpro-download{position:absolute;pointer-events:auto;min-width:44px;min-height:44px;border:1px solid #fff9;border-radius:24px;background:#111b;color:white;touch-action:none;-webkit-user-select:none;font-size:24px}
    .fpro-track{position:absolute;bottom:0;left:8px;right:8px;height:28px;pointer-events:auto;background:#2229;border-radius:14px}

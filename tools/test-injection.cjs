@@ -55,6 +55,7 @@ function fixture(html,config={},captureDownload=false) {
   f.run({downloads:true,rainbow:true});
   assert.equal(f.doc.querySelectorAll('.fpro-download').length,1);
   assert.equal(f.doc.querySelector('.fpro-video-tools').hidden,false);
+  assert.equal(f.window.getComputedStyle(f.doc.querySelector('.fpro-video-tools')).direction,'ltr','Seek input and progress fill share the same direction on Arabic pages');
   assert.equal(f.doc.querySelector('.fpro-fill').style.width,'25%');
   assert.equal(f.doc.querySelector('.fpro-seek').value,'250');
   const seek=f.doc.querySelector('.fpro-seek');seek.value='750';seek.dispatchEvent(new f.window.Event('input',{bubbles:true}));
