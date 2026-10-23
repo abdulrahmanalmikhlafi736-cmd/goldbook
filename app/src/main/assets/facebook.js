@@ -18,7 +18,7 @@
  function postFor(el){return el.closest('[role="article"],article,[data-pagelet^="FeedUnit"]') || el.closest('div[data-ft]');}
  const hidden = new Map(), painted = new Set(), videos = new Map();
  function hide(el) {
-  if (!el || /^(BODY|HTML|MAIN)$/.test(el.tagName) || el.getAttribute('role') === 'main') return;
+  if (!el || /^(BODY|HTML|MAIN)$/.test(el.tagName) || ['main','feed','navigation'].includes(el.getAttribute('role'))) return;
   if (!hidden.has(el)) hidden.set(el, {value:el.style.getPropertyValue('display'),priority:el.style.getPropertyPriority('display')});
   el.setAttribute('data-fpro-hidden','1'); el.style.setProperty('display','none','important');
  }
@@ -28,7 +28,7 @@
  function section(label, key) {
   const post = postFor(label); if (post) return post;
   const region = label.closest('section,[role="list"],[role="region"],[data-pagelet*="Stories"],[data-pagelet*="Reels"],[data-sigil~="m-story-tray"]');
-  if (region) return region;
+  if (region && !region.querySelector('[role="article"],article,[data-pagelet^="FeedUnit"]')) return region;
   // Never hide a whole feed because a navigation link contains "Stories".
   if (key === 'stories' || key === 'reels') {
    const link = label.closest('a[href]');
@@ -64,7 +64,7 @@
  }
  function scan() {
   restoreHidden();
-  const labels = document.querySelectorAll('a,span,abbr,strong,b,[role="heading"],[aria-label]');
+  const labels = document.querySelectorAll('a,span,abbr,strong,b,button,[role="button"],[role="heading"],[aria-label]');
   for (let i=0;i<Math.min(labels.length,2400);i++) {
    const label=labels[i]; if(label.closest('.fpro-video-tools')) continue;
    const text=norm(label.getAttribute('aria-label') || label.innerText || label.textContent);

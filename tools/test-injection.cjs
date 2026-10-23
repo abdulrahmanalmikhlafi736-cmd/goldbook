@@ -32,6 +32,10 @@ function fixture(html,config={},captureDownload=false) {
   assert.equal(feed.doc.querySelector('#post').style.display,'none');
   assert.equal(feed.doc.querySelector('#normal').style.display,'');
   feed.run({});assert.equal(feed.doc.querySelector('#stories').style.display,'');
+  const safeFeed=fixture('<section role="feed" id="all"><h2 role="heading">Stories</h2><article>Ordinary post</article></section>',{stories:true});
+  assert.equal(safeFeed.doc.querySelector('#all').style.display,'','Never hide an entire feed when filtering a heading');
+  const openButton=fixture('<header id="app"><button>فتح التطبيق</button></header><form><input></form>',{appBanner:true});
+  assert.equal(openButton.doc.querySelector('#app').style.display,'none','Also hide JavaScript-driven open-app buttons');
   const banner=fixture('<header id="install"><a href="intent://facebook/#Intent;package=com.facebook.katana;end">Open app</a></header><form id="login"><input><button>Log in</button></form><a id="postlink" href="/some.post">Facebook post</a>',{appBanner:true});
   assert.equal(banner.doc.querySelector('#install').style.display,'none');
   assert.equal(banner.doc.querySelector('#login').style.display,'');
