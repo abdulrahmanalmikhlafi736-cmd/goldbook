@@ -124,6 +124,48 @@ class WebViewRenderingTest {
         }
     }
 
+    /** Local Facebook-shaped header: verifies the native state, not just the JS helper. */
+    @Test fun dHomeGearFollowsRtlLogoAndHidesAfterSpaNavigation() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        ActivityScenario.launch<MainActivity>().use { scenario ->
+            Thread.sleep(2300)
+            val ready = CountDownLatch(1)
+            var positioned = false
+            scenario.onActivity { activity ->
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                web.stopLoading()
+                web.loadDataWithBaseURL("https://m.facebook.com/", """
+                    <html><meta name="viewport" content="width=device-width,initial-scale=1">
+                    <body><header><svg aria-label="Facebook" style="position:absolute;left:65vw;top:8px;width:100px;height:40px"></svg></header></body></html>
+                """.trimIndent(), "text/html", "UTF-8", null)
+                fun probe(attempt: Int) {
+                    val flag = MainActivity::class.java.getDeclaredField("homeControls\$delegate").apply { isAccessible = true }
+                    val x = MainActivity::class.java.getDeclaredField("gearX\$delegate").apply { isAccessible = true }
+                    if ((flag.get(activity) as androidx.compose.runtime.State<*>).value == true) {
+                        val coordinate = (x.get(activity) as androidx.compose.runtime.State<*>).value as Float
+                        positioned = coordinate > web.width * .65f && coordinate < web.width * .88f
+                        ready.countDown()
+                    } else if (attempt < 25) web.postDelayed({ probe(attempt + 1) }, 200)
+                }
+                web.postDelayed({ probe(0) }, 300)
+            }
+            assertTrue("Home gear must become available", ready.await(8, TimeUnit.SECONDS))
+            assertTrue("RTL gear must follow the logo, not the left or extreme right edge", positioned)
+            val hidden = CountDownLatch(1)
+            scenario.onActivity { activity ->
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                web.evaluateJavascript("history.replaceState({},'', '/reel/20')", null)
+                fun probe(attempt: Int) {
+                    val flag = MainActivity::class.java.getDeclaredField("homeControls\$delegate").apply { isAccessible = true }
+                    if ((flag.get(activity) as androidx.compose.runtime.State<*>).value == false) hidden.countDown()
+                    else if (attempt < 25) web.postDelayed({ probe(attempt + 1) }, 200)
+                }
+                web.postDelayed({ probe(0) }, 750)
+            }
+            assertTrue("Native gear must hide on a SPA video route", hidden.await(8, TimeUnit.SECONDS))
+        }
+    }
+
     /** A separate, real HTTPS smoke test. No credentials, mock response or DOM replacement. */
     @Test fun liveFacebookLoggedOutSmoke() {
         org.junit.Assume.assumeTrue("Live site requires a recent system WebView", android.os.Build.VERSION.SDK_INT >= 35)

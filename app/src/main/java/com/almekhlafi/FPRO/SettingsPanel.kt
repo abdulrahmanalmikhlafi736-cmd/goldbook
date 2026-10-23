@@ -50,6 +50,7 @@ fun SettingsPanel(prefs: Preferences, change: () -> Unit, close: () -> Unit, wha
         listOf("الوضع الداكن" to "dark", "أسود AMOLED" to "amoled", "ألوان النظام الديناميكية (Android 12+)" to "dynamic", "مطابقة الشريط مع لون الصفحة" to "liveColor").forEach { (label,key) -> Toggle(label,key,prefs,revision) { update() } }
         HorizontalDivider()
         Text("الحجب والإخفاء", style = MaterialTheme.typography.titleLarge)
+        Toggle("إخفاء شريط القصص في الصفحة الرئيسية فقط", "homeStories", prefs, revision) { update() }
         Text("مرشحات اجتهادية تعتمد على بنية موقع فيسبوك؛ قد لا تتعرف على جميع اللغات أو النسخ.", style = MaterialTheme.typography.bodySmall)
         listOf("الإعلانات والمحتوى الممول" to "ads", "المنشورات المقترحة" to "suggested", "الريلز" to "reels", "القصص" to "stories", "أشخاص قد تعرفهم" to "people", "المجموعات المقترحة" to "groups", "شريط فتح التطبيق أو تثبيته" to "appBanner").forEach { (label,key) -> Toggle("إخفاء $label",key,prefs,revision) { update() } }
         HorizontalDivider()

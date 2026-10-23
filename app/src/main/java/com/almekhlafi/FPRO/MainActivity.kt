@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.AbsoluteAlignment
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,6 +47,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var prefs: Preferences
     private lateinit var web: WebView
     private var settings by mutableStateOf(false)
+    private var homeControls by mutableStateOf(false)
+    private var gearX by mutableFloatStateOf(0f)
+    private var gearY by mutableFloatStateOf(0f)
     private var loadingProgress by mutableIntStateOf(0)
     private var revision by mutableIntStateOf(0)
     private var splash by mutableStateOf(true)
@@ -62,6 +67,7 @@ class MainActivity : ComponentActivity() {
         fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data)); fileCallback = null
     }
     private val mobileAgent by lazy { WebSettings.getDefaultUserAgent(this) }
+    private val pageInfoScript by lazy { assets.open("page-info.js").bufferedReader().use { it.readText() } }
     private val script by lazy { assets.open("facebook.js").bufferedReader().use { it.readText() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -99,13 +105,15 @@ class MainActivity : ComponentActivity() {
                                     progress = { loadingProgress / 100f },
                                     modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
                                 )
-                                FilledTonalIconButton(
+                                if (homeControls) FilledTonalIconButton(
                                     onClick = {
                                         web.clearFocus()
                                         WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.ime())
                                         settings = true
                                     },
-                                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(44.dp)
+                                    modifier = Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset {
+                                        IntOffset((gearX - 22.dp.toPx()).toInt().coerceAtLeast(0), (gearY - 22.dp.toPx()).toInt().coerceAtLeast(0))
+                                    }.size(44.dp)
                                 ) { Text("⚙", style = MaterialTheme.typography.headlineSmall) }
                                 failure?.let { message ->
                                     Card(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp)) {
@@ -146,6 +154,15 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+                        LaunchedEffect(Unit) {
+                            delay(2400)
+                            while (true) {
+                                if (Navigation.isFacebook(web.url.orEmpty())) {
+                                    web.evaluateJavascript("window.__fproPageInfo ? JSON.stringify(window.__fproPageInfo()) : null") { updateHomeControls(it) }
+                                } else homeControls = false
+                                delay(650)
+                            }
+                        }
                         // Native watchdog: it must NOT wait for a JavaScript callback to
                         // report a stalled renderer, or depend on onPageStarted firing.
                         LaunchedEffect(pageSequence) {
@@ -178,6 +195,7 @@ class MainActivity : ComponentActivity() {
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = route(Uri.parse(url), true)
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 failure = null
+                homeControls = false
                 pageConfirmed = false
                 loadingProgress = 1
                 enhancementsInstalled = false
@@ -194,6 +212,7 @@ class MainActivity : ComponentActivity() {
                 if (Navigation.isFacebook(url.orEmpty()) && engineMajor != null && engineMajor < 80) {
                     failure = "محرك Android System WebView قديم (Chromium $engineMajor) ولا يدعم صياغة JavaScript الحديثة. حدّث WebView أو Chrome من متجر التطبيقات ثم أعد فتح FPRO.\n${diagnostics()}"
                 }
+                web.evaluateJavascript(pageInfoScript) { updateHomeControls(it) }
                 inject()
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -244,7 +263,7 @@ class MainActivity : ComponentActivity() {
                 toast("تعذّر فتح ملء الشاشة؛ جرّب زر ملء الشاشة الأصلي للفيديو")
             }
             if (mainFrame && Navigation.isFacebook(web.url ?: "") && uri.host == "download") {
-                sendToDownloader(uri.getQueryParameter("media").orEmpty(), uri.getQueryParameter("link") ?: web.url.orEmpty())
+                sendToDownloader(uri.getQueryParameter("media").orEmpty(), uri.getQueryParameter("link").orEmpty())
             }
             return true
         }
@@ -264,7 +283,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun sendToDownloader(mediaUrl: String, pageUrl: String) {
-        if (!Navigation.isFacebook(pageUrl)) { toast("يلزم رابط فيديو من فيسبوك"); return }
+        if (!Navigation.isFacebook(web.url.orEmpty())) { toast("يلزم فتح الفيديو في فيسبوك"); return }
         val pkg = prefs.text("package", "com.junkfood.seal").trim()
         if (pkg.isBlank()) {
             toast("حدّد حزمة تطبيق التنزيل أولاً في الإعدادات")
@@ -279,12 +298,11 @@ class MainActivity : ComponentActivity() {
         // The receiving app owns its window; this does not embed its UI in FPRO.
         // Send an available media URL, otherwise let the downloader parse the
         // Facebook permalink. Never export browser cookies or login credentials.
-        val uri = Uri.parse(mediaUrl)
-        val hasMedia = uri.scheme == "https" && !uri.host.isNullOrBlank()
-        // Seal can enumerate formats from a video permalink, unlike a lone CDN
-        // stream. Do not send the feed homepage when we have a direct source.
-        val videoPage = Regex("/reels?/|/videos/|/watch(?:/|\\?)|/video\\.php|[?&](?:story_fbid|fbid|v)=").containsMatchIn(pageUrl)
-        val source = if (pkg == "com.junkfood.seal" && videoPage) pageUrl else if (hasMedia) mediaUrl else pageUrl
+        val source = Navigation.downloadSource(mediaUrl, pageUrl)
+        if (source == null) {
+            toast("لم يتوفر رابط موثوق للفيديو الحالي بعد؛ لن نستخدم رابط الفيديو الأول")
+            return
+        }
         val intent = Intent(Intent.ACTION_SEND).setType("text/plain")
             .putExtra(Intent.EXTRA_TEXT, source).setPackage(pkg)
             .addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION) // The quick dialog is not a Home/PiP request.
@@ -305,6 +323,17 @@ class MainActivity : ComponentActivity() {
         try { startActivity(intent) }
         catch (_: ActivityNotFoundException) { toast("التطبيق المحدد غير مثبت أو لا يدعم استقبال روابط التنزيل") }
         catch (_: SecurityException) { toast("تطبيق التنزيل لا يسمح بفتح هذه الواجهة") }
+    }
+
+    private fun updateHomeControls(result: String?) {
+        try {
+            if (result == null || result == "null") { homeControls = false; return }
+            val data = org.json.JSONObject(JSONArray("[$result]").getString(0))
+            homeControls = data.optBoolean("home")
+            val scale = web.width / data.optDouble("width", 1.0).coerceAtLeast(1.0)
+            gearX = (data.optDouble("x") * scale).toFloat().coerceIn(0f, web.width.toFloat())
+            gearY = (data.optDouble("y") * scale).toFloat().coerceAtLeast(0f)
+        } catch (_: Exception) { homeControls = false }
     }
 
     private fun applySettings(reloadDesktop: Boolean) {
@@ -329,7 +358,7 @@ class MainActivity : ComponentActivity() {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 9 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 10 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {

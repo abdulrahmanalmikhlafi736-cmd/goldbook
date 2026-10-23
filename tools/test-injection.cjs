@@ -14,13 +14,31 @@ const windows=[];
 function fixture(html,config={},captureDownload=false) {
  const dom=new JSDOM('<!doctype html><html><head></head><body>'+html+'</body></html>',{url:'https://m.facebook.com/',runScripts:'outside-only',pretendToBeVisual:true});
  windows.push(dom.window);
+ dom.window.eval(fs.readFileSync('app/src/main/assets/page-info.js','utf8'));
  const run=c=>dom.window.eval((captureDownload?source.replaceAll("location.href=", "window.__download="):source).replace('__CONFIG__',JSON.stringify(c)));
  run(config);return {window:dom.window,doc:dom.window.document,run};
 }
 (async()=>{
  try {
   for(const text of ['مُـمَوَّل','Sponsored','<span>Spon</span><span>sored</span>']) {
-   const f=fixture(`<div role="main"><article id="post"><span>${text}</span><p>advert</p></article><article id="normal">Normal</article></div>`,{ads:true});
+   const surfaces=fixture('<header style="background-color:white"><svg><path id="bluepath" style="fill:rgb(8,102,255)"></path></svg></header><article style="background-color:rgb(242,242,242)">Post<img id="untouched"><video id="untouchedVideo"></video></article>',{color:'ذهبي'});
+  assert.equal(surfaces.doc.querySelector('header').getAttribute('data-fpro-surface'),'light','Tint actual Facebook header surfaces');
+  assert(surfaces.doc.querySelector('#bluepath').hasAttribute('data-fpro-accent-fill'),'Override explicitly colored vector paths');
+  assert(!surfaces.doc.querySelector('#untouched').hasAttribute('data-fpro-surface'));
+  assert(!surfaces.doc.querySelector('#untouchedVideo').hasAttribute('data-fpro-surface'));
+  surfaces.run({color:'تلقائي'});
+  assert(!surfaces.doc.querySelector('[data-fpro-surface],[data-fpro-accent-fill]'),'Automatic mode restores original website surfaces and vectors');
+  const overlap=fixture('<article id="a"><video></video></article><article id="b"><video></video></article>');
+  const players=overlap.doc.querySelectorAll('video');
+  players.forEach(v=>v.getBoundingClientRect=()=>({left:0,top:0,right:320,bottom:500,width:320,height:500}));
+  overlap.run({downloads:true,rainbow:true});
+  const visibleTools=()=>Array.from(overlap.doc.querySelectorAll('.fpro-video-tools')).filter(el=>!el.hidden).length;
+  assert.equal(visibleTools(),1,'Overlapping preloaded players share one active set of controls');
+  players[1].getBoundingClientRect=()=>({left:400,top:0,right:720,bottom:500,width:320,height:500});overlap.run({downloads:true,rainbow:true});
+  assert.equal(visibleTools(),2,'Separate inline players keep their own controls');
+  overlap.doc.querySelector('#a').style.opacity='0';overlap.run({downloads:true,rainbow:true});
+  assert.equal(visibleTools(),1,'Invisible ancestor must not leave a floating timeline');
+  const f=fixture(`<div role="main"><article id="post"><span>${text}</span><p>advert</p></article><article id="normal">Normal</article></div>`,{ads:true});
    assert.equal(f.doc.querySelector('#post').style.display,'none','Sponsored marker hides only its article');
    assert.equal(f.doc.querySelector('#normal').style.display,'');
    assert.equal(f.doc.querySelector('[role=main]').style.display,'');
@@ -34,6 +52,37 @@ function fixture(html,config={},captureDownload=false) {
   direct.doc.querySelector('.fpro-download').click();
   assert.equal(new URL(direct.window.__download).searchParams.get('media'),'https://example.invalid/available.mp4','Use explicit available media metadata, not a blob URL, when the page supplies it');
   assert.equal(new URL(direct.window.__download).searchParams.get('link'),'https://m.facebook.com/watch/?v=42','Share the actual Facebook watch permalink, never an unrelated external link');
+  const swipe=fixture('<article><video src="https://cdn.example/1.mp4"></video></article>',{downloads:true},true);
+  swipe.window.history.replaceState({},'', '/watch/?v=1');
+  const recycled=swipe.doc.querySelector('video');
+  for(let i=2;i<=21;i++){
+   recycled.src='https://cdn.example/'+i+'.mp4';
+   swipe.doc.querySelector('.fpro-download').click();
+   const sent=new URL(swipe.window.__download);
+   assert.equal(sent.searchParams.get('media'),'https://cdn.example/'+i+'.mp4','Read the recycled player at click time, even after 20 swipes');
+   assert.equal(sent.searchParams.get('link'),'','Never fall back to the original SPA location');
+  }
+  recycled.removeAttribute('src');recycled.setAttribute('data-video-id','21');
+  swipe.doc.querySelector('.fpro-download').click();
+  assert.equal(new URL(swipe.window.__download).searchParams.get('link'),'https://www.facebook.com/watch/?v=21','Use current video identity when direct media unavailable');
+  recycled.removeAttribute('data-video-id');
+  swipe.doc.querySelector('.fpro-download').click();
+  assert.equal(new URL(swipe.window.__download).searchParams.get('link'),'','Missing identity must not reuse the first video');
+  const homeStories=fixture('<main><div id="tray"><div><a href="/stories/1">One</a></div><div><a href="/stories/2">Two</a></div></div><article id="storyPost"><a href="/stories/3">Stories</a></article><article>Normal</article></main>',{homeStories:true});
+  assert.equal(homeStories.doc.querySelector('#tray').style.display,'none','Hide an unlabeled home carousel');
+  assert.equal(homeStories.doc.querySelector('#storyPost').style.display,'','Keep ordinary posts that link to stories');
+  homeStories.window.history.replaceState({},'', '/profile.php?id=123');homeStories.run({homeStories:true});
+  assert.equal(homeStories.doc.querySelector('#tray').style.display,'','Home-only option does not filter profile pages');
+  const page=fixture('<header><svg aria-label="Facebook"></svg></header>');
+  page.doc.querySelector('svg').getBoundingClientRect=()=>({left:700,top:8,right:850,bottom:48,width:150,height:40});
+  assert.equal(page.window.__fproPageInfo().home,true);
+  assert.equal(page.window.__fproPageInfo().x,720,'Gear follows the circled start of the RTL wordmark, not the screen edge');
+  for(const path of ['/reel/20','/watch/?v=20','/videos/20','/profile.php?id=2','/messages/']){page.window.history.replaceState({},'',path);assert.equal(page.window.__fproPageInfo().home,false,'No gear on '+path);}
+  page.window.history.replaceState({},'','/');
+  const modal=page.doc.createElement('div');modal.setAttribute('role','dialog');modal.innerHTML='<video></video>';modal.getBoundingClientRect=()=>({width:300,height:500});page.doc.body.append(modal);
+  assert.equal(page.window.__fproPageInfo().home,false,'Root URL with a video viewer is not home');
+  modal.remove();Object.defineProperty(page.doc,'fullscreenElement',{value:page.doc.querySelector('svg')});
+  assert.equal(page.window.__fproPageInfo().home,false,'No gear in fullscreen');
   const feed=fixture('<section id="stories" aria-label="Stories"><a href="/stories/123">Someone</a></section><article id="post"><b>أشخاص قد تعرفهم</b></article><article id="normal">A normal post about stories and sponsored work</article>',{stories:true,people:true});
   assert.equal(feed.doc.querySelector('#stories').style.display,'none');
   assert.equal(feed.doc.querySelector('#post').style.display,'none');

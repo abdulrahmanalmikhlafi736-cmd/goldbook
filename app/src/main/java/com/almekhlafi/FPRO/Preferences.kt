@@ -7,7 +7,7 @@ class Preferences(context: Context) {
     private val store = context.getSharedPreferences("fpro", Context.MODE_PRIVATE)
     fun flag(key: String, default: Boolean = false) = store.getBoolean(key, default)
     fun text(key: String, default: String = "") = store.getString(key, default) ?: default
-    private val pageKeys = setOf("ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads", "dark", "amoled", "liveColor")
+    private val pageKeys = setOf("homeStories", "ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads", "dark", "amoled", "liveColor")
     init {
         if (!store.getBoolean("sealQuickSetupV9", false)) {
             store.edit().apply {
@@ -34,7 +34,7 @@ class Preferences(context: Context) {
         }.apply()
     }
     fun scriptConfig(): String = JSONObject().apply {
-        listOf("ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads").forEach { put(it, flag(it)) }
+        listOf("homeStories", "ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads").forEach { put(it, flag(it)) }
         put("enhance", flag("pageEnhancements"))
         put("doubleTapFullscreen", flag("doubleTapFullscreen", true))
         put("color", text("color", "تلقائي"))
@@ -43,6 +43,13 @@ class Preferences(context: Context) {
 }
 
 object Navigation {
+    // Prefer the live media source, never a stale SPA entry permalink.
+    fun downloadSource(media: String, permalink: String): String? {
+        val direct = try { java.net.URI(media).let { it.scheme == "https" && !it.host.isNullOrBlank() } } catch (_: Exception) { false }
+        if (direct) return media
+        return if (isFacebook(permalink) && Regex("/reels?/|/videos/|/watch(?:/|\\?)|/video\\.php|[?&](?:story_fbid|fbid|v)=").containsMatchIn(permalink)) permalink else null
+    }
+
     fun browserAgent(agent: String): String {
         val major = Regex("Chrome/(\\d+)").find(agent)?.groupValues?.get(1)
         if (major == null || !agent.startsWith("Mozilla/")) return agent.replace("; wv", "").replace(" Version/4.0", "")
