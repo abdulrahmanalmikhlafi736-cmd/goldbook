@@ -14,6 +14,10 @@ jobs:
             task: Debug
             module: app
           - api: 35
+            variant: debug
+            task: Debug
+            module: app
+          - api: 35
             variant: compact
             task: Compact
             module: device-tests
@@ -48,6 +52,7 @@ jobs:
             for pkg in $(adb shell pm list packages | cut -d: -f2 | tr -d '\r' | grep '^com.almekhlafi.FPRO'); do timeout 15 adb pull "/sdcard/Android/data/$pkg/files/" "device-diagnostics/$pkg/" || true; done
             timeout 15 adb pull /data/local/tmp/fpro-facebook.png device-diagnostics/compact-facebook.png || true
             timeout 15 adb pull /data/local/tmp/fpro-ui.xml device-diagnostics/compact-ui.xml || true
+            timeout 15 adb pull /data/local/tmp/fpro-baseline.png device-diagnostics/plain-baseline.png || true
             cat device-diagnostics/gradle.log
             test "$(cat device-diagnostics/result)" = PASS
       - name: Collect device diagnostics

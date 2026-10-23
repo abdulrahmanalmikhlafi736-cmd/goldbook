@@ -22,6 +22,29 @@ class WebViewRenderingTest {
         return null
     }
 
+    @Test fun plainNativeBrowserBaseline() {
+        org.junit.Assume.assumeTrue(android.os.Build.VERSION.SDK_INT >= 35)
+        ActivityScenario.launch<android.app.Activity>(android.content.Intent().setClassName(InstrumentationRegistry.getInstrumentation().targetContext.packageName, "com.almekhlafi.FPRO.PlainWebActivity")).use { scenario ->
+            Thread.sleep(25_000)
+            val complete = CountDownLatch(1)
+            val evidence = java.util.concurrent.atomic.AtomicReference("no callback")
+            scenario.onActivity { activity ->
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                web.evaluateJavascript("""
+                    JSON.stringify({ua:navigator.userAgent,text:document.body?document.body.innerText.slice(0,600):'',state:document.readyState,width:innerWidth,height:innerHeight,scrollX:scrollX,bodyOpacity:document.body?getComputedStyle(document.body).opacity:'none',controls:Array.from(document.querySelectorAll('input,button,a')).slice(0,12).map(function(e){var r=e.getBoundingClientRect();var s=getComputedStyle(e);return {tag:e.tagName,type:e.type||'',text:(e.innerText||'').slice(0,40),x:r.x,y:r.y,w:r.width,h:r.height,display:s.display,visibility:s.visibility,opacity:s.opacity};})})
+                """.trimIndent()) { result ->
+                    evidence.set(result ?: "null")
+                    android.util.Log.i("FPRO_EVIDENCE", "PLAIN_BASELINE: " + result)
+                    complete.countDown()
+                }
+            }
+            assertTrue("Native baseline must answer JavaScript", complete.await(5, TimeUnit.SECONDS))
+            val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/fpro-baseline.png")).use { it.readBytes() }
+            println("PLAIN_BASELINE: " + evidence.get())
+        }
+    }
+
     /** A separate, real HTTPS smoke test. No credentials, mock response or DOM replacement. */
     @Test fun liveFacebookLoggedOutSmoke() {
         org.junit.Assume.assumeTrue("Live site requires a recent system WebView", android.os.Build.VERSION.SDK_INT >= 35)

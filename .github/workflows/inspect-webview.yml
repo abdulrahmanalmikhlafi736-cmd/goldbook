@@ -34,7 +34,7 @@ jobs:
           for log in Path('previous-diagnostics').rglob('logcat.txt'):
               selected = []
               for line in log.read_text(errors='replace').splitlines():
-                  if any(word in line.lower() for word in ('console', 'net::', 'chromium', 'webviewfactory')):
+                  if any(word in line.lower() for word in ('console', 'net::', 'chromium', 'webviewfactory', 'fpro_evidence')):
                       if 'getElementsByTagName' in line:
                           match = re.search(r'source: (https://[^ ]+)', line)
                           if match: scripts.add(match.group(1))
