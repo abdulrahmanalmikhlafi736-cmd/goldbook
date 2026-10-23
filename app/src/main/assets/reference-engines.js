@@ -78,12 +78,12 @@
   svg.innerHTML='<defs><filter id="fpro-reference-badge" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="'+values+'"/></filter></defs>';document.body.appendChild(svg);
  }
  function colorOff(){restorePaint();['fpro-reference-css','fpro-reference-svg'].forEach(function(id){var el=document.getElementById(id);if(el)el.remove();});cfg.recolor=false;}
- window.FproColor={set:function(next){if(typeof next==='string')next=JSON.parse(next);var valid=!!next.recolor&&!!rgb(next.uiAccent);if(cfg.recolor!==valid||cfg.uiAccent!==next.uiAccent){colorOff();cfg={recolor:valid,uiAccent:next.uiAccent};setup();}},boot:function(){setup();pass();},pass:pass,hunt:function(){pass();},off:colorOff};
+ window.FproColor={set:function(next){if(typeof next==='string')next=JSON.parse(next);var valid=!!next.recolor&&!!rgb(next.uiAccent);if(cfg.recolor!==valid||cfg.uiAccent!==next.uiAccent){colorOff();cfg={recolor:valid,uiAccent:next.uiAccent};setup();}},boot:function(){setup();pass();},ownsStyle:function(el){var record=paints.get(el);return !!record&&(record.kind==='sheet'?el.textContent:el.getAttribute('style'))===record.applied;},pass:pass,hunt:function(){pass();},off:colorOff};
  var phrases=/^(فتح التطبيق|افتح التطبيق|فتح تطبيق فيسبوك|فتح فيسبوك|فتح التطبيق الان|استخدم التطبيق|فيسبوك الاصلي|الفيسبوك الاصلي|تطبيق فيسبوك الاصلي|استخدم تطبيق فيسبوك|open (the )?app|open in (the )?app|use (the )?app|original facebook|open facebook( app)?|open the facebook app|use (the )?facebook app)$/i;
  var cta=/^(فتح\s+التطبيق|افتح\s+التطبيق|فتح\s+تطبيق\s+فيسبوك|استخدم\s+التطبيق|استخدم\s+تطبيق\s+فيسبوك|جرب\s+التطبيق|حمل\s+التطبيق|تحميل\s+التطبيق|ثبت\s+التطبيق|شاهد\s+في\s+التطبيق|open\s+(the\s+)?app|open\s+(it\s+)?in\s+(the\s+)?app|open\s+facebook|use\s+(the\s+)?(facebook\s+)?app|try\s+the\s+app|get\s+the\s+app|install\s+(the\s+)?app|download\s+(the\s+)?app|watch\s+on\s+the\s+app)/i;
  function norm(text){return (text||'').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/\s+/g,' ').trim();}
  function head(el){var text=el.getAttribute('aria-label')||'',walk=[el],i=0;while(i<walk.length&&i<80&&text.length<90){var node=walk[i++];for(var child=node.firstChild;child&&text.length<90;child=child.nextSibling){if(child.nodeType===3)text+=child.nodeValue+' ';else if(child.nodeType===1&&walk.length<80)walk.push(child);}}return norm(text).slice(0,100);}
- function hide(el){if(!el||el.matches('body,html,main,form,article,[role="article"],[role="main"],[role="feed"],nav,[role="navigation"]')||el.querySelector('video,input,textarea,article,[role="article"]'))return;
+ function hide(el){if(!el||el.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick]').length>1||el.matches('body,html,main,form,article,[role="article"],[role="main"],[role="feed"],nav,[role="navigation"]')||el.querySelector('video,input,textarea,article,[role="article"]'))return;
   if(!hidden.has(el))hidden.set(el,{value:el.style.getPropertyValue('display'),priority:el.style.getPropertyPriority('display')});el.style.setProperty('display','none','important');el.setAttribute('data-fpro-reference-noapp','');
  }
  function restore(){hidden.forEach(function(old,el){if(el.style.getPropertyValue('display')==='none'&&el.style.getPropertyPriority('display')==='important'){if(old.value)el.style.setProperty('display',old.value,old.priority);else el.style.removeProperty('display');}el.removeAttribute('data-fpro-reference-noapp');});hidden.clear();}
@@ -98,10 +98,12 @@
    if(!exact&&!cta.test(text)&&near&&/فيسبوك|التطبيق|facebook|open\s+app/i.test(text)){
     var node=el;for(var d=0;node&&d<7;d++,node=node.parentElement){if(node.matches('body,html,header,nav,article,[role="article"],[role="banner"],[role="navigation"]'))break;var b=node.getBoundingClientRect(),paint=getComputedStyle(node).backgroundColor.match(/[\d.]+/g);if(paint&&blue(+paint[0],+paint[1],+paint[2])&&b.width>30&&b.width<=innerWidth*.72&&b.height>=22&&b.height<=120){pill=node;break;}}
    }
-   if(!exact&&!cta.test(text)&&!deep&&!pill)continue;
+   if(!exact&&!deep&&(!cta.test(text)||!el.matches('a,button,[role="button"],[role="link"]'))&&!pill)continue;
+   // Never treat a container's combined Open App + Search/Profile labels as a CTA.
+   if(el.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick]').length>1)continue;
    if(el.closest('article,[role="article"],[data-pagelet^="FeedUnit"]')){if((exact||cta.test(text))&&el.matches('a,button,[role="button"]'))hide(el);continue;}
    var best=pill||el,node=best,limit=near?110:Math.max(160,innerHeight*.32);
-   for(var d=0;d<8&&node.parentElement;d++){var parent=node.parentElement;if(parent.matches('body,html,main,form,header,nav,article,[role="article"],[role="main"],[role="feed"],[role="banner"],[role="navigation"]')||parent.querySelector('video,input,textarea,article,[role="article"]'))break;var b=parent.getBoundingClientRect();if(b.height<=0||b.height>limit||near&&b.width>innerWidth*.65)break;if(Array.from(parent.childNodes).some(function(c){return c.nodeType===3&&c.textContent.trim();}))break;best=parent;node=parent;}
+   for(var d=0;d<8&&node.parentElement;d++){var parent=node.parentElement;if(parent.matches('body,html,main,form,header,nav,article,[role="article"],[role="main"],[role="feed"],[role="banner"],[role="navigation"]')||parent.querySelector('video,input,textarea,article,[role="article"]'))break;var b=parent.getBoundingClientRect();if(b.height<=0||b.height>limit||near&&b.width>innerWidth*.65)break;if(parent.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick],[aria-label]').length>1||norm(parent.textContent)!==norm(el.textContent))break;if(Array.from(parent.childNodes).some(function(c){return c.nodeType===3&&c.textContent.trim();}))break;best=parent;node=parent;}
    hide(best);
   }
  }

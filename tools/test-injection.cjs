@@ -452,6 +452,31 @@ function fixture(html,config={},captureDownload=false) {
   supplied.run({enhance:true,referenceEngine:false,color:'تلقائي',appBanner:false});assert.equal(supplied.doc.querySelector('#siteCss').textContent,originalSheet);assert.equal(supplied.doc.querySelector('#refSurface').getAttribute('style'),originalAttr);assert.equal(supplied.doc.querySelector('#refReel').style.display,'');
   supplied.window.FproColor.set({recolor:true,uiAccent:'#D4AF37'});supplied.window.FproColor.boot();supplied.doc.querySelector('#refSurface').style.color='rgb(12, 13, 14)';supplied.window.FproColor.off();assert.equal(supplied.doc.querySelector('#refSurface').style.color,'rgb(12, 13, 14)','Off must not overwrite newer site changes');assert.equal(supplied.doc.querySelector('#refSurface').style.backgroundColor,'rgb(24, 119, 242)','Off must still restore our background while preserving a newer unrelated site color');
   supplied.window.FproColor.hunt();assert.equal(supplied.doc.querySelector('#fpro-reference-css'),null,'Off remains off during subsequent hunt');
+  // Untagged reel bars must preserve adjacent official controls in BOTH engines.
+  for(const referenceEngine of [false,true]){
+   const bar=fixture('<div id="officialBar"><div id="installSlot"><a href="intent://facebook">فتح التطبيق</a></div><button id="searchOfficial" aria-label="بحث"><svg></svg></button><a id="profileOfficial" href="/me">الدخول للحساب</a></div>',{enhance:false});
+   if(referenceEngine)bar.window.eval(fs.readFileSync('app/src/main/assets/reference-engines.js','utf8'));
+   bar.run({enhance:true,referenceEngine,appBanner:true});
+   for(const id of ['officialBar','searchOfficial','profileOfficial'])assert.equal(bar.doc.getElementById(id).style.display,'','Preserve official reel navigation: '+id);
+   assert.equal(bar.doc.getElementById('installSlot').style.display,'none');
+  }
+  supplied.run({enhance:true,referenceEngine:true,color:'أخضر',appBanner:false});
+  const instantPaint=supplied.doc.createElement('div');instantPaint.id='instantPaintPaint';instantPaint.style.backgroundColor='rgb(24,119,242)';supplied.doc.body.appendChild(instantPaint);
+  await new Promise(resolve=>supplied.window.queueMicrotask(resolve));
+  assert.equal(instantPaint.style.backgroundColor,'rgb(23, 131, 62)','New inline blue must recolor in the mutation microtask, not after 500ms');
+  const instantPaintStyle=supplied.doc.createElement('style');instantPaintStyle.textContent='.fastRule{color:#1877f2}';supplied.doc.head.appendChild(instantPaintStyle);
+  await new Promise(resolve=>supplied.window.queueMicrotask(resolve));
+  assert(!instantPaintStyle.textContent.includes('#1877f2'),'New style rules must recolor before debounced full scan');
+  instantPaint.style.backgroundColor='rgb(24,119,242)';
+  await new Promise(resolve=>supplied.window.queueMicrotask(resolve));assert.equal(instantPaint.style.backgroundColor,'rgb(23, 131, 62)','Recycled inline styles recolor immediately too');
+  const bare=fixture('<div id="bareText" style="user-select:none!important">Reading text directly in a div</div>',{textSelection:true});
+  const bareEl=bare.doc.getElementById('bareText');let cancelledContexts=0;
+  bare.doc.addEventListener('contextmenu',e=>{cancelledContexts++;e.preventDefault();},true);
+  bareEl.dispatchEvent(new bare.window.Event('touchstart',{bubbles:true,cancelable:true}));
+  assert.equal(bareEl.style.getPropertyValue('user-select'),'text','Touch-only input prepares bare div reading text');
+  const context=new bare.window.Event('contextmenu',{bubbles:true,cancelable:true});bareEl.dispatchEvent(context);
+  assert.equal(context.defaultPrevented,false);assert.equal(cancelledContexts,0,'Reading context menu keeps native default');
+  bare.run({textSelection:false});bareEl.dispatchEvent(new bare.window.Event('contextmenu',{bubbles:true,cancelable:true}));assert.equal(cancelledContexts,1,'Disabled selection restores site context menu handlers');
   const dynamic=fixture('<main id="feed"></main>',{ads:true});
   dynamic.doc.querySelector('#feed').innerHTML='<article id="late"><span>Sponsored</span></article>';
   await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'none','Observe dynamically added cards');

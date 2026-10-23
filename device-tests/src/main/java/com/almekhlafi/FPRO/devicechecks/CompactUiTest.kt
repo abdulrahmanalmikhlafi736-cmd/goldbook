@@ -106,7 +106,7 @@ class CompactUiTest {
     private fun scrollToText(text: String): UiObject2 {
         val selector = if (text.startsWith("اللون:")) By.textContains("اللون:") else By.text(text)
         repeat(28) {
-            val node = freshUi { device.findObject(selector)?.takeIf { !it.visibleBounds.isEmpty } }
+            val node = waitObject(selector, 800)?.takeIf { !it.visibleBounds.isEmpty }
             if (node != null) return node
             // Use the visible native settings viewport, not a possibly retained
             // scrollable WebView node behind the Compose settings overlay.

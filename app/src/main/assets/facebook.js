@@ -28,7 +28,7 @@
  function readingTarget(target){
   const el=target&&target.nodeType===1?target:target&&target.parentElement;
   if(!el||el.closest('button,input,textarea,select,[contenteditable]:not([contenteditable="false"]),.fpro-video-tools,header,nav,[role="banner"],[role="navigation"],svg,img,video,canvas'))return null;
-  const root=el.closest('p,[dir="auto"],[data-ad-preview="message"],[data-ad-comet-preview="message"],span');
+  const root=el.closest('p,[dir="auto"],[data-ad-preview="message"],[data-ad-comet-preview="message"],span,div');
   if(!root||!(root.textContent||'').trim())return null;
   const control=el.closest('[role="button"]');
   // An interactive post/comment wrapper is not the same as Like/Reply/etc.
@@ -42,9 +42,9 @@
  }
  function prepareSelection(e){
   if(cfg.textSelection===false||e.isPrimary===false||e.pointerType==='mouse'&&e.button!==0)return;
-  const target=readingTarget(e.target);if(!target)return;
+  const target=readingTarget(e.target);selectionTargetInfo={prepared:false,buttonWrapper:false,inlineBlocked:false,alreadyCancelled:!!e.defaultPrevented,eventType:e.type};if(!target)return;
   restoreSelectionOverrides();lastTap=null;touch=null;
-  selectionTargetInfo={prepared:true,buttonWrapper:!!target.control,inlineBlocked:false};
+  selectionTargetInfo={...selectionTargetInfo,prepared:true,buttonWrapper:!!target.control};
   let node=target.el;
   for(let depth=0;node&&node!==document.body&&depth<10;depth++,node=node.parentElement){
    const entry={marked:node.hasAttribute('data-fpro-selectable-text')};
@@ -64,7 +64,7 @@
  }
  window.addEventListener('pointerdown',prepareSelection,true);
  window.addEventListener('touchstart',e=>{
-  if(cfg.textSelection!==false&&readingTarget(e.target))e.stopPropagation();
+  if(!e.touches||e.touches.length===1)prepareSelection(e);
  },{capture:true,passive:true});
  // Android treats a long-pressed anchor as a link, not selectable text.
  // Temporarily disarm only hashtag hrefs while the finger is down; Android
@@ -102,6 +102,9 @@
   `;
   if(!selectionStyle.isConnected)document.head.appendChild(selectionStyle);
  }
+ window.addEventListener('contextmenu',e=>{
+  if(cfg.textSelection!==false&&readingTarget(e.target))e.stopPropagation();
+ },true);
  window.addEventListener('selectstart',e=>{
   if(cfg.textSelection!==false&&readingTarget(e.target))e.stopPropagation();
  },true);
@@ -161,7 +164,7 @@
   for (let i=0; i<3 && block.parentElement; i++) {
    const p = block.parentElement;
    if (/^(BODY|HTML|MAIN|FORM)$/.test(p.tagName) || p.matches(postSelector) || p.getAttribute('role') === 'main' || p.matches('header,nav,[role="banner"],[role="navigation"]') || p.querySelector('input,textarea,video,[contenteditable],article,[role="article"]') || (p.textContent || '').length > 400) break;
-   if (p.querySelectorAll('a').length > 3) break;
+   if (p.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick],[aria-label]').length > 1 || norm(p.textContent)!==norm(link.textContent)) break;
    block = p;
   }
   hide(block);
@@ -640,6 +643,7 @@
   if(resize)resize.observe(document.body);
   if(!style.isConnected)document.head.appendChild(style);
   observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','href','src','data-story-id','data-store','data-video-id','class','style','stroke','fill']});
+  observer.observe(document.head,{childList:true,subtree:true,characterData:true});
   const accent=c.color==='طبيعي'?null:colors[c.color];
   const foreground=c.dark?accent:({'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'}[c.color] || accent);
   const contrast=['ذهبي','فضي','أبيض','برتقالي'].includes(c.color)?'#111':'#fff';
@@ -700,15 +704,29 @@
    }
   }
  }
+ // Paint only changed fragments in the mutation microtask, before the next
+ // browser paint. Keep banners/layout/full feed work on the old scheduler.
+ function fastReferenceColors(records){
+  if(!cfg.referenceEngine||!window.FproColor||document.hidden)return;
+  const roots=new Set();
+  const add=el=>{if(el&&el.nodeType===1&&!/^fpro/i.test(el.id)&&!el.closest('#fpro-reference-svg,.fpro-video-tools'))roots.add(el);};
+  for(const record of records){
+   if(record.type==='attributes'&&record.attributeName==='style')add(record.target);
+   else if(record.type==='characterData'){const el=record.target.parentElement;if(el&&el.matches('style'))add(el);}
+   else if(record.type==='childList'){if(record.target.nodeType===1&&record.target.matches('style'))add(record.target);for(const node of record.addedNodes)add(node);}
+  }
+  if(roots.size)window.FproColor.pass(Array.from(roots).slice(0,32));
+ }
  const observer=new MutationObserver(records=>{
   if(!document||cfg.enhance===false)return;
-  const relevant=records.filter(r=>{const el=r.target.nodeType===1?r.target:r.target.parentElement;if(!el||el.closest('#fpro-style,#fpro-selection-style,#fpro-icon-filter,.fpro-video-tools'))return false;if(r.type==='attributes'&&r.attributeName==='style'&&(ownedStyles.get(el)===el.getAttribute('style')||el.hasAttribute('data-fpro-hidden')))return false;return true;});
+  const relevant=records.filter(r=>{if(r.type==='childList'){const changes=[...r.addedNodes,...r.removedNodes];if(changes.length&&changes.every(n=>n.nodeType===1&&/^fpro/i.test(n.id)))return false;}const el=r.target.nodeType===1?r.target:r.target.parentElement;if(!el||el.closest('#fpro-style,#fpro-selection-style,#fpro-icon-filter,.fpro-video-tools'))return false;if(window.FproColor&&window.FproColor.ownsStyle(el))return false;if(r.type==='attributes'&&r.attributeName==='style'&&(ownedStyles.get(el)===el.getAttribute('style')||el.hasAttribute('data-fpro-hidden')))return false;return true;});
   if(!relevant.length)return;
   fastHashtags(relevant);
+  fastReferenceColors(relevant);
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
  function colorReport(){
-  const report={version:22,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
+  const report={version:23,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}
