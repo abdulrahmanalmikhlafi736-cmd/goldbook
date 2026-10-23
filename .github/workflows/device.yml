@@ -5,7 +5,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: [29, 35]
+        include:
+          - api: 29
+            variant: debug
+            task: Debug
+          - api: 35
+            variant: compact
+            task: Compact
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -30,7 +36,7 @@ jobs:
           disable-animations: true
           script: |
             mkdir -p device-diagnostics
-            if ./gradlew connectedDebugAndroidTest --stacktrace > device-diagnostics/gradle.log 2>&1; then echo PASS > device-diagnostics/result; else echo FAIL > device-diagnostics/result; fi
+            if ./gradlew -PdeviceTestBuildType=${{ matrix.variant }} connected${{ matrix.task }}AndroidTest --stacktrace > device-diagnostics/gradle.log 2>&1; then echo PASS > device-diagnostics/result; else echo FAIL > device-diagnostics/result; fi
             timeout 15 adb logcat -d > device-diagnostics/logcat.txt || true
             timeout 15 adb pull /sdcard/Android/data/com.almekhlafi.FPRO/files/ device-diagnostics/ || true
             cat device-diagnostics/gradle.log
@@ -55,7 +61,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: webview-device-diagnostics-${{ matrix.api }}
+          name: webview-device-diagnostics-${{ matrix.api }}-${{ matrix.variant }}
           path: |
             device-diagnostics/
             app/build/reports/androidTests/

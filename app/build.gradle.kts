@@ -6,6 +6,7 @@ plugins {
 android {
     namespace = "com.almekhlafi.FPRO"
     compileSdk = 35
+    testBuildType = providers.gradleProperty("deviceTestBuildType").getOrElse("debug")
     defaultConfig {
         applicationId = "com.almekhlafi.FPRO"
         minSdk = 23
