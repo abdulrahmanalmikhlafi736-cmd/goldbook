@@ -77,10 +77,22 @@ class CompactUiTest {
             device.wait(Until.hasObject(By.clazz("android.widget.EditText").focused(true)), 5000))
         // No account data is entered and no login request is submitted.
     }
+    private fun <T> freshUi(action: () -> T): T {
+        var last: androidx.test.uiautomator.StaleObjectException? = null
+        repeat(5) {
+            try { return action() } catch (error: androidx.test.uiautomator.StaleObjectException) {
+                last = error
+                Thread.sleep(250)
+            }
+        }
+        throw requireNotNull(last)
+    }
+
     private fun scrollToText(text: String): UiObject2 {
         val selector = if (text.startsWith("اللون:")) By.textStartsWith("اللون:") else By.text(text)
         repeat(18) {
-            device.findObject(selector)?.let { if (!it.visibleBounds.isEmpty) return it }
+            val node = freshUi { device.findObject(selector)?.takeIf { !it.visibleBounds.isEmpty } }
+            if (node != null) return node
             // Use the visible native settings viewport, not a possibly retained
             // scrollable WebView node behind the Compose settings overlay.
             device.swipe(device.displayWidth/2, device.displayHeight*3/4,
@@ -96,18 +108,22 @@ class CompactUiTest {
         launch()
         assertNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 40_000))
         requireNotNull(device.findObject(By.text("⚙"))).click()
-        val color = scrollToText("اللون: تلقائي")
-        color.click()
-        requireNotNull(device.wait(Until.findObject(By.text("ذهبي")), 5000)).click()
-        val label = scrollToText("إخفاء شريط فتح التطبيق أو تثبيته")
-        val toggle = requireNotNull(device.findObjects(By.checkable(true)).minByOrNull {
-            kotlin.math.abs(it.visibleBounds.centerY() - label.visibleBounds.centerY())
-        }) { "Banner switch must be accessible" }
-        if (!toggle.isChecked) toggle.click()
+        scrollToText("اللون: تلقائي")
+        freshUi { requireNotNull(device.findObject(By.textStartsWith("اللون:"))).click() }
+        assertNotNull(device.wait(Until.findObject(By.text("ذهبي")), 5000))
+        freshUi { requireNotNull(device.findObject(By.text("ذهبي"))).click() }
+        scrollToText("إخفاء شريط فتح التطبيق أو تثبيته")
+        freshUi {
+            val y = requireNotNull(device.findObject(By.text("إخفاء شريط فتح التطبيق أو تثبيته"))).visibleBounds.centerY()
+            val toggle = requireNotNull(device.findObjects(By.checkable(true)).minByOrNull {
+                kotlin.math.abs(it.visibleBounds.centerY() - y)
+            }) { "Banner switch must be accessible" }
+            if (!toggle.isChecked) toggle.click()
+        }
         device.pressBack()
-        val login = requireNotNull(device.wait(Until.findObject(By.text("Log in")), 15_000)) { "Enhancements must preserve the real login form" }
+        assertNotNull("Enhancements must preserve the real login form", device.wait(Until.findObject(By.text("Log in")), 15_000))
         Thread.sleep(1200)
-        val bounds = login.visibleBounds
+        val bounds = freshUi { requireNotNull(device.findObject(By.text("Log in"))).visibleBounds }
         val image = BitmapFactory.decodeFile(screenshot("compact-gold-tools.png").absolutePath)
         // Sample away from the white button text, within the actual native web button.
         val goldSamples = (1..9).count { fraction ->
@@ -115,7 +131,7 @@ class CompactUiTest {
             Color.red(pixel) > 150 && Color.green(pixel) > 100 && Color.blue(pixel) < 120
         }
         assertTrue("Selected gold must recolor Facebook, not only native settings; samples=$goldSamples", goldSamples >= 2)
-        val text = device.findObject(By.clazz("android.webkit.WebView"))?.let { textTree(it) }.orEmpty()
+        val text = freshUi { device.findObject(By.clazz("android.webkit.WebView"))?.let { textTree(it) }.orEmpty() }
         assertFalse("Install/open-app banner must disappear", text.contains("Get Facebook for Android", ignoreCase=true))
         assertNotNull("Login inputs remain accessible after hiding banner", device.findObject(By.clazz("android.widget.EditText")))
         device.executeShellCommand("screencap -p /data/local/tmp/fpro-tools.png")

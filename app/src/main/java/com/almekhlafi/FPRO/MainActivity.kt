@@ -421,8 +421,8 @@ class MainActivity : ComponentActivity() {
                             else -> if (item.progress < 0) "جارٍ التنزيل — الحجم غير معروف" else "${item.progress}%"
                         }
                         Text(status, style = MaterialTheme.typography.bodySmall)
-                        if (item.progress < 0) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                        else LinearProgressIndicator(progress = { item.progress / 100f }, modifier = Modifier.fillMaxWidth())
+                        if (item.progress < 0 && item.status in listOf(DownloadManager.STATUS_RUNNING, DownloadManager.STATUS_PENDING)) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        else LinearProgressIndicator(progress = { maxOf(0, item.progress) / 100f }, modifier = Modifier.fillMaxWidth())
                         Row {
                             if (item.status == DownloadManager.STATUS_SUCCESSFUL) TextButton(onClick = { try { downloads.open(item.id) } catch (_: Exception) { toast("لا يوجد مشغل متاح") } }) { Text("فتح") }
                             TextButton(onClick = { downloads.remove(item.id) }) { Text("حذف / إلغاء") }
