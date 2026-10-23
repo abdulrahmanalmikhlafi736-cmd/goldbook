@@ -33,11 +33,9 @@ class CompactUiTest {
 
     @Test fun localPagePaintsThroughRealSettingsButton() {
         launch()
-        val settings = device.wait(Until.findObject(By.text("⚙")), 10_000)
-        assertNotNull("Settings button must be accessible", settings)
+        val settings = requireNotNull(device.wait(Until.findObject(By.text("⚙")), 10_000)) { "Settings button must be accessible" }
         settings.click()
-        val check = device.wait(Until.findObject(By.text("اختبار عرض محلي بلا إنترنت")), 10_000)
-        assertNotNull("Display self-test must be reachable", check)
+        val check = requireNotNull(device.wait(Until.findObject(By.text("اختبار عرض محلي بلا إنترنت")), 10_000)) { "Display self-test must be reachable" }
         check.click()
         assertNotNull("Local HTML must be accessible in actual WebView", device.wait(Until.findObject(By.textContains("اختبار عرض WebView")), 15_000))
         Thread.sleep(800)
