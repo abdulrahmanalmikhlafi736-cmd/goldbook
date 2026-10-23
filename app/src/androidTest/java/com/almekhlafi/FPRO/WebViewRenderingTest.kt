@@ -295,6 +295,20 @@ class WebViewRenderingTest {
             assertEquals("rgb(138, 101, 0)", transitions.getString("hashtag"))
             assertEquals("rgb(8, 102, 255)", transitions.getString("original"))
             assertFalse(transitions.getBoolean("active"))
+            val fastReady = CountDownLatch(1)
+            val fastResult = java.util.concurrent.atomic.AtomicReference<String>()
+            scenario.onActivity { activity ->
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                web.evaluateJavascript("""
+                    (()=>{const span=document.createElement('span');span.textContent='#سريع';span.style.setProperty('color','rgb(8,102,255)','important');document.body.appendChild(span);Promise.resolve().then(()=>{window.__fastHashResult={marked:span.hasAttribute('data-fpro-accent-fg'),color:getComputedStyle(span).color};});})()
+                """.trimIndent()) {
+                    web.evaluateJavascript("JSON.stringify(window.__fastHashResult)") { result -> fastResult.set(result); fastReady.countDown() }
+                }
+            }
+            assertTrue("Capture hashtag state in microtask before debounce timers", fastReady.await(8, TimeUnit.SECONDS))
+            val immediate = org.json.JSONObject(org.json.JSONArray("[${fastResult.get()}]").getString(0))
+            assertTrue("New hashtags must be marked before the next timer", immediate.getBoolean("marked"))
+            assertEquals("rgb(138, 101, 0)", immediate.getString("color"))
         }
     }
 

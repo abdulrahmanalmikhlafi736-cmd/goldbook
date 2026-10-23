@@ -79,6 +79,7 @@
  function tintVar(el,key,value,priority=''){
   let vars=tintVars.get(el);if(!vars){vars=new Map();tintVars.set(el,vars);}
   if(!vars.has(key))vars.set(key,{value:el.style.getPropertyValue(key),priority:el.style.getPropertyPriority(key)});
+  else {const old=vars.get(key);if(old.applied!==undefined&&(el.style.getPropertyValue(key)!==old.applied||el.style.getPropertyPriority(key)!==old.appliedPriority)){old.value=el.style.getPropertyValue(key);old.priority=el.style.getPropertyPriority(key);}}
   if(el.style.getPropertyValue(key)!==value||el.style.getPropertyPriority(key)!==priority)el.style.setProperty(key,value,priority);
   const entry=vars.get(key);entry.applied=el.style.getPropertyValue(key);entry.appliedPriority=el.style.getPropertyPriority(key);
   ownedStyles.set(el,el.getAttribute('style'));
@@ -476,17 +477,64 @@
   `;
   scan();
  }
+ // Mutation callbacks run before the next paint. Give only newly changed
+ // hashtag nodes a tiny fast path; keep the expensive feed scan debounced.
+ const fastHashes=new WeakSet();
+ function fastHashtags(records){
+  if(!document||document.hidden||cfg.enhance===false||cfg.color==='طبيعي'||!colors[cfg.color])return;
+  const roots=new Set(),addedRoots=new Set();
+  for(const record of records){
+   if(record.type==='childList'){for(const n of record.addedNodes)if(n.nodeType===1){roots.add(n);addedRoots.add(n);}else if(n.nodeType===3&&n.parentElement)roots.add(n.parentElement);if(record.target.nodeType===1)roots.add(record.target);}
+   else roots.add(record.target.nodeType===1?record.target:record.target.parentElement);
+  }
+  for(const root of roots){
+   if(!root||root.closest('#fpro-style,#fpro-icon-filter,.fpro-video-tools'))continue;
+   const nodes=[root];
+   // Descend only added fragments; a character/style mutation is local.
+   if(addedRoots.has(root))for(const n of root.querySelectorAll('span,a,[role="link"]'))nodes.push(n);
+   for(const el of nodes){
+    if(!el.matches('span,a,[role="link"]'))continue;
+    const text=norm(el.textContent),href=el.getAttribute('href')||'';
+    const hashtag=/(?:\/hashtag\/|[?&]hashtag=)/i.test(href)||/^#[^\s#]+$/.test(text);
+    if(hashtag){
+     el.setAttribute('data-fpro-accent-fg','');painted.add(el);fastHashes.add(el);
+     if(el.style.getPropertyPriority('color')==='important'){
+      const fg=cfg.dark?colors[cfg.color]:({'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'}[cfg.color]||colors[cfg.color]);
+      tintVar(el,'color',fg,'important');
+     }
+    }else if(fastHashes.has(el)){
+     fastHashes.delete(el);el.removeAttribute('data-fpro-accent-fg');
+     const vars=tintVars.get(el),old=vars&&vars.get('color');
+     if(old){if(el.style.getPropertyValue('color')===old.applied&&el.style.getPropertyPriority('color')===old.appliedPriority){if(old.value)el.style.setProperty('color',old.value,old.priority);else el.style.removeProperty('color');}vars.delete('color');ownedStyles.set(el,el.getAttribute('style'));}
+    }
+   }
+  }
+ }
  const observer=new MutationObserver(records=>{
-  if(cfg.enhance===false)return;
-  if(!records.some(r=>{const el=r.target.nodeType===1?r.target:r.target.parentElement;if(!el||el.closest('#fpro-style,#fpro-icon-filter,.fpro-video-tools'))return false;if(r.type==='attributes'&&r.attributeName==='style'&&(ownedStyles.get(el)===el.getAttribute('style')||el.hasAttribute('data-fpro-hidden')))return false;return true;}))return;
+  if(!document||cfg.enhance===false)return;
+  const relevant=records.filter(r=>{const el=r.target.nodeType===1?r.target:r.target.parentElement;if(!el||el.closest('#fpro-style,#fpro-icon-filter,.fpro-video-tools'))return false;if(r.type==='attributes'&&r.attributeName==='style'&&(ownedStyles.get(el)===el.getAttribute('style')||el.hasAttribute('data-fpro-hidden')))return false;return true;});
+  if(!relevant.length)return;
+  fastHashtags(relevant);
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
  function colorReport(){
-  const report={version:15,enhance:cfg.enhance!==false,color:cfg.color,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),matched:{},avatarSources:{img:0,svg:0,background:0},remainingBlue:[]};
+  const report={version:16,enhance:cfg.enhance!==false,color:cfg.color,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}
   function pseudoPaint(el,pseudo){const c=getComputedStyle(el,pseudo);return c.content==='none'||c.content==='normal'||!c.content||c.display==='none'?null:paint(c);}
+  // Manual, privacy-minimal geometry only. No names, URLs, text, selectors,
+  // class/IDs, image bytes or cookies; small images are not assumed badges.
+  function frame(el){const r=el.getBoundingClientRect(),c=getComputedStyle(el);return {tag:el.tagName.toLowerCase(),w:Math.round(r.width),h:Math.round(r.height),round:parseFloat(c.borderRadius)>=Math.min(r.width,r.height)*.3,mask:!!(c.maskImage&&c.maskImage!=='none'||c.webkitMaskImage&&c.webkitMaskImage!=='none'),clip:!!(c.clipPath&&c.clipPath!=='none'),borderImage:!!(c.borderImageSource&&c.borderImageSource!=='none'),svg:el.querySelectorAll('svg,circle,ellipse,path').length,own:paint(c),before:pseudoPaint(el,'::before'),after:pseudoPaint(el,'::after')};}
+  for(const photo of avatarPictures().slice(0,8)){
+   const levels=[];let el=photo;for(let depth=0;el&&depth<5;depth++,el=el.parentElement){if(el.matches('body,html,main,nav,[role="navigation"]'))break;levels.push(frame(el));}
+   report.avatarFrames.push({kind:photo.matches('img')?'img':photo.matches('image')?'svg':'background',levels});
+  }
+  for(const img of document.querySelectorAll('img')){
+   if(report.smallImages.length>=12)break;const r=img.getBoundingClientRect();if(r.width<8||r.width>24||r.height<8||r.height>24||r.bottom<=0||r.top>=innerHeight)continue;
+   const link=img.closest('a,[role="link"]');let staticAsset=false;try{const u=new URL(img.currentSrc||img.src,location.href);staticAsset=/(^|\.)facebook\.com$|(^|\.)fbcdn\.net$/.test(u.hostname)&&(/\/rsrc\.php\//.test(u.pathname)||/^static\./.test(u.hostname));}catch(_){}
+   report.smallImages.push({w:Math.round(r.width),h:Math.round(r.height),naturalW:img.naturalWidth,naturalH:img.naturalHeight,verified:verifiedLabel(img)||!!(img.parentElement&&verifiedLabel(img.parentElement)),withinLink:!!link,linkHasText:!!(link&&link.textContent.trim()),staticAsset});
+  }
   for(const el of document.querySelectorAll('img,svg,circle,path,i,span,div[role="img"],a')){
    if(report.remainingBlue.length>=40)break;if(el.closest('.fpro-video-tools,#fpro-icon-filter'))continue;const r=el.getBoundingClientRect();if(r.width<8||r.width>160||r.height<8||r.height>160||r.bottom<=0||r.top>=innerHeight)continue;
    const own=paint(getComputedStyle(el)),before=pseudoPaint(el,'::before'),after=pseudoPaint(el,'::after');
