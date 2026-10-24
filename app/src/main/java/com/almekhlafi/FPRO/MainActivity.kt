@@ -401,7 +401,7 @@ class MainActivity : ComponentActivity() {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 24 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 24 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff"
     }
 
     private fun showDisplayTest() {
@@ -512,7 +512,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         externalHandoff = false; pipRequested = false
-        if (::web.isInitialized) { web.onResume(); configurePictureInPicture() }
+        if (::web.isInitialized) { web.onResume(); configurePictureInPicture(); web.evaluateJavascript("window.__fproReportPlayback && window.__fproReportPlayback()", null) }
     }
     override fun onStop() {
         if (!pip && !pipRequested && !(Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode)) web.onPause()

@@ -5,9 +5,10 @@
   window.__fproPlaybackHooks=true;
   const report=()=>{try{if(window.FproPlayback)window.FproPlayback.playing(Array.from(document.querySelectorAll('video')).some(v=>!v.paused&&!v.ended&&v.readyState>=2));}catch(_){}};
   ['playing','pause','ended','emptied'].forEach(type=>document.addEventListener(type,report,true));
-  report();
+  window.__fproReportPlayback=report;
  }
  function info() {
+  window.__fproReportPlayback();
   const path=location.pathname.replace(/\/+$/,'') || '/';
   const visible=el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden'&&s.opacity!=='0';};
   const player=Array.from(document.querySelectorAll('[role="dialog"],[aria-modal="true"]')).some(el=>visible(el)&&Array.from(el.querySelectorAll('video')).some(visible));
