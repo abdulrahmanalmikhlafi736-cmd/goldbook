@@ -27,7 +27,8 @@ fun SettingsPanel(prefs: Preferences, audioOnly: () -> Unit, change: () -> Unit,
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SettingsGroup("الفيديو وتعديلات الصفحة", "تحكم مستقل وواضح في الأدوات") {
         Toggle("تحديد النص بالقائمة الأصلية للجوال", "textSelection", prefs, revision, default = true) { update() }
-        Text("اضغط مطولًا على نص المنشور أو التعليق أو الهاشتاج، ثم حرّك مقابض التحديد للنسخ أو المشاركة حسب خيارات النظام. لا يشمل النص داخل الصور؛ بعض طبقات فيسبوك قد تمنع التحديد.", style = MaterialTheme.typography.bodySmall)
+        Text("مسار تحديد النص مطابق للبناء 23. اضغط مطولًا على نص المنشور أو التعليق أو الهاشتاج، ثم حرّك مقابض التحديد للنسخ أو المشاركة حسب خيارات النظام. لا يشمل النص داخل الصور؛ بعض طبقات فيسبوك قد تمنع التحديد.", style = MaterialTheme.typography.bodySmall)
+        Toggle("تشغيل صوت الفيديو في نافذة أندرويد عند المغادرة", "pipSound", prefs, revision, default = true) { update() }
         TextButton(onClick = audioOnly) { Text("صوت فقط — استمرار عند قفل الشاشة") }
         Text("شغّل الفيديو أولًا. يظهر إشعار للتحكم بالتشغيل والإيقاف؛ زر السماعة في نافذة صورة داخل صورة يخفي النافذة ويشغّل الصوت فقط. إنهاء التطبيق أو الخدمة ينهي التشغيل. قد توقف بعض نسخ الموقع المشغّل عند المغادرة.", style = MaterialTheme.typography.bodySmall)
         Toggle("ضغطتان على الفيديو لملء الشاشة — مستقل عن أدوات التنزيل", "doubleTapFullscreen", prefs, revision, default = true) { update() }

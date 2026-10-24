@@ -477,7 +477,7 @@ class WebViewRenderingTest {
                         </script></head><body><button id="earlyCta">فتح التطبيق</button><button id="earlySearch">بحث</button><article id="oledCard" style="background-color:white"><span id="earlyRead" style="user-select:none!important">Native reading text</span></article></body></html>
                     """.trimIndent(),"text/html","UTF-8","https://m.facebook.com/")
                     fun probe(attempt:Int){web.evaluateJavascript("""
-                        (()=>{if(!window.firstCtaFrame)return null;const e=document.getElementById('earlyRead'),r=e.getBoundingClientRect(),ev=new PointerEvent('pointerdown',{bubbles:true,cancelable:true,isPrimary:true,pointerType:'touch',clientX:r.left+8,clientY:r.top+r.height/2});e.dispatchEvent(ev);return JSON.stringify({first:window.firstCtaFrame,black:getComputedStyle(document.getElementById('oledCard')).backgroundColor,search:getComputedStyle(document.getElementById('earlySearch')).display,uncancelled:!ev.defaultPrevented});})()
+                        (()=>{if(!window.firstCtaFrame)return null;return JSON.stringify({first:window.firstCtaFrame,black:getComputedStyle(document.getElementById('oledCard')).backgroundColor,search:getComputedStyle(document.getElementById('earlySearch')).display});})()
                     """.trimIndent()){ value ->if(value!="null"){result.set(value);done.countDown()}else if(attempt<30)web.postDelayed({probe(attempt+1)},200)}}
                     web.postDelayed({probe(0)},200)
                 }
@@ -487,7 +487,6 @@ class WebViewRenderingTest {
                 assertTrue("Open App must already be hidden at first requested frame",data.getJSONObject("first").getBoolean("hidden"))
                 assertEquals("AMOLED must work without separate dark toggle","rgb(0, 0, 0)",data.getString("black"))
                 assertNotEquals("Search must remain visible","none",data.getString("search"))
-                assertTrue("Early reading guard must beat same-window site cancellation",data.getBoolean("uncancelled"))
             }
         } finally {
             val edit=store.edit();keys.forEach { key ->when(val value=previous[key]){is Boolean->edit.putBoolean(key,value);is String->edit.putString(key,value);else->edit.remove(key)} };edit.commit()
@@ -603,17 +602,22 @@ class WebViewRenderingTest {
             ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
                 Thread.sleep(2300)
                 val ready = CountDownLatch(1)
+                val startPoint=FloatArray(2)
                 scenario.onActivity { activity ->
                     assertTrue("Device must support PiP", activity.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE))
                     val web = requireNotNull(findWeb(activity.window.decorView))
                     web.stopLoading()
-                    web.settings.mediaPlaybackRequiresUserGesture = false
-                    web.loadDataWithBaseURL("https://m.facebook.com/", "<html><meta name='viewport' content='width=device-width'><body><video id='pipVideo' autoplay muted loop playsinline style='width:100%' src='data:video/mp4;base64,$encoded'></video></body></html>", "text/html", "UTF-8", "https://m.facebook.com/")
+                    web.settings.mediaPlaybackRequiresUserGesture = true
+                    web.loadDataWithBaseURL("https://m.facebook.com/", "<html><meta name='viewport' content='width=device-width'><body><button id='startVideo' onclick='document.getElementById(&quot;pipVideo&quot;).play()'>Play fixture</button><video id='pipVideo' preload='auto' muted loop playsinline style='width:100%' src='data:video/mp4;base64,$encoded'></video></body></html>", "text/html", "UTF-8", "https://m.facebook.com/")
                     fun probe(attempt: Int) {
-                        web.evaluateJavascript("!!document.getElementById('pipVideo') && document.getElementById('pipVideo').readyState>=2 && !document.getElementById('pipVideo').paused") { playing ->
+                        web.evaluateJavascript("!!document.getElementById('pipVideo') && document.getElementById('pipVideo').readyState>=2") { playing ->
                             if(playing == "true") {
                                 web.evaluateJavascript(activity.assets.open("page-info.js").bufferedReader().use { it.readText() }) {
-                                    web.postVisualStateCallback(90, object : WebView.VisualStateCallback() { override fun onComplete(requestId: Long) { ready.countDown() } })
+                                    web.evaluateJavascript("JSON.stringify({x:document.getElementById('startVideo').getBoundingClientRect().left+20,y:document.getElementById('startVideo').getBoundingClientRect().top+10,w:innerWidth})") { coordinates ->
+                                        val data=org.json.JSONObject(org.json.JSONArray("[$coordinates]").getString(0));val offset=IntArray(2);web.getLocationOnScreen(offset);val scale=web.width/data.getDouble("w")
+                                        startPoint[0]=(offset[0]+data.getDouble("x")*scale).toFloat();startPoint[1]=(offset[1]+data.getDouble("y")*scale).toFloat()
+                                        web.postVisualStateCallback(90, object : WebView.VisualStateCallback() { override fun onComplete(requestId: Long) { ready.countDown() } })
+                                    }
                                 }
                             } else if(attempt < 40)web.postDelayed({ probe(attempt+1) }, 200)
                         }
@@ -621,7 +625,14 @@ class WebViewRenderingTest {
                     web.postDelayed({ probe(0) }, 200)
                 }
                 assertTrue("Bundled real H264 video must decode and play", ready.await(12, TimeUnit.SECONDS))
-                Thread.sleep(350)
+                val tapTime=android.os.SystemClock.uptimeMillis()
+                for(action in listOf(android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP)) {
+                    val event=android.view.MotionEvent.obtain(tapTime,android.os.SystemClock.uptimeMillis(),action,startPoint[0],startPoint[1],0)
+                    event.source=android.view.InputDevice.SOURCE_TOUCHSCREEN;instrumentation.uiAutomation.injectInputEvent(event,true);event.recycle()
+                }
+                val started=java.util.concurrent.atomic.AtomicBoolean(false)
+                repeat(30){scenario.onActivity { activity -> val field=MainActivity::class.java.getDeclaredField("mediaPlaying").apply { isAccessible=true };started.set(field.getBoolean(activity)) };if(!started.get())Thread.sleep(150)}
+                assertTrue("A real tap must start playback while ordinary gesture policy is enabled",started.get())
                 scenario.onActivity { activity ->
                     val playingField = MainActivity::class.java.getDeclaredField("mediaPlaying").apply { isAccessible = true }
                     assertTrue("Native playback cache must reflect real decoded video before Home; URL="+requireNotNull(findWeb(activity.window.decorView)).url, playingField.getBoolean(activity))
@@ -640,15 +651,17 @@ class WebViewRenderingTest {
                     val sampled = CountDownLatch(1)
                     val result = java.util.concurrent.atomic.AtomicReference("null")
                     scenario.onActivity { activity ->
-                        requireNotNull(findWeb(activity.window.decorView)).evaluateJavascript("JSON.stringify({paused:document.getElementById('pipVideo').paused,time:document.getElementById('pipVideo').currentTime})") { value -> result.set(value);sampled.countDown() }
+                        requireNotNull(findWeb(activity.window.decorView)).evaluateJavascript("JSON.stringify({muted:document.getElementById('pipVideo').muted,paused:document.getElementById('pipVideo').paused,time:document.getElementById('pipVideo').currentTime})") { value -> result.set(value);sampled.countDown() }
                     }
                     assertTrue(sampled.await(5, TimeUnit.SECONDS))
                     val data = org.json.JSONObject(org.json.JSONArray("["+result.get()+"]").getString(0))
                     assertFalse("Video must remain unpaused during $mediaStage", data.getBoolean("paused"))
+                    if(mediaStage=="PiP")assertFalse("System PiP must actually unmute the real video",data.getBoolean("muted"))
                     return data.getDouble("time")
                 }
                 val first = position();Thread.sleep(550);val second = position()
                 assertTrue("Actual decoded video clock must advance in PiP", kotlin.math.abs(second-first) > .1)
+                assertTrue("Official PiP must produce an active decoded AAC audio stream", instrumentation.targetContext.getSystemService(android.media.AudioManager::class.java).isMusicActive)
                 if(android.os.Build.VERSION.SDK_INT>=33)instrumentation.uiAutomation.executeShellCommand("pm grant com.almekhlafi.FPRO android.permission.POST_NOTIFICATIONS").use { command -> java.io.FileInputStream(command.fileDescriptor).use { it.readBytes() } }
                 scenario.onActivity { activity ->
                     val actions = MainActivity::class.java.getDeclaredMethod("audioActions").apply { isAccessible = true }.invoke(activity) as List<*>

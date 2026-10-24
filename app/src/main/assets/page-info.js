@@ -3,7 +3,7 @@
  // Independent of page recoloring and never starts a paused video by itself.
  if(!window.__fproPlaybackHooks){
   window.__fproPlaybackHooks=true;
-  const report=()=>{try{if(window.FproPlayback)window.FproPlayback.playing(Array.from(document.querySelectorAll('video')).some(v=>!v.paused&&!v.ended&&v.readyState>=2));}catch(_){}};
+  const report=e=>{try{const live=Array.from(document.querySelectorAll('video')).find(v=>!v.paused&&!v.ended&&v.readyState>=2);if(e&&e.target&&e.target.tagName==='VIDEO'&&!e.target.paused)window.__fproLastPlayingVideo=e.target;else if(live&&(!window.__fproLastPlayingVideo||!window.__fproLastPlayingVideo.isConnected||window.__fproLastPlayingVideo.paused))window.__fproLastPlayingVideo=live;if(window.FproPlayback)window.FproPlayback.playing(!!live);}catch(_){}};
   ['playing','pause','ended','emptied'].forEach(type=>document.addEventListener(type,report,true));
   window.__fproReportPlayback=report;
  }

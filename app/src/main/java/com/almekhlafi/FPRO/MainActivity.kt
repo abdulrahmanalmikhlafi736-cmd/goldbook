@@ -48,6 +48,7 @@ import org.json.JSONArray
 class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     companion object { const val AUDIO_MODE = "com.almekhlafi.FPRO.AUDIO_MODE"; const val VIDEO_MODE = "com.almekhlafi.FPRO.VIDEO_MODE" }
     private var audioOnly = false
+    private var audioRequested = false
     private var earlyScript: androidx.webkit.ScriptHandler? = null
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if(granted)startAudioOnly() else toast("يلزم السماح بإشعار التحكم للتشغيل الصوتي") }
     private lateinit var prefs: Preferences
@@ -428,9 +429,11 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
     private fun startAudioOnly() {
         if(!Navigation.isFacebook(web.url.orEmpty())) { toast("افتح فيديو فيسبوك أولًا"); return }
+        audioRequested = true
+        web.settings.mediaPlaybackRequiresUserGesture = false // Explicit native audio action, not unrestricted page autoplay.
         web.evaluateJavascript("!!window.__fproAudio && window.__fproAudio.enable()") { enabled ->
-            if(enabled != "true") { toast("شغّل الفيديو المطلوب أولًا ثم اختر الصوت فقط"); return@evaluateJavascript }
-            audioOnly = true; (web as PlaybackWebView).syncVisibility(); settings = false; AudioPlaybackService.controls = this
+            if(enabled != "true") { audioRequested = false; web.settings.mediaPlaybackRequiresUserGesture = true; web.evaluateJavascript("window.__fproAudio && window.__fproAudio.leavePip()", null); toast("شغّل الفيديو المطلوب أولًا ثم اختر الصوت فقط"); return@evaluateJavascript }
+            audioOnly = true; audioRequested = false; web.evaluateJavascript("window.__fproAudio && window.__fproAudio.leavePip()", null); (web as PlaybackWebView).syncVisibility(); settings = false; AudioPlaybackService.controls = this
             val service = Intent(this, AudioPlaybackService::class.java).putExtra("playing", mediaPlaying)
             try {
                 androidx.core.content.ContextCompat.startForegroundService(this, service)
@@ -441,7 +444,8 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
     private fun stopAudioMode(pause: Boolean) {
         if(pause)mediaPlaying = false // Do not briefly re-arm PiP while JS pause is queued.
-        audioOnly = false
+        audioOnly = false; audioRequested = false
+        if(::web.isInitialized && !pip)web.settings.mediaPlaybackRequiresUserGesture = true
         if(::web.isInitialized)(web as PlaybackWebView).syncVisibility()
         if(::web.isInitialized)web.evaluateJavascript("window.__fproAudio && window.__fproAudio."+(if(pause)"stop()" else "disable()"), null)
         if(AudioPlaybackService.controls === this)AudioPlaybackService.controls = null
@@ -463,7 +467,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 25 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff / Audio: $audioOnly / Early: ${earlyScript != null}"
+        return "FPRO code 26 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff / Audio: $audioOnly / Early: ${earlyScript != null} / Gesture required: ${web.settings.mediaPlaybackRequiresUserGesture} / Music active: ${getSystemService(android.media.AudioManager::class.java).isMusicActive}"
     }
 
     private fun showDisplayTest() {
@@ -561,6 +565,10 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+        if(canEnterPip() && prefs.flag("pipSound", true)) {
+            web.settings.mediaPlaybackRequiresUserGesture = false
+            web.evaluateJavascript("window.__fproAudio && window.__fproAudio.preparePip()", null)
+        }
         // Android12+ auto-entry is armed BEFORE Home. Older versions need a
         // synchronous request; querying JavaScript here races onStop/web.onPause.
         if (Build.VERSION.SDK_INT in 26..30 && canEnterPip()) try {
@@ -570,11 +578,21 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         pip = isInPictureInPictureMode; pipRequested = false
-        if (pip) web.onResume()
+        if (pip) {
+            web.onResume()
+            if(prefs.flag("pipSound", true)) {
+                web.settings.mediaPlaybackRequiresUserGesture = false
+                web.evaluateJavascript("window.__fproAudio && window.__fproAudio.enterPip()", null)
+            }
+        } else {
+            if(!audioOnly && !audioRequested)web.settings.mediaPlaybackRequiresUserGesture = true
+            if(!audioRequested)web.evaluateJavascript("window.__fproAudio && window.__fproAudio.leavePip()", null)
+        }
     }
     override fun onResume() {
         super.onResume()
         externalHandoff = false; pipRequested = false
+        if(::web.isInitialized && !audioOnly && !audioRequested && !pip)web.settings.mediaPlaybackRequiresUserGesture = true
         if (::web.isInitialized) { web.onResume(); configurePictureInPicture(); web.evaluateJavascript("window.__fproReportPlayback && window.__fproReportPlayback()", null) }
     }
     override fun onStop() {
