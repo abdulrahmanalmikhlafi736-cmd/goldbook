@@ -678,9 +678,14 @@ class WebViewRenderingTest {
                     @Suppress("DEPRECATION") val stillRunning=instrumentation.targetContext.getSystemService(android.app.ActivityManager::class.java).getRunningServices(100).any { it.service.className==AudioPlaybackService::class.java.name }
                     assertFalse("Notification Stop must stop the actual audio service", stillRunning)
                 } finally {
-                    for(command in listOf("input keyevent KEYCODE_WAKEUP", "wm dismiss-keyguard", "am start -W -n com.almekhlafi.FPRO/.MainActivity -a com.almekhlafi.FPRO.VIDEO_MODE --activity-reorder-to-front")) {
+                    for(command in listOf("input keyevent KEYCODE_WAKEUP", "wm dismiss-keyguard")) {
                         instrumentation.uiAutomation.executeShellCommand(command).use { output -> java.io.FileInputStream(output.fileDescriptor).use { it.readBytes() } }
                     }
+                    // ActivityScenario filters lifecycle by the original Intent action.
+                    // Real PiP/audio PendingIntents intentionally changed that action.
+                    val original=android.content.Intent().setClassName(instrumentation.targetContext.packageName,"com.almekhlafi.FPRO.MainActivity")
+                    scenario.onActivity { it.intent=original }
+                    instrumentation.context.startActivity(android.content.Intent(original).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
                     scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
                 }
 

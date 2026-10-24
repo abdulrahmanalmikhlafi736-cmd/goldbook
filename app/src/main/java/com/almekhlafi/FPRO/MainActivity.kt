@@ -440,6 +440,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         }
     }
     private fun stopAudioMode(pause: Boolean) {
+        if(pause)mediaPlaying = false // Do not briefly re-arm PiP while JS pause is queued.
         audioOnly = false
         if(::web.isInitialized)(web as PlaybackWebView).syncVisibility()
         if(::web.isInitialized)web.evaluateJavascript("window.__fproAudio && window.__fproAudio."+(if(pause)"stop()" else "disable()"), null)
