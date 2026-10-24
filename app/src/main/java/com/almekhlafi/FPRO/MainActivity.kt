@@ -209,7 +209,15 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun createWebView(): WebView = WebView(this).apply {
+    private inner class PlaybackWebView : WebView(this@MainActivity) {
+        // A user-started foreground audio session must not be suspended merely
+        // because Android hides this Activity's window (especially screen-off).
+        override fun onWindowVisibilityChanged(visibility: Int) {
+            super.onWindowVisibilityChanged(if(audioOnly) View.VISIBLE else visibility)
+        }
+        fun syncVisibility() { onWindowVisibilityChanged(windowVisibility) }
+    }
+    private fun createWebView(): WebView = PlaybackWebView().apply {
         layoutDirection = View.LAYOUT_DIRECTION_LTR
         setOnScrollChangeListener { _, _, y, _, _ -> if (y >= 4) homeControls = false }
         isLongClickable = true // Preserve WebView native text-selection ActionMode.
@@ -237,6 +245,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 failure = null
                 homeControls = false
+                if(audioOnly)stopAudioMode(true)
                 updatePlaybackState(false)
                 pageConfirmed = false
                 loadingProgress = 1
@@ -421,7 +430,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         if(!Navigation.isFacebook(web.url.orEmpty())) { toast("افتح فيديو فيسبوك أولًا"); return }
         web.evaluateJavascript("!!window.__fproAudio && window.__fproAudio.enable()") { enabled ->
             if(enabled != "true") { toast("شغّل الفيديو المطلوب أولًا ثم اختر الصوت فقط"); return@evaluateJavascript }
-            audioOnly = true; settings = false; AudioPlaybackService.controls = this
+            audioOnly = true; (web as PlaybackWebView).syncVisibility(); settings = false; AudioPlaybackService.controls = this
             val service = Intent(this, AudioPlaybackService::class.java).putExtra("playing", mediaPlaying)
             try {
                 androidx.core.content.ContextCompat.startForegroundService(this, service)
@@ -432,6 +441,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
     private fun stopAudioMode(pause: Boolean) {
         audioOnly = false
+        if(::web.isInitialized)(web as PlaybackWebView).syncVisibility()
         if(::web.isInitialized)web.evaluateJavascript("window.__fproAudio && window.__fproAudio."+(if(pause)"stop()" else "disable()"), null)
         if(AudioPlaybackService.controls === this)AudioPlaybackService.controls = null
         stopService(Intent(this, AudioPlaybackService::class.java))

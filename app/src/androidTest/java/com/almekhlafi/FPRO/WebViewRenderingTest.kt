@@ -598,6 +598,7 @@ class WebViewRenderingTest {
                     if(!inPip.get())Thread.sleep(200)
                 }
                 assertTrue("Real Home must enter actual system PiP while video is playing", inPip.get())
+                var mediaStage = "PiP"
                 fun position(): Double {
                     val sampled = CountDownLatch(1)
                     val result = java.util.concurrent.atomic.AtomicReference("null")
@@ -606,12 +607,12 @@ class WebViewRenderingTest {
                     }
                     assertTrue(sampled.await(5, TimeUnit.SECONDS))
                     val data = org.json.JSONObject(org.json.JSONArray("["+result.get()+"]").getString(0))
-                    assertFalse("Video must remain unpaused in PiP", data.getBoolean("paused"))
+                    assertFalse("Video must remain unpaused during $mediaStage", data.getBoolean("paused"))
                     return data.getDouble("time")
                 }
                 val first = position();Thread.sleep(550);val second = position()
                 assertTrue("Actual decoded video clock must advance in PiP", kotlin.math.abs(second-first) > .1)
-                if(android.os.Build.VERSION.SDK_INT>=33)instrumentation.uiAutomation.executeShellCommand("pm grant com.almekhlafi.FPRO android.permission.POST_NOTIFICATIONS").close()
+                if(android.os.Build.VERSION.SDK_INT>=33)instrumentation.uiAutomation.executeShellCommand("pm grant com.almekhlafi.FPRO android.permission.POST_NOTIFICATIONS").use { command -> java.io.FileInputStream(command.fileDescriptor).use { it.readBytes() } }
                 scenario.onActivity { activity ->
                     val actions = MainActivity::class.java.getDeclaredMethod("audioActions").apply { isAccessible = true }.invoke(activity) as List<*>
                     (actions.first() as android.app.RemoteAction).actionIntent.send()
@@ -629,6 +630,7 @@ class WebViewRenderingTest {
                     instrumentation.uiAutomation.executeShellCommand("input keyevent KEYCODE_SLEEP").use { command -> java.io.FileInputStream(command.fileDescriptor).use { it.readBytes() } }
                     Thread.sleep(1000)
                     assertFalse("Screen must actually be off", instrumentation.targetContext.getSystemService(android.os.PowerManager::class.java).isInteractive)
+                    mediaStage = "foreground audio with screen off"
                     val lockedFirst=position();Thread.sleep(600);val lockedSecond=position()
                     assertTrue("Media clock must advance with screen off and no PiP", kotlin.math.abs(lockedSecond-lockedFirst)>.1)
                     assertTrue("Decoded AAC audio must remain active with screen off", instrumentation.targetContext.getSystemService(android.media.AudioManager::class.java).isMusicActive)
