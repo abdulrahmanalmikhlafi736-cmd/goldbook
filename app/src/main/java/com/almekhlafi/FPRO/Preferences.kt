@@ -24,6 +24,7 @@ class Preferences(context: Context) {
     fun set(key: String, value: Boolean) {
         store.edit().apply {
             putBoolean(key, value)
+            if (key == "amoled" && value) putBoolean("dark", true)
             if (value && key in pageKeys) putBoolean("pageEnhancements", true)
         }.apply()
     }
@@ -42,7 +43,7 @@ class Preferences(context: Context) {
         put("appBanner", flag("appBanner", true))
         put("color", text("color", "تلقائي"))
         put("experimentalColorVars", flag("experimentalColorVars"))
-        put("dark", flag("dark")); put("amoled", flag("amoled"))
+        put("dark", flag("dark") || flag("amoled")); put("amoled", flag("amoled"))
     }.toString()
 }
 

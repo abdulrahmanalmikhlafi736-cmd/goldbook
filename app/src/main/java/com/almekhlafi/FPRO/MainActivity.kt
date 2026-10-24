@@ -45,7 +45,11 @@ import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.delay
 import org.json.JSONArray
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
+    companion object { const val AUDIO_MODE = "com.almekhlafi.FPRO.AUDIO_MODE"; const val VIDEO_MODE = "com.almekhlafi.FPRO.VIDEO_MODE" }
+    private var audioOnly = false
+    private var earlyScript: androidx.webkit.ScriptHandler? = null
+    private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if(granted)startAudioOnly() else toast("يلزم السماح بإشعار التحكم للتشغيل الصوتي") }
     private lateinit var prefs: Preferences
     private lateinit var web: WebView
     private var settings by mutableStateOf(false)
@@ -76,7 +80,7 @@ class MainActivity : ComponentActivity() {
     private val pageInfoQuery by lazy {
         "(window.__fproPageInfo ? JSON.stringify(window.__fproPageInfo()) : " + pageInfoScript.trim().removeSuffix(";") + ")"
     }
-    private val script by lazy { assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
+    private val script by lazy { assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("audio-mode.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,12 +97,14 @@ class MainActivity : ComponentActivity() {
             addView(controls, FrameLayout.LayoutParams(-1, -1))
         })
         controls.setContent {
-            val dark = prefs.flag("dark")
-            val scheme = when {
+            @Suppress("UNUSED_VARIABLE") val themeRevision = revision
+            val dark = prefs.flag("dark") || prefs.flag("amoled")
+            val baseScheme = when {
                 prefs.flag("dynamic") && Build.VERSION.SDK_INT >= 31 -> if (dark) dynamicDarkColorScheme(this) else dynamicLightColorScheme(this)
                 dark -> darkColorScheme(primary = Color(0xFFD4AF37), background = if (prefs.flag("amoled")) Color.Black else Color(0xFF18191A))
                 else -> lightColorScheme(primary = Color(0xFF1877F2))
             }
+            val scheme = if(prefs.flag("amoled"))baseScheme.copy(background=Color.Black, surface=Color.Black, surfaceDim=Color.Black, surfaceBright=Color.Black, surfaceContainer=Color.Black, surfaceContainerLow=Color.Black, surfaceContainerLowest=Color.Black, surfaceContainerHigh=Color.Black, surfaceContainerHighest=Color.Black) else baseScheme
             // Reading revision forces a settings refresh without rebuilding the WebView.
             @Suppress("UNUSED_VARIABLE") val currentRevision = revision
             MaterialTheme(colorScheme = scheme) {
@@ -141,7 +147,7 @@ class MainActivity : ComponentActivity() {
                                 properties = DialogProperties(usePlatformDefaultWidth = false)
                             ) {
                                 Surface(Modifier.fillMaxSize()) {
-                                SettingsPanel(prefs, change = { revision++; applySettings(true) }, close = { settings = false }, whatsapp = { external("https://wa.me/967781764759") }, diagnostics = diagnostics(),
+                                SettingsPanel(prefs, audioOnly = { requestAudioOnly() }, change = { revision++; applySettings(true) }, close = { settings = false }, whatsapp = { external("https://wa.me/967781764759") }, diagnostics = diagnostics(),
                                     reload = { settings = false; web.loadUrl("https://m.facebook.com/") },
                                     testDisplay = { settings = false; showDisplayTest() },
                                     copyColorDiagnostics = {
@@ -395,13 +401,58 @@ class MainActivity : ComponentActivity() {
         web.settings.useWideViewPort = prefs.flag("desktop")
         web.settings.loadWithOverviewMode = prefs.flag("desktop")
         systemBars(prefs.flag("immersive"))
+        installEarlyScript()
         configurePictureInPicture()
         if (reloadDesktop && (changed || cookiesChanged)) web.reload() else inject()
     }
 
+    private fun installEarlyScript() {
+        earlyScript?.remove(); earlyScript = null
+        if(androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            val source = script.replace("__CONFIG__", prefs.scriptConfig())
+            val bootstrap = assets.open("early-start.js").bufferedReader().use { it.readText() }.replace("__FPRO_SOURCE__", source)
+            earlyScript = androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web, bootstrap, setOf("https://facebook.com", "https://*.facebook.com", "https://messenger.com", "https://*.messenger.com"))
+        }
+    }
+    private fun requestAudioOnly() {
+        if(Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED)audioPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS) else startAudioOnly()
+    }
+    private fun startAudioOnly() {
+        if(!Navigation.isFacebook(web.url.orEmpty())) { toast("افتح فيديو فيسبوك أولًا"); return }
+        web.evaluateJavascript("!!window.__fproAudio && window.__fproAudio.enable()") { enabled ->
+            if(enabled != "true") { toast("شغّل الفيديو المطلوب أولًا ثم اختر الصوت فقط"); return@evaluateJavascript }
+            audioOnly = true; settings = false; AudioPlaybackService.controls = this
+            val service = Intent(this, AudioPlaybackService::class.java).putExtra("playing", mediaPlaying)
+            try {
+                androidx.core.content.ContextCompat.startForegroundService(this, service)
+                web.onResume(); configurePictureInPicture()
+                web.post { moveTaskToBack(true) }
+            } catch (_: RuntimeException) { stopAudioMode(false); toast("تعذر بدء خدمة الصوت؛ تحقق من أذونات النظام") }
+        }
+    }
+    private fun stopAudioMode(pause: Boolean) {
+        audioOnly = false
+        if(::web.isInitialized)web.evaluateJavascript("window.__fproAudio && window.__fproAudio."+(if(pause)"stop()" else "disable()"), null)
+        if(AudioPlaybackService.controls === this)AudioPlaybackService.controls = null
+        stopService(Intent(this, AudioPlaybackService::class.java))
+        configurePictureInPicture()
+    }
+    override fun playAudio() { web.evaluateJavascript("window.__fproAudio && window.__fproAudio.play()", null) }
+    override fun pauseAudio() { web.evaluateJavascript("window.__fproAudio && window.__fproAudio.pause()", null) }
+    override fun stopAudio() { stopAudioMode(true); if(!web.hasWindowFocus())web.onPause() }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent); setIntent(intent)
+        when(intent.action) { AUDIO_MODE -> requestAudioOnly(); VIDEO_MODE, Intent.ACTION_MAIN -> if(audioOnly)stopAudioMode(false) }
+    }
+    @androidx.annotation.RequiresApi(26)
+    private fun audioActions(): List<android.app.RemoteAction> {
+        val pending = android.app.PendingIntent.getActivity(this, 25, Intent(this, MainActivity::class.java).setAction(AUDIO_MODE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT), android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE)
+        return listOf(android.app.RemoteAction(android.graphics.drawable.Icon.createWithResource(this, R.drawable.ic_headphones), "صوت فقط", "استمرار الصوت وإخفاء النافذة", pending))
+    }
+
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 24 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff"
+        return "FPRO code 25 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff / Audio: $audioOnly / Early: ${earlyScript != null}"
     }
 
     private fun showDisplayTest() {
@@ -482,16 +533,17 @@ class MainActivity : ComponentActivity() {
     private fun updatePlaybackState(playing: Boolean) {
         if (mediaPlaying == playing) return
         mediaPlaying = playing
+        if(audioOnly)AudioPlaybackService.updatePlaying(playing)
         configurePictureInPicture()
     }
     private fun canEnterPip(): Boolean = Build.VERSION.SDK_INT >= 26 &&
         packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
-        prefs.flag("pip") && mediaPlaying && !settings && !externalHandoff && !isFinishing && !isDestroyed
+        prefs.flag("pip") && !audioOnly && mediaPlaying && !settings && !externalHandoff && !isFinishing && !isDestroyed
 
     private fun configurePictureInPicture() {
         if (Build.VERSION.SDK_INT < 26 || !packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
         try {
-            val params = PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9))
+            val params = PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9)).setActions(audioActions())
             if (Build.VERSION.SDK_INT >= 31) params.setAutoEnterEnabled(canEnterPip())
             setPictureInPictureParams(params.build())
         } catch (_: IllegalStateException) { /* Unsupported window state; normal playback remains. */ }
@@ -501,7 +553,7 @@ class MainActivity : ComponentActivity() {
         // Android12+ auto-entry is armed BEFORE Home. Older versions need a
         // synchronous request; querying JavaScript here races onStop/web.onPause.
         if (Build.VERSION.SDK_INT in 26..30 && canEnterPip()) try {
-            pipRequested = enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(Rational(16,9)).build())
+            pipRequested = enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(Rational(16,9)).setActions(audioActions()).build())
         } catch (_: IllegalStateException) { pipRequested = false; toast("الصورة داخل صورة غير متاحة") }
     }
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
@@ -515,11 +567,12 @@ class MainActivity : ComponentActivity() {
         if (::web.isInitialized) { web.onResume(); configurePictureInPicture(); web.evaluateJavascript("window.__fproReportPlayback && window.__fproReportPlayback()", null) }
     }
     override fun onStop() {
-        if (!pip && !pipRequested && !(Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode)) web.onPause()
+        if (!audioOnly && !pip && !pipRequested && !(Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode)) web.onPause()
         super.onStop()
     }
     override fun onSaveInstanceState(outState: Bundle) { web.saveState(outState); super.onSaveInstanceState(outState) }
     override fun onDestroy() {
+        earlyScript?.remove(); earlyScript = null; stopAudioMode(true)
         closeFullscreen(); fileCallback?.onReceiveValue(null); fileCallback = null
         web.removeJavascriptInterface("FproPlayback")
         (web.parent as? ViewGroup)?.removeView(web); web.stopLoading(); web.destroy(); super.onDestroy()

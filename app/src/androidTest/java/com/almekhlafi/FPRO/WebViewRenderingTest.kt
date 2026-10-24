@@ -611,6 +611,38 @@ class WebViewRenderingTest {
                 }
                 val first = position();Thread.sleep(550);val second = position()
                 assertTrue("Actual decoded video clock must advance in PiP", kotlin.math.abs(second-first) > .1)
+                if(android.os.Build.VERSION.SDK_INT>=33)instrumentation.uiAutomation.executeShellCommand("pm grant com.almekhlafi.FPRO android.permission.POST_NOTIFICATIONS").close()
+                scenario.onActivity { activity ->
+                    val actions = MainActivity::class.java.getDeclaredMethod("audioActions").apply { isAccessible = true }.invoke(activity) as List<*>
+                    (actions.first() as android.app.RemoteAction).actionIntent.send()
+                }
+                val audioReady = java.util.concurrent.atomic.AtomicBoolean(false)
+                repeat(30) {
+                    scenario.onActivity { activity ->
+                        @Suppress("DEPRECATION") val foreground = activity.getSystemService(android.app.ActivityManager::class.java).getRunningServices(100).any { it.service.className == AudioPlaybackService::class.java.name && it.foreground }
+                        audioReady.set(foreground && !activity.isInPictureInPictureMode)
+                    }
+                    if(!audioReady.get())Thread.sleep(200)
+                }
+                assertTrue("Headphone PendingIntent must hide PiP and start actual foreground audio service", audioReady.get())
+                try {
+                    instrumentation.uiAutomation.executeShellCommand("input keyevent KEYCODE_SLEEP").use { command -> java.io.FileInputStream(command.fileDescriptor).use { it.readBytes() } }
+                    Thread.sleep(1000)
+                    assertFalse("Screen must actually be off", instrumentation.targetContext.getSystemService(android.os.PowerManager::class.java).isInteractive)
+                    val lockedFirst=position();Thread.sleep(600);val lockedSecond=position()
+                    assertTrue("Media clock must advance with screen off and no PiP", kotlin.math.abs(lockedSecond-lockedFirst)>.1)
+                    assertTrue("Decoded AAC audio must remain active with screen off", instrumentation.targetContext.getSystemService(android.media.AudioManager::class.java).isMusicActive)
+                    val notifications=instrumentation.targetContext.getSystemService(android.app.NotificationManager::class.java)
+                    val audioNotice=notifications.activeNotifications.first { it.id==25 }.notification
+                    audioNotice.actions.last().actionIntent.send()
+                    Thread.sleep(500)
+                    @Suppress("DEPRECATION") val stillRunning=instrumentation.targetContext.getSystemService(android.app.ActivityManager::class.java).getRunningServices(100).any { it.service.className==AudioPlaybackService::class.java.name }
+                    assertFalse("Notification Stop must stop the actual audio service", stillRunning)
+                } finally {
+                    instrumentation.uiAutomation.executeShellCommand("input keyevent KEYCODE_WAKEUP").close()
+                    instrumentation.uiAutomation.executeShellCommand("wm dismiss-keyguard").close()
+                }
+
             }
         } finally {
             if(hadSetting)store.edit().putBoolean("pip",oldSetting).commit() else store.edit().remove("pip").commit()
