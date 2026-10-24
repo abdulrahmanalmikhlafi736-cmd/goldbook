@@ -6,7 +6,7 @@ on:
     inputs:
       run_id:
         description: Completed emulator run to inspect
-        default: '40136368578'
+        default: '40138244662'
         required: true
 jobs:
   inspect:
@@ -21,7 +21,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id="${{ github.event.inputs.run_id || '40136368578' }}"
+          id="${{ github.event.inputs.run_id || '40138244662' }}"
           echo "run=$id" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
@@ -56,9 +56,9 @@ jobs:
               try: root=ET.parse(path).getroot()
               except ET.ParseError: continue
               for case in root.iter('testcase'):
-                  if 'zNativeLongPress' in case.get('name','') or 'zzPictureInPicture' in case.get('name',''):
+                  if 'zNativeLongPress' in case.get('name','') or 'zzPictureInPicture' in case.get('name','') or 'yDocumentStart' in case.get('name',''):
                       status = 'FAIL' if case.find('failure') is not None or case.find('error') is not None else 'SKIP' if case.find('skipped') is not None else 'PASS'
-                      print('::notice title=Native selection or PiP testcase::'+str(path)+': '+case.get('name','')+': '+status)
+                      print('::notice title=Native selection, early-frame or media testcase::'+str(path)+': '+case.get('name','')+': '+status)
               for failure in list(root.iter('failure'))+list(root.iter('error')):
                   text=(failure.text or failure.get('message',''))[:3000]
                   if text in seen: continue
