@@ -678,8 +678,10 @@ class WebViewRenderingTest {
                     @Suppress("DEPRECATION") val stillRunning=instrumentation.targetContext.getSystemService(android.app.ActivityManager::class.java).getRunningServices(100).any { it.service.className==AudioPlaybackService::class.java.name }
                     assertFalse("Notification Stop must stop the actual audio service", stillRunning)
                 } finally {
-                    instrumentation.uiAutomation.executeShellCommand("input keyevent KEYCODE_WAKEUP").close()
-                    instrumentation.uiAutomation.executeShellCommand("wm dismiss-keyguard").close()
+                    for(command in listOf("input keyevent KEYCODE_WAKEUP", "wm dismiss-keyguard", "am start -W -n com.almekhlafi.FPRO/.MainActivity -a com.almekhlafi.FPRO.VIDEO_MODE --activity-reorder-to-front")) {
+                        instrumentation.uiAutomation.executeShellCommand(command).use { output -> java.io.FileInputStream(output.fileDescriptor).use { it.readBytes() } }
+                    }
+                    scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
                 }
 
             }

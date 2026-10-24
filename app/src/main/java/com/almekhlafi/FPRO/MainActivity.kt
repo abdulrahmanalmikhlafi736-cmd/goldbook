@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                 dark -> darkColorScheme(primary = Color(0xFFD4AF37), background = if (prefs.flag("amoled")) Color.Black else Color(0xFF18191A))
                 else -> lightColorScheme(primary = Color(0xFF1877F2))
             }
-            val scheme = if(prefs.flag("amoled"))baseScheme.copy(background=Color.Black, surface=Color.Black, surfaceDim=Color.Black, surfaceBright=Color.Black, surfaceContainer=Color.Black, surfaceContainerLow=Color.Black, surfaceContainerLowest=Color.Black, surfaceContainerHigh=Color.Black, surfaceContainerHighest=Color.Black) else baseScheme
+            val scheme = if(prefs.flag("amoled"))baseScheme.copy(surfaceTint=Color.Transparent, background=Color.Black, surface=Color.Black, surfaceDim=Color.Black, surfaceBright=Color.Black, surfaceContainer=Color.Black, surfaceContainerLow=Color.Black, surfaceContainerLowest=Color.Black, surfaceContainerHigh=Color.Black, surfaceContainerHighest=Color.Black) else baseScheme
             // Reading revision forces a settings refresh without rebuilding the WebView.
             @Suppress("UNUSED_VARIABLE") val currentRevision = revision
             MaterialTheme(colorScheme = scheme) {
