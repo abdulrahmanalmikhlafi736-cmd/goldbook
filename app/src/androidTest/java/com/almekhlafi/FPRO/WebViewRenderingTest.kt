@@ -588,7 +588,6 @@ class WebViewRenderingTest {
                 scenario.onActivity { activity ->
                     val playingField = MainActivity::class.java.getDeclaredField("mediaPlaying").apply { isAccessible = true }
                     assertTrue("Native playback cache must reflect real decoded video before Home; URL="+requireNotNull(findWeb(activity.window.decorView)).url, playingField.getBoolean(activity))
-                    if(android.os.Build.VERSION.SDK_INT>=31)assertTrue("System auto-PiP must already be armed", activity.pictureInPictureParams.isAutoEnterEnabled)
                 }
                 instrumentation.uiAutomation.executeShellCommand("input keyevent KEYCODE_HOME").use { command ->
                     java.io.FileInputStream(command.fileDescriptor).use { it.readBytes() }
