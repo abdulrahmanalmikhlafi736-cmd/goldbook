@@ -30,6 +30,9 @@
   if(!el||el.closest('button,input,textarea,select,[contenteditable]:not([contenteditable="false"]),.fpro-video-tools,header,nav,[role="banner"],[role="navigation"],svg,img,video,canvas'))return null;
   const root=el.closest('p,[dir="auto"],[data-ad-preview="message"],[data-ad-comet-preview="message"],span,div');
   if(!root||!(root.textContent||'').trim())return null;
+  // Empty player overlays contain caption text elsewhere, but are NOT text hits.
+  if(root.matches('div')&&!Array.from(root.childNodes).some(n=>n.nodeType===3&&(n.nodeValue||'').trim()))return null;
+  const anchor=el.closest('a[href]');if(anchor&&!/(?:\/hashtag\/|[?&]hashtag=)/i.test(anchor.getAttribute('href')||''))return null;
   const control=el.closest('[role="button"]');
   // An interactive post/comment wrapper is not the same as Like/Reply/etc.
   if(control){
@@ -42,7 +45,13 @@
  }
  function prepareSelection(e){
   if(cfg.textSelection===false||e.isPrimary===false||e.pointerType==='mouse'&&e.button!==0)return;
-  const target=readingTarget(e.target);selectionTargetInfo={prepared:false,buttonWrapper:false,inlineBlocked:false,alreadyCancelled:!!e.defaultPrevented,eventType:e.type};if(!target)return;
+  let target=readingTarget(e.target);
+  if(target&&typeof document.caretRangeFromPoint==='function'&&Number.isFinite(e.clientX)&&Number.isFinite(e.clientY)){
+   const caret=document.caretRangeFromPoint(e.clientX,e.clientY),node=caret&&caret.startContainer;
+   if(!node||node.nodeType!==3||!target.root.contains(node))target=null;
+   else {const range=document.createRange();range.selectNodeContents(node);if(!Array.from(range.getClientRects()).some(r=>e.clientX>=r.left-3&&e.clientX<=r.right+3&&e.clientY>=r.top-3&&e.clientY<=r.bottom+3))target=null;}
+  }
+  selectionTargetInfo={prepared:false,buttonWrapper:false,inlineBlocked:false,alreadyCancelled:!!e.defaultPrevented,eventType:e.type};if(!target)return;
   restoreSelectionOverrides();lastTap=null;touch=null;
   selectionTargetInfo={...selectionTargetInfo,prepared:true,buttonWrapper:!!target.control};
   let node=target.el;
@@ -64,7 +73,8 @@
  }
  window.addEventListener('pointerdown',prepareSelection,true);
  window.addEventListener('touchstart',e=>{
-  if(!e.touches||e.touches.length===1)prepareSelection(e);
+  if(window.PointerEvent){if(selectionTargetInfo.prepared&&readingTarget(e.target))e.stopPropagation();return;}
+  if(!e.touches||e.touches.length===1){const point=e.touches&&e.touches[0];prepareSelection({target:e.target,type:e.type,clientX:point&&point.clientX,clientY:point&&point.clientY,defaultPrevented:e.defaultPrevented,stopPropagation:()=>e.stopPropagation()});}
  },{capture:true,passive:true});
  // Android treats a long-pressed anchor as a link, not selectable text.
  // Temporarily disarm only hashtag hrefs while the finger is down; Android
@@ -708,15 +718,23 @@
  // Paint only changed fragments in the mutation microtask, before the next
  // browser paint. Keep banners/layout/full feed work on the old scheduler.
  function fastReferenceColors(records){
-  if(!cfg.referenceEngine||!window.FproColor||document.hidden)return;
-  const roots=new Set();
-  const add=el=>{if(el&&el.nodeType===1&&!/^fpro/i.test(el.id)&&!el.closest('#fpro-reference-svg,.fpro-video-tools'))roots.add(el);};
+  if(document.hidden)return;
+  const roots=new Set(),local=new Set();
+  const add=(set,el)=>{if(el&&el.nodeType===1&&!/^fpro/i.test(el.id)&&!el.closest('#fpro-reference-svg,.fpro-video-tools'))set.add(el);};
   for(const record of records){
-   if(record.type==='attributes'&&record.attributeName==='style')add(record.target);
-   else if(record.type==='characterData'){const el=record.target.parentElement;if(el&&el.matches('style'))add(el);}
-   else if(record.type==='childList'){if(record.target.nodeType===1&&record.target.matches('style'))add(record.target);for(const node of record.addedNodes)add(node);}
+   if(record.type==='attributes')add(local,record.target);
+   else if(record.type==='characterData')add(local,record.target.parentElement);
+   else if(record.type==='childList'){if(record.target.nodeType===1&&record.target.matches('style'))add(local,record.target);for(const node of record.addedNodes){if(node.nodeType===3)add(local,record.target);else add(roots,node);}}
   }
-  if(roots.size)window.FproColor.pass(Array.from(roots).slice(0,32));
+  const apply=(list,selfOnly)=>{
+   if(!list.length)return;
+   if(cfg.appBanner){
+    if(cfg.referenceEngine&&window.FproNoapp)window.FproNoapp.scan(list,true,selfOnly);
+    else {let budget=48;for(const root of list){const nodes=selfOnly?[root]:[root,...root.querySelectorAll('a,button,[role="button"]')];for(const el of nodes){if(budget--<=0)break;if(isAppPrompt(norm(el.getAttribute('aria-label')||el.textContent)))appBanner(el,true);}}}
+   }
+   if(cfg.referenceEngine&&window.FproColor)window.FproColor.pass(list,true,selfOnly);
+  };
+  apply(Array.from(local).slice(0,24),true);apply(Array.from(roots).slice(0,4),false);
  }
  const observer=new MutationObserver(records=>{
   if(!document||cfg.enhance===false)return;
@@ -727,7 +745,7 @@
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
  function colorReport(){
-  const report={version:23,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
+  const report={version:24,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}

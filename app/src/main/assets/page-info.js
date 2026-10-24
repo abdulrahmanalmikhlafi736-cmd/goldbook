@@ -1,4 +1,12 @@
 (() => {
+ // Playback events update native PiP eligibility before the user presses Home.
+ // Independent of page recoloring and never starts a paused video by itself.
+ if(!window.__fproPlaybackHooks){
+  window.__fproPlaybackHooks=true;
+  const report=()=>{try{if(window.FproPlayback)window.FproPlayback.playing(Array.from(document.querySelectorAll('video')).some(v=>!v.paused&&!v.ended&&v.readyState>=2));}catch(_){}};
+  ['playing','pause','ended','emptied'].forEach(type=>document.addEventListener(type,report,true));
+  report();
+ }
  function info() {
   const path=location.pathname.replace(/\/+$/,'') || '/';
   const visible=el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden'&&s.opacity!=='0';};

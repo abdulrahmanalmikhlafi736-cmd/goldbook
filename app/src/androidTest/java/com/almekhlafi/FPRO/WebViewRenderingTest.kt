@@ -555,4 +555,62 @@ class WebViewRenderingTest {
         }
     }
 
+    @Test fun zzPictureInPictureUsesRealPlaybackAndHome() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val store = instrumentation.targetContext.getSharedPreferences("fpro", android.content.Context.MODE_PRIVATE)
+        val hadSetting = store.contains("pip")
+        val oldSetting = store.getBoolean("pip", false)
+        val encoded = android.util.Base64.encodeToString(instrumentation.context.assets.open("pip-loop.mp4").use { it.readBytes() }, android.util.Base64.NO_WRAP)
+        store.edit().putBoolean("pip", true).commit()
+        try {
+            ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+                Thread.sleep(2300)
+                val ready = CountDownLatch(1)
+                scenario.onActivity { activity ->
+                    assertTrue("Device must support PiP", activity.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE))
+                    val web = requireNotNull(findWeb(activity.window.decorView))
+                    web.stopLoading()
+                    web.settings.mediaPlaybackRequiresUserGesture = false
+                    web.loadDataWithBaseURL("https://m.facebook.com/", "<html><meta name='viewport' content='width=device-width'><body><video id='pipVideo' autoplay muted loop playsinline style='width:100%' src='data:video/mp4;base64,$encoded'></video></body></html>", "text/html", "UTF-8", null)
+                    fun probe(attempt: Int) {
+                        web.evaluateJavascript("!!document.getElementById('pipVideo') && document.getElementById('pipVideo').readyState>=2 && !document.getElementById('pipVideo').paused") { playing ->
+                            if(playing == "true") {
+                                web.evaluateJavascript(activity.assets.open("page-info.js").bufferedReader().use { it.readText() }) {
+                                    web.postVisualStateCallback(90, object : WebView.VisualStateCallback() { override fun onComplete(requestId: Long) { ready.countDown() } })
+                                }
+                            } else if(attempt < 40)web.postDelayed({ probe(attempt+1) }, 200)
+                        }
+                    }
+                    web.postDelayed({ probe(0) }, 200)
+                }
+                assertTrue("Bundled real H264 video must decode and play", ready.await(12, TimeUnit.SECONDS))
+                Thread.sleep(350)
+                instrumentation.uiAutomation.executeShellCommand("input keyevent KEYCODE_HOME").use { command ->
+                    java.io.FileInputStream(command.fileDescriptor).use { it.readBytes() }
+                }
+                val inPip = java.util.concurrent.atomic.AtomicBoolean(false)
+                repeat(25) {
+                    scenario.onActivity { activity -> inPip.set(activity.isInPictureInPictureMode) }
+                    if(!inPip.get())Thread.sleep(200)
+                }
+                assertTrue("Real Home must enter actual system PiP while video is playing", inPip.get())
+                fun position(): Double {
+                    val sampled = CountDownLatch(1)
+                    val result = java.util.concurrent.atomic.AtomicReference("null")
+                    scenario.onActivity { activity ->
+                        requireNotNull(findWeb(activity.window.decorView)).evaluateJavascript("JSON.stringify({paused:document.getElementById('pipVideo').paused,time:document.getElementById('pipVideo').currentTime})") { value -> result.set(value);sampled.countDown() }
+                    }
+                    assertTrue(sampled.await(5, TimeUnit.SECONDS))
+                    val data = org.json.JSONObject(org.json.JSONArray("["+result.get()+"]").getString(0))
+                    assertFalse("Video must remain unpaused in PiP", data.getBoolean("paused"))
+                    return data.getDouble("time")
+                }
+                val first = position();Thread.sleep(550);val second = position()
+                assertTrue("Actual decoded video clock must advance in PiP", kotlin.math.abs(second-first) > .1)
+            }
+        } finally {
+            if(hadSetting)store.edit().putBoolean("pip",oldSetting).commit() else store.edit().remove("pip").commit()
+        }
+    }
+
 }

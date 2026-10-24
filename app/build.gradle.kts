@@ -10,7 +10,7 @@ android {
         applicationId = "com.almekhlafi.FPRO"
         minSdk = 23
         targetSdk = 35
-        versionCode = 23
+        versionCode = 24
         versionName = "0.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

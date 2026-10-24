@@ -59,6 +59,9 @@ class MainActivity : ComponentActivity() {
     private var pageSequence by mutableIntStateOf(0)
     private var pageConfirmed = false
     private var enhancementsInstalled = false
+    private var mediaPlaying = false
+    private var pipRequested = false
+    private var externalHandoff = false
     private var loadState by mutableStateOf("تهيئة محرك الويب")
     private var failure by mutableStateOf<String?>(null)
     private var pageColor by mutableStateOf(Color(0xFF1877F2))
@@ -186,6 +189,7 @@ class MainActivity : ComponentActivity() {
                         }
                         // Native watchdog: it must NOT wait for a JavaScript callback to
                         // report a stalled renderer, or depend on onPageStarted firing.
+                        LaunchedEffect(settings, revision) { configurePictureInPicture() }
                         LaunchedEffect(pageSequence) {
                             delay(24_000)
                             if (!pageConfirmed) web.evaluateJavascript("(function(){return !!document.body && document.body.innerText.replace(/\\s/g,'').length > 30;})()") { result -> pageConfirmed = result == "true" }
@@ -203,6 +207,14 @@ class MainActivity : ComponentActivity() {
         layoutDirection = View.LAYOUT_DIRECTION_LTR
         setOnScrollChangeListener { _, _, y, _, _ -> if (y >= 4) homeControls = false }
         isLongClickable = true // Preserve WebView native text-selection ActionMode.
+        // Boolean-only playback hint; never exposes files, text, cookies or intents.
+        addJavascriptInterface(object {
+            @JavascriptInterface fun playing(value: Boolean) {
+                runOnUiThread {
+                    if (!isDestroyed && Navigation.isFacebook(this@apply.url.orEmpty())) updatePlaybackState(value)
+                }
+            }
+        }, "FproPlayback")
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
@@ -219,6 +231,7 @@ class MainActivity : ComponentActivity() {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 failure = null
                 homeControls = false
+                updatePlaybackState(false)
                 pageConfirmed = false
                 loadingProgress = 1
                 enhancementsInstalled = false
@@ -349,9 +362,9 @@ class MainActivity : ComponentActivity() {
             return
         }
         intent.component = receiver // Never fall through to Android's share chooser.
-        try { startActivity(intent) }
-        catch (_: ActivityNotFoundException) { toast("التطبيق المحدد غير مثبت أو لا يدعم استقبال روابط التنزيل") }
-        catch (_: SecurityException) { toast("تطبيق التنزيل لا يسمح بفتح هذه الواجهة") }
+        try { externalHandoff = true; configurePictureInPicture(); startActivity(intent) }
+        catch (_: ActivityNotFoundException) { externalHandoff = false; configurePictureInPicture(); toast("التطبيق المحدد غير مثبت أو لا يدعم استقبال روابط التنزيل") }
+        catch (_: SecurityException) { externalHandoff = false; configurePictureInPicture(); toast("تطبيق التنزيل لا يسمح بفتح هذه الواجهة") }
     }
 
     private fun updateHomeControls(result: String?) {
@@ -382,12 +395,13 @@ class MainActivity : ComponentActivity() {
         web.settings.useWideViewPort = prefs.flag("desktop")
         web.settings.loadWithOverviewMode = prefs.flag("desktop")
         systemBars(prefs.flag("immersive"))
+        configurePictureInPicture()
         if (reloadDesktop && (changed || cookiesChanged)) web.reload() else inject()
     }
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 23 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
+        return "FPRO code 24 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}"
     }
 
     private fun showDisplayTest() {
@@ -465,24 +479,49 @@ class MainActivity : ComponentActivity() {
             if (hide) hide(WindowInsetsCompat.Type.systemBars()) else show(WindowInsetsCompat.Type.systemBars())
         }
     }
+    private fun updatePlaybackState(playing: Boolean) {
+        if (mediaPlaying == playing) return
+        mediaPlaying = playing
+        configurePictureInPicture()
+    }
+    private fun canEnterPip(): Boolean = Build.VERSION.SDK_INT >= 26 &&
+        packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
+        prefs.flag("pip") && mediaPlaying && !settings && !externalHandoff && !isFinishing && !isDestroyed
+
+    private fun configurePictureInPicture() {
+        if (Build.VERSION.SDK_INT < 26 || !packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
+        try {
+            val params = PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9))
+            if (Build.VERSION.SDK_INT >= 31) params.setAutoEnterEnabled(canEnterPip())
+            setPictureInPictureParams(params.build())
+        } catch (_: IllegalStateException) { /* Unsupported window state; normal playback remains. */ }
+    }
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (Build.VERSION.SDK_INT >= 26 && prefs.flag("pip") && !settings) {
-            web.evaluateJavascript("Array.from(document.querySelectorAll('video')).some(v=>!v.paused&&!v.ended)") { playing ->
-                if (playing == "true" && !isFinishing && !isDestroyed) try {
-                    enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(Rational(16,9)).build())
-                } catch (_: IllegalStateException) { toast("الصورة داخل صورة غير متاحة") }
-            }
-        }
+        // Android12+ auto-entry is armed BEFORE Home. Older versions need a
+        // synchronous request; querying JavaScript here races onStop/web.onPause.
+        if (Build.VERSION.SDK_INT in 26..30 && canEnterPip()) try {
+            pipRequested = enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(Rational(16,9)).build())
+        } catch (_: IllegalStateException) { pipRequested = false; toast("الصورة داخل صورة غير متاحة") }
     }
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
-        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig); pip = isInPictureInPictureMode
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        pip = isInPictureInPictureMode; pipRequested = false
+        if (pip) web.onResume()
     }
-    override fun onResume() { super.onResume(); if (::web.isInitialized) web.onResume() }
-    override fun onStop() { if (!pip) web.onPause(); super.onStop() }
+    override fun onResume() {
+        super.onResume()
+        externalHandoff = false; pipRequested = false
+        if (::web.isInitialized) { web.onResume(); configurePictureInPicture() }
+    }
+    override fun onStop() {
+        if (!pip && !pipRequested && !(Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode)) web.onPause()
+        super.onStop()
+    }
     override fun onSaveInstanceState(outState: Bundle) { web.saveState(outState); super.onSaveInstanceState(outState) }
     override fun onDestroy() {
         closeFullscreen(); fileCallback?.onReceiveValue(null); fileCallback = null
+        web.removeJavascriptInterface("FproPlayback")
         (web.parent as? ViewGroup)?.removeView(web); web.stopLoading(); web.destroy(); super.onDestroy()
     }
     private fun toast(message: String) { Toast.makeText(this, message, Toast.LENGTH_LONG).show() }
