@@ -457,6 +457,43 @@ class WebViewRenderingTest {
                 Color.green(pixel) > 140 && Color.red(pixel) < 70 && Color.blue(pixel) < 120)
         }
     }
+    @Test fun yDocumentStartHidesCtaBeforeFirstFrameAndEnablesAmoled() {
+        org.junit.Assume.assumeTrue(androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT))
+        val instrumentation=InstrumentationRegistry.getInstrumentation()
+        val store=instrumentation.targetContext.getSharedPreferences("fpro",android.content.Context.MODE_PRIVATE)
+        val keys=listOf("amoled","dark","pageEnhancements","appBanner","textSelection","color")
+        val previous=store.all.filterKeys { it in keys }
+        store.edit().putBoolean("amoled",true).putBoolean("dark",false).putBoolean("pageEnhancements",true).putBoolean("appBanner",true).putBoolean("textSelection",true).putString("color","تلقائي").commit()
+        try {
+            ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName,"com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+                Thread.sleep(2300)
+                val done=CountDownLatch(1);val result=java.util.concurrent.atomic.AtomicReference("null")
+                scenario.onActivity { activity ->
+                    val web=requireNotNull(findWeb(activity.window.decorView));web.stopLoading()
+                    web.loadDataWithBaseURL("https://m.facebook.com/", """
+                        <html><head><meta name="viewport" content="width=device-width"><script>
+                        window.addEventListener('pointerdown',e=>e.preventDefault(),true);
+                        requestAnimationFrame(()=>{const b=document.getElementById('earlyCta');window.firstCtaFrame={early:window.__fproEarly===true,hidden:!!b&&getComputedStyle(b).display==='none'};});
+                        </script></head><body><button id="earlyCta">فتح التطبيق</button><button id="earlySearch">بحث</button><article id="oledCard" style="background-color:white"><span id="earlyRead" style="user-select:none!important">Native reading text</span></article></body></html>
+                    """.trimIndent(),"text/html","UTF-8","https://m.facebook.com/")
+                    fun probe(attempt:Int){web.evaluateJavascript("""
+                        (()=>{if(!window.firstCtaFrame)return null;const e=document.getElementById('earlyRead'),ev=new PointerEvent('pointerdown',{bubbles:true,cancelable:true});e.dispatchEvent(ev);return JSON.stringify({first:window.firstCtaFrame,black:getComputedStyle(document.getElementById('oledCard')).backgroundColor,search:getComputedStyle(document.getElementById('earlySearch')).display,uncancelled:!ev.defaultPrevented});})()
+                    """.trimIndent()){ value ->if(value!="null"){result.set(value);done.countDown()}else if(attempt<30)web.postDelayed({probe(attempt+1)},200)}}
+                    web.postDelayed({probe(0)},200)
+                }
+                assertTrue(done.await(10,TimeUnit.SECONDS))
+                val data=org.json.JSONObject(org.json.JSONArray("["+result.get()+"]").getString(0))
+                assertTrue("Actual document-start script must run before site code",data.getJSONObject("first").getBoolean("early"))
+                assertTrue("Open App must already be hidden at first requested frame",data.getJSONObject("first").getBoolean("hidden"))
+                assertEquals("AMOLED must work without separate dark toggle","rgb(0, 0, 0)",data.getString("black"))
+                assertNotEquals("Search must remain visible","none",data.getString("search"))
+                assertTrue("Early reading guard must beat same-window site cancellation",data.getBoolean("uncancelled"))
+            }
+        } finally {
+            val edit=store.edit();keys.forEach { key ->when(val value=previous[key]){is Boolean->edit.putBoolean(key,value);is String->edit.putString(key,value);else->edit.remove(key)} };edit.commit()
+        }
+    }
+
     @Test fun zNativeLongPressSelectsPostsCommentsAndHashtags() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val automation = instrumentation.getUiAutomation(0)
