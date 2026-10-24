@@ -477,7 +477,7 @@ class WebViewRenderingTest {
                         </script></head><body><button id="earlyCta">فتح التطبيق</button><button id="earlySearch">بحث</button><article id="oledCard" style="background-color:white"><span id="earlyRead" style="user-select:none!important">Native reading text</span></article></body></html>
                     """.trimIndent(),"text/html","UTF-8","https://m.facebook.com/")
                     fun probe(attempt:Int){web.evaluateJavascript("""
-                        (()=>{if(!window.firstCtaFrame)return null;const e=document.getElementById('earlyRead'),ev=new PointerEvent('pointerdown',{bubbles:true,cancelable:true});e.dispatchEvent(ev);return JSON.stringify({first:window.firstCtaFrame,black:getComputedStyle(document.getElementById('oledCard')).backgroundColor,search:getComputedStyle(document.getElementById('earlySearch')).display,uncancelled:!ev.defaultPrevented});})()
+                        (()=>{if(!window.firstCtaFrame)return null;const e=document.getElementById('earlyRead'),r=e.getBoundingClientRect(),ev=new PointerEvent('pointerdown',{bubbles:true,cancelable:true,isPrimary:true,pointerType:'touch',clientX:r.left+8,clientY:r.top+r.height/2});e.dispatchEvent(ev);return JSON.stringify({first:window.firstCtaFrame,black:getComputedStyle(document.getElementById('oledCard')).backgroundColor,search:getComputedStyle(document.getElementById('earlySearch')).display,uncancelled:!ev.defaultPrevented});})()
                     """.trimIndent()){ value ->if(value!="null"){result.set(value);done.countDown()}else if(attempt<30)web.postDelayed({probe(attempt+1)},200)}}
                     web.postDelayed({probe(0)},200)
                 }
