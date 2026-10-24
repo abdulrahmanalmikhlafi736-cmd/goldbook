@@ -509,6 +509,10 @@ function fixture(html,config={},captureDownload=false) {
   await new Promise(resolve=>fastTools.window.queueMicrotask(resolve));
   assert.equal(bodyQueries,0,'A body style mutation must not traverse the whole feed in the fast path');
   assert.equal(fastTools.doc.body.style.color,'rgb(23, 131, 62)');
+  const recycledCTA=fastTools.doc.createElement('button');recycledCTA.innerHTML='<span>Ordinary control</span>';recycledCTA.style.color='rgb(24,119,242)';fastTools.doc.body.appendChild(recycledCTA);
+  await new Promise(resolve=>fastTools.window.queueMicrotask(resolve));assert.equal(recycledCTA.style.color,'rgb(23, 131, 62)');
+  recycledCTA.querySelector('span').textContent='فتح التطبيق';
+  await new Promise(resolve=>fastTools.window.queueMicrotask(resolve));assert.equal(recycledCTA.style.display,'none','Text changes inside already-recolored controls must still trigger immediate banner hiding');
   const media=fixture('<video></video>',{enhance:false});let playingHint=null;
   media.window.FproPlayback={playing:value=>{playingHint=value;}};
   const mediaVideo=media.doc.querySelector('video');Object.defineProperty(mediaVideo,'paused',{value:false,configurable:true});Object.defineProperty(mediaVideo,'readyState',{value:4,configurable:true});

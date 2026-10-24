@@ -723,8 +723,8 @@
   const add=(set,el)=>{if(el&&el.nodeType===1&&!/^fpro/i.test(el.id)&&!el.closest('#fpro-reference-svg,.fpro-video-tools'))set.add(el);};
   for(const record of records){
    if(record.type==='attributes')add(local,record.target);
-   else if(record.type==='characterData')add(local,record.target.parentElement);
-   else if(record.type==='childList'){if(record.target.nodeType===1&&record.target.matches('style'))add(local,record.target);for(const node of record.addedNodes){if(node.nodeType===3)add(local,record.target);else add(roots,node);}}
+   else if(record.type==='characterData'){const el=record.target.parentElement;add(local,el&&(el.closest('a,button,[role="button"]')||el));}
+   else if(record.type==='childList'){if(record.target.nodeType===1){if(record.target.matches('style'))add(local,record.target);else add(local,record.target.closest('a,button,[role="button"]'));}for(const node of record.addedNodes){if(node.nodeType===3)add(local,record.target);else add(roots,node);}}
   }
   const apply=(list,selfOnly)=>{
    if(!list.length)return;
@@ -738,7 +738,7 @@
  }
  const observer=new MutationObserver(records=>{
   if(!document||cfg.enhance===false)return;
-  const relevant=records.filter(r=>{if(r.type==='childList'){const changes=[...r.addedNodes,...r.removedNodes];if(changes.length&&changes.every(n=>n.nodeType===1&&/^fpro/i.test(n.id)))return false;}const el=r.target.nodeType===1?r.target:r.target.parentElement;if(!el||el.closest('#fpro-style,#fpro-selection-style,#fpro-icon-filter,.fpro-video-tools'))return false;if(window.FproColor&&window.FproColor.ownsStyle(el))return false;if(r.type==='attributes'&&r.attributeName==='style'&&(ownedStyles.get(el)===el.getAttribute('style')||el.hasAttribute('data-fpro-hidden')))return false;return true;});
+  const relevant=records.filter(r=>{if(r.type==='childList'){const changes=[...r.addedNodes,...r.removedNodes];if(changes.length&&changes.every(n=>n.nodeType===1&&/^fpro/i.test(n.id)))return false;}const el=r.target.nodeType===1?r.target:r.target.parentElement;if(!el||el.closest('#fpro-style,#fpro-selection-style,#fpro-icon-filter,.fpro-video-tools'))return false;if(window.FproColor&&window.FproColor.ownsStyle(el)&&(el.matches('style')||r.type==='attributes'&&r.attributeName==='style'))return false;if(r.type==='attributes'&&r.attributeName==='style'&&(ownedStyles.get(el)===el.getAttribute('style')||el.hasAttribute('data-fpro-hidden')))return false;return true;});
   if(!relevant.length)return;
   fastHashtags(relevant);
   fastReferenceColors(relevant);
