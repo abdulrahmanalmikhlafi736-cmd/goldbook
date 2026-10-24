@@ -571,7 +571,7 @@ class WebViewRenderingTest {
                     val web = requireNotNull(findWeb(activity.window.decorView))
                     web.stopLoading()
                     web.settings.mediaPlaybackRequiresUserGesture = false
-                    web.loadDataWithBaseURL("https://m.facebook.com/", "<html><meta name='viewport' content='width=device-width'><body><video id='pipVideo' autoplay muted loop playsinline style='width:100%' src='data:video/mp4;base64,$encoded'></video></body></html>", "text/html", "UTF-8", null)
+                    web.loadDataWithBaseURL("https://m.facebook.com/", "<html><meta name='viewport' content='width=device-width'><body><video id='pipVideo' autoplay muted loop playsinline style='width:100%' src='data:video/mp4;base64,$encoded'></video></body></html>", "text/html", "UTF-8", "https://m.facebook.com/")
                     fun probe(attempt: Int) {
                         web.evaluateJavascript("!!document.getElementById('pipVideo') && document.getElementById('pipVideo').readyState>=2 && !document.getElementById('pipVideo').paused") { playing ->
                             if(playing == "true") {
