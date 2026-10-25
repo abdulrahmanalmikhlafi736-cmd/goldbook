@@ -23,6 +23,10 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 يوجد Workflow في `.github/workflows/android.yml`: عند دفع التغييرات إلى GitHub أو تشغيله يختبر ويبني ويرفع APK إلى **Artifacts → FPRO-0.0.1-debug**. هذا ملف بناء مُعدّ للتنفيذ وليس ادعاءً بأنه نُفّذ بالفعل.
 
+## إصلاحات البناء31
+
+منع فرض خلفية مصمتة على حوار التفاعلات في الداكن/AMOLED، وإخراج أدوات الفيديو من body المحوّل لتصحيح الإحداثيات، وضبط أسفل الريلز والتخفيف من استعلامات المنزلق المتكررة. استعادة الكرة ⚽️ بدل الرسم التقريبي مع دوران3s ومساحة كاملة. [التفاصيل وحدود التحقق](docs/FIXES-31.md). Android قيد التنفيذ.
+
 ## إصلاحات البناء 30
 
 تصحيح موضع الشريط في الريلز ذي الفيديو الأفقي/القصير: البحث عن منزلق الوقت في تذييل المشغّل أسفل الوصف، لا عند حافة الفيديو فقط، مع استبداله واستعادته عند التعطيل وحماية الصوت. دورة الكرة أصبحت 3 ثوانٍ بدل 1.1 ثانية. [التفاصيل والحدود](docs/FIXES-30.md). نجح [البناء وlint وJVM/DOM](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40200702708). أكد [فحص XML](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40201240753) نجاح اختبار الشريط أسفل الوصف/المحاذاة/الدوران الأبطأ على API29 وAPI35. نجحت **3/4 إعدادات الأجهزة** في [40200702723](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40200702723): API29 debug وAPI35/36 compact؛ أخفق API35 debug في اختبار بدء فيديو PiP وفحص لون حلقة. [APK المصغر المختبر على Android 15](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40200702723/artifacts/12601489592)، مصدر التطبيق `9d6d7e6`. ليست النتائج إثباتًا لكل DOM الحساب الفعلي.

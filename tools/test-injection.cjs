@@ -258,7 +258,7 @@ function fixture(html,config={},captureDownload=false) {
   assert.equal(f.doc.querySelectorAll('.fpro-download').length,1);assert(video.hasAttribute('data-fpro-rainbow'),'Native HTML time slider is replaced only on the active rainbow player');
   assert.equal(f.doc.querySelector('.fpro-video-tools').hidden,false);
   assert.equal(f.window.getComputedStyle(f.doc.querySelector('.fpro-track')).backgroundColor,'rgba(0, 0, 0, 0)','No dark panel under timeline');
-  assert.equal(f.window.getComputedStyle(f.doc.querySelector('.fpro-fill')).bottom,'8px','Timeline reserves enough bottom space to keep the complete ball inside its player');
+  assert.equal(f.window.getComputedStyle(f.doc.querySelector('.fpro-fill')).bottom,'12px','Timeline reserves enough bottom space to keep the complete ball inside its player');
   assert.equal(f.window.getComputedStyle(f.doc.querySelector('.fpro-download')).borderRadius,'50%','Circular download button');
   assert(f.doc.querySelector('.fpro-download svg'),'Centered vector download icon');
 
@@ -276,8 +276,8 @@ function fixture(html,config={},captureDownload=false) {
 
   f.run({downloads:false,rainbow:false});assert(!video.hasAttribute('data-fpro-rainbow'),'Removing rainbow tools restores native HTML timeline styling');assert.equal(f.doc.querySelectorAll('.fpro-video-tools').length,0);
   Object.defineProperty(video,'duration',{configurable:true,value:Infinity});f.run({rainbow:true});assert.equal(f.doc.querySelector('.fpro-seek').disabled,true,'Live stream is not falsely seekable');
-  const ball=f.doc.querySelector('.fpro-ball');assert(ball.querySelector('svg circle'),'Soccer ball is a complete vector icon, not a clipped font glyph');
-  assert.equal(f.window.getComputedStyle(ball).width,'16px');
+  const ball=f.doc.querySelector('.fpro-ball');assert.equal(ball.textContent,'⚽️','Use the original color emoji soccer ball, not an approximate vector');
+  assert.equal(f.window.getComputedStyle(ball).width,'20px');
   Object.defineProperty(video,'duration',{configurable:true,value:120});Object.defineProperty(video,'paused',{configurable:true,value:false});video.dispatchEvent(new f.window.Event('play'));
   assert.equal(ball.style.animationPlayState,'running','Ball rotates only while actual video plays');
   Object.defineProperty(video,'paused',{configurable:true,value:true});video.dispatchEvent(new f.window.Event('pause'));assert.equal(ball.style.animationPlayState,'paused');
@@ -287,7 +287,7 @@ function fixture(html,config={},captureDownload=false) {
   sliders.doc.getElementById('originalVolume').getBoundingClientRect=()=>({left:12,top:280,right:308,bottom:300,width:296,height:20});
   sliders.run({rainbow:true});assert(sliders.doc.getElementById('originalTimeline').hasAttribute('data-fpro-native-seek'),'Replace a confidently identified player-local time slider');
   assert(!sliders.doc.getElementById('originalVolume').hasAttribute('data-fpro-native-seek'),'Never replace volume');
-  assert.equal(sliders.doc.querySelector('.fpro-video-tools').style.height,'329.5px','New timeline occupies original seek line instead of stacking above it');
+  assert.equal(sliders.doc.querySelector('.fpro-video-tools').style.height,'333.5px','New timeline occupies original seek line instead of stacking above it');
   sliders.run({rainbow:false,downloads:true});assert(!sliders.doc.querySelector('[data-fpro-native-seek]'),'Original timeline returns when rainbow is disabled');assert.equal(sliders.doc.getElementById('originalTimeline').style.visibility,'visible','Do not rewrite the original inline style');
   const boxed=fixture('<main><section><article><div><div><video></video></div></div></article><p id="caption">Caption above the official footer</p><div role="slider" id="footerSeek" aria-valuemin="0" aria-valuemax="100"></div><input type="range" aria-label="Volume" id="footerVolume"></section></main>',{enhance:false});
   boxed.window.history.replaceState({},'', '/reel/letterboxed');
@@ -296,7 +296,7 @@ function fixture(html,config={},captureDownload=false) {
   boxed.doc.getElementById('footerVolume').getBoundingClientRect=()=>({left:12,top:730,right:308,bottom:750,width:296,height:20});
   boxed.run({enhance:true,rainbow:true});
   assert(boxed.doc.getElementById('footerSeek').hasAttribute('data-fpro-native-seek'),'Find an unlabeled isolated footer slider outside the short letterboxed video article');
-  assert.equal(boxed.doc.querySelector('.fpro-video-tools').style.height,'549.5px','Replacement aligns to the footer, not to the caption or short video edge');
+  assert.equal(boxed.doc.querySelector('.fpro-video-tools').style.height,'553.5px','Replacement aligns to the footer, not to the caption or short video edge');
   assert(!boxed.doc.getElementById('footerVolume').hasAttribute('data-fpro-native-seek'));assert.equal(boxed.doc.getElementById('caption').style.visibility,'');
   assert(boxed.doc.getElementById('fpro-style').textContent.includes('fpro-ball-roll 3s'),'Slower three-second rotation');
   boxed.run({enhance:true,rainbow:false,downloads:true});assert(!boxed.doc.querySelector('[data-fpro-native-seek]'),'Restore sibling footer slider on disable');
@@ -317,6 +317,10 @@ function fixture(html,config={},captureDownload=false) {
    assert.equal(replacement.style.display,'','A recycled CTA that becomes Search must be restored');
    repair.run({...repairConfig,appBanner:false});assert(!repair.doc.querySelector('[data-fpro-reference-noapp],[data-fpro-hidden]'),'Turning CTA filtering off restores markers: '+repair.doc.body.innerHTML);
   }
+  const reaction=fixture('<article><video></video></article><div role="dialog" id="reactionBackdrop" style="background:rgba(0,0,0,.2)"><div style="background:#242526">Reactions</div></div>',{enhance:true,amoled:true,dark:true});
+  assert.equal(reaction.window.getComputedStyle(reaction.doc.getElementById('reactionBackdrop')).backgroundColor,'rgba(0, 0, 0, 0.2)','Do not force a full-screen reaction backdrop opaque in AMOLED');
+  assert(!reaction.doc.getElementById('fpro-style').textContent.includes('--dialog-background:'),'Do not globally override the site dialog surface token');
+  assert.equal(boxed.doc.querySelector('.fpro-video-tools').parentElement,boxed.doc.documentElement,'Player tools escape transformed body containers');
   const selection=fixture('<article><p id="text" style="user-select:none">Selectable post</p><span id="comment" dir="auto">Comment</span><a href="/hashtag/test">#test</a><button id="button">Like</button><textarea></textarea></article>',{enhance:false,textSelection:true});
   assert(selection.doc.querySelector('#fpro-selection-style'),'Native selection CSS is independent of enhancement master');
   assert.equal(selection.doc.querySelector('#fpro-style'),null,'Selection alone must not enable tint/filter CSS');
