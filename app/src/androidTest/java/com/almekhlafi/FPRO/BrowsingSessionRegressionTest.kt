@@ -57,6 +57,10 @@ class BrowsingSessionRegressionTest {
     @Test fun realWebViewRestoresScrollAndWarmResumeKeepsDocument() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         ActivityScenario.launch<MainActivity>(android.content.Intent(instrumentation.targetContext, MainActivity::class.java)).use { scenario ->
+            // Match the existing overlay fixture: let Compose issue its one-time
+            // bootstrap navigation before installing the offline test document.
+            // Otherwise API29 can replace our fixture with that queued home load.
+            Thread.sleep(2300)
             val done = CountDownLatch(1)
             val result = AtomicReference("null")
             scenario.onActivity { activity ->
@@ -72,7 +76,7 @@ class BrowsingSessionRegressionTest {
                                 (async()=>{
                                   window.fixtureStarted=true;window.fixtureToken='unchanged';
                                   const frames=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-                                  const ready=($ready);scrollTo(0,760);document.getElementById('nested').scrollTop=320;await frames();
+                                  await frames();const ready=($ready);scrollTo(0,760);document.getElementById('nested').scrollTop=320;await frames();
                                   const checkpoint=window.__fproPosition.capture();
                                   scrollTo(0,0);document.getElementById('nested').scrollTop=0;
                                   const accepted=window.__fproPosition.restore(checkpoint);await frames();
@@ -96,9 +100,9 @@ class BrowsingSessionRegressionTest {
                     <div style="height:6000px"></div></body>
                 """.trimIndent(), "text/html", "UTF-8", null)
             }
-            assertTrue(done.await(12, TimeUnit.SECONDS))
+            assertTrue("Offline fixture must finish after native bootstrap", done.await(15, TimeUnit.SECONDS))
             val data = org.json.JSONObject(org.json.JSONArray("[${result.get()}]").getString(0))
-            assertTrue(data.getBoolean("ready")); assertTrue(data.getBoolean("accepted"))
+            assertTrue("Visible-content readiness: $data", data.getBoolean("ready")); assertTrue("Position restore accepted: $data", data.getBoolean("accepted"))
             assertEquals(760, data.getInt("y")); assertEquals(320, data.getInt("nested"))
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.RESUMED)
