@@ -335,6 +335,14 @@ function fixture(html,config={},captureDownload=false) {
   const realSeek=htmlControls.doc.querySelector('.fpro-seek');realSeek.value='500';realSeek.dispatchEvent(new htmlControls.window.Event('input'));assert.equal(hc.currentTime,15);
   hc.controls=true;await Promise.resolve();await Promise.resolve();assert.equal(hc.controls,false,'Site re-adding controls must not resurrect the native panel');
   htmlControls.run({enhance:true,rainbow:false,downloads:true});assert.equal(hc.controls,true,'Restore originally enabled native controls when rainbow is disabled');assert.equal(row.hidden,true);
+  const mediaGeometryFixture=fixture('<article id="private-person"><p>PRIVATE_POST_TEXT</p><video src="https://private.invalid/private-media-token" controls></video><input type="range" aria-label="PRIVATE_ACCOUNT_NAME"></article>',{enhance:false});
+  mediaGeometryFixture.doc.cookie='secret_cookie=PRIVATE_COOKIE';mediaGeometryFixture.window.localStorage.setItem('secret','PRIVATE_STORAGE');
+  mediaGeometryFixture.doc.querySelector('video').getBoundingClientRect=()=>({left:0,top:50,right:320,bottom:350,width:320,height:300});
+  const mediaQuery=fs.readFileSync('app/src/main/assets/media-layout-report.js','utf8');
+  const mediaJson=mediaGeometryFixture.window.eval(mediaQuery);const mediaReport=JSON.parse(mediaJson);
+  assert.equal(mediaReport.video.controls,true);assert.equal(mediaReport.video.node,0);assert.equal(mediaReport.schema,1);
+  for(const secret of ['PRIVATE_POST_TEXT','PRIVATE_ACCOUNT_NAME','PRIVATE_COOKIE','PRIVATE_STORAGE','private-person','private-media-token','https://'])assert(!mediaJson.includes(secret),'Media geometry report must not export '+secret);
+  assert(mediaReport.nodes.length<=80);assert(mediaReport.hits.length<=24);assert(mediaJson.length<60000,'Bounded explicit diagnostics');
   const reaction=fixture('<article><video></video></article><div role="dialog" id="reactionBackdrop" style="background:rgba(0,0,0,.2)"><div style="background:#242526">Reactions</div></div>',{enhance:true,amoled:true,dark:true});
   assert.equal(reaction.window.getComputedStyle(reaction.doc.getElementById('reactionBackdrop')).backgroundColor,'rgba(0, 0, 0, 0.2)','Do not force a full-screen reaction backdrop opaque in AMOLED');
   assert(!reaction.doc.getElementById('fpro-style').textContent.includes('--dialog-background:'),'Do not globally override the site dialog surface token');

@@ -23,6 +23,10 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 يوجد Workflow في `.github/workflows/android.yml`: عند دفع التغييرات إلى GitHub أو تشغيله يختبر ويبني ويرفع APK إلى **Artifacts → FPRO-0.0.1-debug**. هذا ملف بناء مُعدّ للتنفيذ وليس ادعاءً بأنه نُفّذ بالفعل.
 
+## البناء34 — نسخة تشخيص للشريط، لا إصلاح جديد
+
+صور الحساب تؤكد استمرار المشكلة في33. أُضيف زر **نسخ تشخيص الشريط** فوق صفحة الفيديو نفسها لجمع هندسة محدودة فقط دون نصوص أو روابط أو بيانات حساب، ولا رفع تلقائي. لم نغيّر موضع الشريط مجددًا. [كيفية الاستخدام وحدود الخصوصية](docs/DIAGNOSTICS-34.md). Android قيد التنفيذ.
+
 ## إصلاحات البناء33
 
 استبدال أدوات الفيديو الأصلية فعليًا عند وجود video.controls في مشغّل الريلز مع تفعيل الشريط المتقدم؛ توفير تشغيل/إيقاف وصوت ووقت وملء شاشة مرتبطة بالفيديو نفسه، واستعادة الأصل عند تعطيل الميزة. لم نعد نعتمد على CSS داخل أدوات Chromium الأصلية وحده. [التفاصيل والحدود](docs/FIXES-33.md). نجح [البناء وlint وJVM/DOM](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40205870623). أكد [فحص XML](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40206414418) نجاح اختبار تعطيل controls الأصلية ومنع عودتها واستعادتها والصوت والهندسة على API29 وAPI35. مجموعة الأجهزة **3/4**: API29 debug وAPI35/36 compact نجحت؛ API35 debug أخفق اختبار بدء فيديو PiP. [APK المختبر على Android15](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40205870619/artifacts/12603488844)، مصدر التطبيق `3e0bd58`. لا يُعد هذا إثباتًا لنوع لوحة الحساب الفعلي أو إصلاحه.

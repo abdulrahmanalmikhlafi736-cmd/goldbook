@@ -33,7 +33,7 @@ class VideoOverlayRegressionTest {
                 val web = requireNotNull(findWeb(activity.window.decorView))
                 web.stopLoading()
                 val config = """{"enhance":true,"rainbow":true,"downloads":true,"appBanner":true,"referenceEngine":true,"textSelection":false,"color":"تلقائي"}"""
-                val source = activity.assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + activity.assets.open("facebook.js").bufferedReader().use { it.readText() }.replace("__CONFIG__", config)
+                val source = activity.assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + activity.assets.open("facebook.js").bufferedReader().use { it.readText() }.replace("__CONFIG__", config) + "\nwindow.__fproReadMediaLayout=function(){return (" + activity.assets.open("media-layout-report.js").bufferedReader().use { it.readText() } + ");};"
                 web.webViewClient = object : android.webkit.WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String) {
                         view.evaluateJavascript("!!document.getElementById('fixtureVideo') && !window.overlayTestStarted") { ready ->
@@ -74,7 +74,8 @@ class VideoOverlayRegressionTest {
                                       window.__fpro.update({...config,rainbow:false,amoled:true,dark:true});await frames();
                                       const backdrop=document.createElement('div');backdrop.setAttribute('role','dialog');backdrop.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.2)';document.body.appendChild(backdrop);await frames();
                                       const transparentReaction=getComputedStyle(backdrop).backgroundColor==='rgba(0, 0, 0, 0.2)';
-                                      window.overlayResults=JSON.stringify({controlsRemoved,soundWorks,staysRemoved,controlsRestored:v.controls,smallBall:getComputedStyle(ball).fontSize==='16px',transparentReaction,ctaHidden,search:getComputedStyle(document.getElementById('fixtureSearch')).display!=='none',fits,rotates:before!==after,slow:getComputedStyle(ball).animationDuration==='3s',stops:paused===stopped,belowCaption:line.top>document.getElementById('fixtureCaption').getBoundingClientRect().bottom,aligned,oneTimeline,restored:getComputedStyle(native).visibility!=='hidden'});
+                                      const measurement=JSON.parse(window.__fproReadMediaLayout());const diagnosticsWorks=measurement.schema===1&&!!measurement.video&&measurement.video.controls===true&&measurement.own.length>0;
+                                      window.overlayResults=JSON.stringify({diagnosticsWorks,controlsRemoved,soundWorks,staysRemoved,controlsRestored:v.controls,smallBall:getComputedStyle(ball).fontSize==='16px',transparentReaction,ctaHidden,search:getComputedStyle(document.getElementById('fixtureSearch')).display!=='none',fits,rotates:before!==after,slow:getComputedStyle(ball).animationDuration==='3s',stops:paused===stopped,belowCaption:line.top>document.getElementById('fixtureCaption').getBoundingClientRect().bottom,aligned,oneTimeline,restored:getComputedStyle(native).visibility!=='hidden'});
                                      }catch(error){window.overlayResults=JSON.stringify({error:String(error)});}
                                     })()
                                 """.trimIndent(), null)
@@ -105,7 +106,7 @@ class VideoOverlayRegressionTest {
             assertTrue("Actual Chromium animation/layout fixture must complete", done.await(15, TimeUnit.SECONDS))
             val data = org.json.JSONObject(org.json.JSONArray("[${result.get()}]").getString(0))
             assertFalse("Fixture error: $data", data.has("error"))
-            for (key in listOf("controlsRemoved", "soundWorks", "staysRemoved", "controlsRestored", "smallBall", "transparentReaction", "ctaHidden", "search", "rotates", "slow", "stops", "belowCaption", "aligned", "oneTimeline", "restored")) {
+            for (key in listOf("diagnosticsWorks", "controlsRemoved", "soundWorks", "staysRemoved", "controlsRestored", "smallBall", "transparentReaction", "ctaHidden", "search", "rotates", "slow", "stops", "belowCaption", "aligned", "oneTimeline", "restored")) {
                 assertTrue("$key failed: $data", data.getBoolean(key))
             }
             val fits = data.getJSONArray("fits")

@@ -130,6 +130,12 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                                         IntOffset((gearX - 22.dp.toPx()).toInt().coerceAtLeast(0), (gearY - 22.dp.toPx()).toInt().coerceAtLeast(0))
                                     }.size(44.dp).semantics { contentDescription = "الإعدادات" }
                                 ) { Text("⚙️", style = MaterialTheme.typography.headlineSmall) }
+                                // Diagnostic build: one explicit capture on the current Reel.
+                                // No automatic recording, upload or account-content export.
+                                if (!settings && !splash) FilledTonalButton(
+                                    onClick = { copyMediaLayoutReport() },
+                                    modifier = Modifier.align(Alignment.TopStart).padding(start = 8.dp, top = 64.dp)
+                                ) { Text("نسخ تشخيص الشريط") }
                                 failure?.let { message ->
                                     Card(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp)) {
                                         Column(Modifier.padding(16.dp)) {
@@ -492,6 +498,23 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
 
     // Physical WebView content bounds, not Android screen/status/navigation bars.
+    private fun copyMediaLayoutReport() {
+        if (!Navigation.isFacebook(web.url.orEmpty())) { toast("افتح الفيديو المطلوب أولًا"); return }
+        val query = assets.open("media-layout-report.js").bufferedReader().use { it.readText() }
+        web.evaluateJavascript(query) { result ->
+            try {
+                val encoded = JSONArray("[$result]").getString(0)
+                val report = org.json.JSONObject(encoded)
+                report.put("appCode", BuildConfig.VERSION_CODE)
+                report.put("nativeContent", org.json.JSONObject().put("width", web.width).put("height", web.height))
+                getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(
+                    android.content.ClipData.newPlainText("FPRO media layout", report.toString())
+                )
+                toast("تم نسخ قياسات الشريط؛ الصقها في المحادثة — دون محتوى الحساب")
+            } catch (_: Exception) { toast("تعذر أخذ القياسات؛ انتظر ظهور الفيديو ثم أعد الضغط") }
+        }
+    }
+
     private fun viewportScript(width: Int, height: Int) = "window.__fproViewport={width:$width,height:$height};"
 
     private fun inject() {
