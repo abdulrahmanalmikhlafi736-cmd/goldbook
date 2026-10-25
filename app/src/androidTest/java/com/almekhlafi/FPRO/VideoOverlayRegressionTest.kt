@@ -44,7 +44,7 @@ class VideoOverlayRegressionTest {
                                      try{
                                       const frames=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
                                       const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-                                      history.replaceState({},'', '/reel/letterboxed');
+                                      history.replaceState({},'', '/');
                                       Object.defineProperty(window,'innerHeight',{value:innerHeight-56,configurable:true});
                                       const v=document.getElementById('fixtureVideo'),cta=document.getElementById('fixtureCTA');
                                       window.fixturePlaying=false;
@@ -67,7 +67,7 @@ class VideoOverlayRegressionTest {
                                       const native=document.getElementById('fixtureSeek'),volume=document.getElementById('fixtureVolume');
                                       const line=document.querySelector('.fpro-fill').getBoundingClientRect(),original=native.getBoundingClientRect();
                                       const aligned=Math.abs((line.top+line.height/2)-(original.top+original.height/2))<1;
-                                      const oneTimeline=getComputedStyle(native).visibility==='hidden'&&getComputedStyle(volume).visibility!=='hidden';
+                                      const oneTimeline=getComputedStyle(native).visibility==='hidden'&&getComputedStyle(document.getElementById('fixtureSurface')).visibility==='hidden'&&getComputedStyle(document.getElementById('fixturePaint')).visibility==='hidden'&&getComputedStyle(volume).visibility!=='hidden';
                                       const controlsRemoved=!v.controls&&!document.querySelector('.fpro-transport').hidden;
                                       const sound=document.querySelector('.fpro-transport').querySelectorAll('button')[1];const oldMuted=v.muted;sound.click();const soundWorks=v.muted!==oldMuted;sound.click();
                                       v.controls=true;await frames();const staysRemoved=!v.controls;

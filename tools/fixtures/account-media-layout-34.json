@@ -1,0 +1,15 @@
+{
+  "provenance": "Numeric geometry only, supplied by the owner from build34; no account content or URLs.",
+  "viewport": {"width": 411, "height": 808, "nativeWidth": 720, "nativeHeight": 1415},
+  "video": {"x": 0, "y": 39, "w": 411, "h": 730, "controls": false},
+  "frame": {"x": 0, "y": 0, "w": 411, "h": 808},
+  "working": {"reelsRoute": true, "siteRange": false, "trackTop": 775.7},
+  "broken": {
+    "reelsRoute": false,
+    "siteRange": {"x": 12, "y": 779, "w": 387, "h": 25, "opacity": 0, "label": false},
+    "paintSurface": {"x": 12, "y": 779, "w": 387, "h": 25},
+    "oldTrackTop": 737,
+    "expectedTrackTop": 773,
+    "expectedLineCenter": 791.5
+  }
+}

@@ -132,7 +132,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                                 ) { Text("⚙️", style = MaterialTheme.typography.headlineSmall) }
                                 // Diagnostic build: one explicit capture on the current Reel.
                                 // No automatic recording, upload or account-content export.
-                                if (!settings && !splash) FilledTonalButton(
+                                if (!settings && !splash && prefs.flag("mediaDiagnostics")) FilledTonalButton(
                                     onClick = { copyMediaLayoutReport() },
                                     modifier = Modifier.align(Alignment.TopStart).padding(start = 8.dp, top = 64.dp)
                                 ) { Text("نسخ تشخيص الشريط") }

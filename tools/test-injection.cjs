@@ -343,6 +343,36 @@ function fixture(html,config={},captureDownload=false) {
   assert.equal(mediaReport.video.controls,true);assert.equal(mediaReport.video.node,0);assert.equal(mediaReport.schema,1);
   for(const secret of ['PRIVATE_POST_TEXT','PRIVATE_ACCOUNT_NAME','PRIVATE_COOKIE','PRIVATE_STORAGE','private-person','private-media-token','https://'])assert(!mediaJson.includes(secret),'Media geometry report must not export '+secret);
   assert(mediaReport.nodes.length<=80);assert(mediaReport.hits.length<=24);assert(mediaJson.length<60000,'Bounded explicit diagnostics');
+  // Paired numeric geometry from the owner's build34 runtime reports.
+  const accountLayout=JSON.parse(fs.readFileSync('tools/fixtures/account-media-layout-34.json','utf8'));
+  function accountPlayer(reels){
+   const f=fixture('<div id="frame"><div id="clip"><video></video></div></div>',{enhance:false});
+   Object.defineProperty(f.window,'innerWidth',{value:411});Object.defineProperty(f.window,'innerHeight',{value:808});
+   f.window.__fproViewport={width:720,height:1415};
+   f.window.history.replaceState({},'',reels?'/reel/fixture':'/');
+   const box=(el,b)=>{el.getBoundingClientRect=()=>({left:b.x,top:b.y,width:b.w,height:b.h,right:b.x+b.w,bottom:b.y+b.h});};
+   box(f.doc.querySelector('#frame'),accountLayout.frame);box(f.doc.querySelector('#clip'),accountLayout.video);box(f.doc.querySelector('video'),accountLayout.video);
+   if(!reels){const parent=f.doc.createElement('div');parent.id='paint';parent.style.background='#888';parent.innerHTML='<span style="visibility:visible"></span><input type="range" style="opacity:0">';f.doc.querySelector('#frame').appendChild(parent);box(parent,accountLayout.broken.paintSurface);box(parent.querySelector('input'),accountLayout.broken.siteRange);}
+   f.run({enhance:true,rainbow:true});return {...f,box};
+  }
+  for(const reels of [true,false]){
+   const f=accountPlayer(reels),track=f.doc.querySelector('.fpro-track');
+   assert.ok(track,'account report must create timeline');
+   assert.ok(Math.abs(parseFloat(track.style.top)-(reels?accountLayout.working.trackTop:accountLayout.broken.expectedTrackTop))<.2,'account geometry must align to viewport/seek center, not video bottom: '+track.style.top);
+   if(!reels){
+    assert.ok(f.doc.querySelector('#paint').hasAttribute('data-fpro-native-seek'),'hide gray paint wrapper, not only the transparent input');
+    assert.ok(f.doc.querySelector('#paint input').hasAttribute('data-fpro-native-seek'));
+    f.run({enhance:true,rainbow:false});assert.ok(!f.doc.querySelector('[data-fpro-native-seek]'),'restore both surface and input on disable');
+   }
+  }
+  {
+   const f=accountPlayer(false),range=f.doc.querySelector('#paint input');
+   range.setAttribute('aria-label','Volume');f.run({enhance:true,rainbow:false});f.run({enhance:true,rainbow:true});
+   assert.ok(!range.hasAttribute('data-fpro-native-seek'),'transparent volume stays visible');
+   f.run({enhance:true,rainbow:false});range.removeAttribute('aria-label');
+   const second=f.doc.createElement('video');f.doc.querySelector('#frame').appendChild(second);f.box(second,accountLayout.video);
+   f.run({enhance:true,rainbow:true});assert.ok(!range.hasAttribute('data-fpro-native-seek'),'multiple visible videos cannot qualify as an isolated immersive frame');
+  }
   const reaction=fixture('<article><video></video></article><div role="dialog" id="reactionBackdrop" style="background:rgba(0,0,0,.2)"><div style="background:#242526">Reactions</div></div>',{enhance:true,amoled:true,dark:true});
   assert.equal(reaction.window.getComputedStyle(reaction.doc.getElementById('reactionBackdrop')).backgroundColor,'rgba(0, 0, 0, 0.2)','Do not force a full-screen reaction backdrop opaque in AMOLED');
   assert(!reaction.doc.getElementById('fpro-style').textContent.includes('--dialog-background:'),'Do not globally override the site dialog surface token');

@@ -73,6 +73,7 @@ fun SettingsPanel(prefs: Preferences, audioOnly: () -> Unit, change: () -> Unit,
         Text(diagnostics, style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = reload) { Text("إعادة فتح فيسبوك") }
         TextButton(onClick = testDisplay) { Text("اختبار عرض محلي بلا إنترنت") }
+        Toggle("إظهار زر نسخ تشخيص الشريط", "mediaDiagnostics", prefs, revision) { update() }
         TextButton(onClick = copyDiagnostics) { Text("نسخ معلومات التشخيص") }
         Toggle("توافق وكيل المستخدم مع متصفح الهاتف", "browserAgent", prefs, revision) { update() }
         Toggle("كوكيز الجهات المضمّنة لتوافق تسجيل الدخول", "thirdPartyCookies", prefs, revision, default = true) { update() }
