@@ -18,4 +18,10 @@ Local DOM/browsing tests PASS. New pure unit cases cover initial landscape,
 unknown/diagonal readings, later turn, re-entry and tablet natural axis. Native
 policy test covers portrait entry, ignored initial landscape, later turn and
 portrait exit; injected angles test the native policy, not actual sensor hardware.
-Build and device CI pending. Platform orientation overrides still apply.
+Build/lint/JVM/DOM PASS: [40245502975](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40245502975).
+Native portrait-first policy, history and rotation stress tests PASS on API29/35:
+[XML inspection 40246048819](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40246048819).
+Full devices [40245502957](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40245502957): **3/4** (API29 debug, API35 compact, API36 compact PASS). API35 debug still fails the existing PiP real-tap playback prerequisite; not claimed fixed.
+[Exact API35 tested APK](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40245502957/artifacts/12618851619), ZIP 1,013,233 bytes. App/test source `e5157363650c73bbc6fbbfc450dc4e7757f308c1`.
+[Clean complete source](../downloads/FPRO-build39-source.zip).
+Platform orientation overrides still apply; real account/sensor behavior needs owner verification.
