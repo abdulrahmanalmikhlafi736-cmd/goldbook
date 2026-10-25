@@ -56,7 +56,7 @@ jobs:
               try: root=ET.parse(path).getroot()
               except ET.ParseError: continue
               for case in root.iter('testcase'):
-                  if 'BrowsingSessionRegressionTest' in case.get('classname','') or 'VideoOverlayRegressionTest' in case.get('classname','') or 'AudioPlaybackServiceTest' in case.get('classname','') or 'zNativeLongPress' in case.get('name','') or 'zzPictureInPicture' in case.get('name','') or 'yDocumentStart' in case.get('name',''):
+                  if 'VideoOverlayRegressionTest' in case.get('classname','') or 'AudioPlaybackServiceTest' in case.get('classname','') or 'zNativeLongPress' in case.get('name','') or 'zzPictureInPicture' in case.get('name','') or 'yDocumentStart' in case.get('name',''):
                       status = 'FAIL' if case.find('failure') is not None or case.find('error') is not None else 'SKIP' if case.find('skipped') is not None else 'PASS'
                       print('::notice title=Native selection, early-frame or media testcase::'+str(path)+': '+case.get('name','')+': '+status)
               for failure in list(root.iter('failure'))+list(root.iter('error')):
@@ -65,6 +65,21 @@ jobs:
                   seen.add(text)
                   print('::notice title=Device test stack::'+text.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
           PYCODE
+      - name: Inspect browsing session assertions separately
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          for path in Path('previous-diagnostics').rglob('*.xml'):
+              try: root=ET.parse(path).getroot()
+              except ET.ParseError: continue
+              for case in root.iter('testcase'):
+                  if 'BrowsingSessionRegressionTest' not in case.get('classname',''): continue
+                  failures=list(case.iter('failure'))+list(case.iter('error'))
+                  detail='FAIL '+''.join(f.text or f.get('message','') for f in failures)[:2400] if failures else 'PASS'
+                  message=str(path)+': '+case.get('name','')+': '+detail
+                  print('::notice title=Browsing checkpoint evidence::'+message.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+          PY
       - name: Inspect Android app launch failures
         run: |
           python3 - <<'PY'
