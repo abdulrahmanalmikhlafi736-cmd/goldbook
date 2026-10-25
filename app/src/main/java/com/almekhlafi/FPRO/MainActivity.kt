@@ -361,6 +361,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                 if (fullView != null) { callback.onCustomViewHidden(); return }
                 web.evaluateJavascript("window.__fproNativeFullscreen=true", null)
                 fullView = view; fullCallback = callback
+                requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
                 (window.decorView as ViewGroup).addView(view, FrameLayout.LayoutParams(-1,-1))
                 systemBars(true)
             }
@@ -625,6 +626,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
 
     private fun closeFullscreen() {
+        if (fullView != null && !isFinishing && !isDestroyed) requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         web.evaluateJavascript("window.__fproNativeFullscreen=false", null)
         fullView?.let { (it.parent as? ViewGroup)?.removeView(it) }; fullView = null
         fullCallback?.onCustomViewHidden(); fullCallback = null

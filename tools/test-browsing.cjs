@@ -39,3 +39,9 @@ assert(!native.includes("new Event('resize')"),'Native size publication must not
 assert(native.includes("new Event('fproviewportchange')"));
 const manifest=fs.readFileSync('app/src/main/AndroidManifest.xml','utf8');
 for(const flag of ['orientation','screenSize','smallestScreenSize','density','uiMode'])assert(manifest.includes(flag),'Handle rotation-related '+flag+' without recreating Activity');
+
+assert(manifest.includes('android:screenOrientation="portrait"'),'Ordinary browsing starts locked in portrait');
+const showFull=native.slice(native.indexOf('override fun onShowCustomView'),native.indexOf('override fun onHideCustomView'));
+assert(showFull.includes('SCREEN_ORIENTATION_SENSOR'),'Only native fullscreen unlocks sensor rotation');
+const closeFull=native.slice(native.indexOf('private fun closeFullscreen()'),native.indexOf('private fun systemBars('));
+assert(closeFull.includes('SCREEN_ORIENTATION_PORTRAIT'),'Leaving fullscreen restores portrait browsing');

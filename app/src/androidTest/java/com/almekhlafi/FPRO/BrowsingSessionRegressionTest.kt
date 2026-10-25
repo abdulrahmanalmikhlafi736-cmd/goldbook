@@ -49,6 +49,22 @@ class BrowsingSessionRegressionTest {
             assertNull(store.read(now))
         } finally { store.close(); folder.deleteRecursively() }
     }
+    @Test fun normalBrowsingIsPortraitAndOnlyFullscreenUnlocksRotation() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        ActivityScenario.launch<MainActivity>(android.content.Intent(instrumentation.targetContext, MainActivity::class.java)).use { scenario ->
+            scenario.onActivity { activity ->
+                assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, activity.requestedOrientation)
+                val web = requireNotNull(findWeb(activity.window.decorView))
+                val chrome = requireNotNull(web.webChromeClient)
+                var hidden = false
+                chrome.onShowCustomView(View(activity), android.webkit.WebChromeClient.CustomViewCallback { hidden = true })
+                assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR, activity.requestedOrientation)
+                chrome.onHideCustomView()
+                assertTrue("Fullscreen callback must be released", hidden)
+                assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, activity.requestedOrientation)
+            }
+        }
+    }
     private fun findWeb(view: View): WebView? {
         if (view is WebView) return view
         if (view is ViewGroup) for (i in 0 until view.childCount) findWeb(view.getChildAt(i))?.let { return it }
