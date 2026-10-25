@@ -289,6 +289,17 @@ function fixture(html,config={},captureDownload=false) {
   assert(!sliders.doc.getElementById('originalVolume').hasAttribute('data-fpro-native-seek'),'Never replace volume');
   assert.equal(sliders.doc.querySelector('.fpro-video-tools').style.height,'329.5px','New timeline occupies original seek line instead of stacking above it');
   sliders.run({rainbow:false,downloads:true});assert(!sliders.doc.querySelector('[data-fpro-native-seek]'),'Original timeline returns when rainbow is disabled');assert.equal(sliders.doc.getElementById('originalTimeline').style.visibility,'visible','Do not rewrite the original inline style');
+  const boxed=fixture('<main><section><article><div><div><video></video></div></div></article><p id="caption">Caption above the official footer</p><div role="slider" id="footerSeek" aria-valuemin="0" aria-valuemax="100"></div><input type="range" aria-label="Volume" id="footerVolume"></section></main>',{enhance:false});
+  boxed.window.history.replaceState({},'', '/reel/letterboxed');
+  const bv=boxed.doc.querySelector('video');bv.getBoundingClientRect=()=>({left:0,top:200,right:320,bottom:360,width:320,height:160});
+  boxed.doc.getElementById('footerSeek').getBoundingClientRect=()=>({left:12,top:730,right:308,bottom:750,width:296,height:20});
+  boxed.doc.getElementById('footerVolume').getBoundingClientRect=()=>({left:12,top:730,right:308,bottom:750,width:296,height:20});
+  boxed.run({enhance:true,rainbow:true});
+  assert(boxed.doc.getElementById('footerSeek').hasAttribute('data-fpro-native-seek'),'Find an unlabeled isolated footer slider outside the short letterboxed video article');
+  assert.equal(boxed.doc.querySelector('.fpro-video-tools').style.height,'549.5px','Replacement aligns to the footer, not to the caption or short video edge');
+  assert(!boxed.doc.getElementById('footerVolume').hasAttribute('data-fpro-native-seek'));assert.equal(boxed.doc.getElementById('caption').style.visibility,'');
+  assert(boxed.doc.getElementById('fpro-style').textContent.includes('fpro-ball-roll 3s'),'Slower three-second rotation');
+  boxed.run({enhance:true,rainbow:false,downloads:true});assert(!boxed.doc.querySelector('[data-fpro-native-seek]'),'Restore sibling footer slider on disable');
   for(const referenceEngine of [true,false]){
    const repairConfig={enhance:true,referenceEngine,appBanner:true,textSelection:false};
    const repair=fixture('<aside><button id="reappearing">فتح التطبيق</button><button id="keepSearch">Search</button><a id="keepAccount" href="/me">الحساب</a></aside>',{enhance:false,textSelection:false});

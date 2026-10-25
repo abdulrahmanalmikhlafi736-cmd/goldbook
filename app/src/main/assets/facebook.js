@@ -524,21 +524,41 @@
   const link=rawPermalink(video),old=identityBaseline.get(video);
   return staleIdentity(video)&&old&&link===old.link?'':link; // Never reuse the entry clip of a recycled player.
  }
+ function immersivePlayer(video,rect){
+  // Letterboxed Reels can have a short video rectangle in a full-height player.
+  // Do not infer the player bottom from the decoded video's aspect ratio.
+  return (/^\/(?:reels?|watch|videos?)(?:\/|\.php|$)/.test(location.pathname)||!!document.fullscreenElement)&&rect.width>=Math.min(280,innerWidth*.6)&&rect.height>60;
+ }
  function nativeSeekControl(video,rect,viewportBottom){
+  const immersive=immersivePlayer(video,rect),candidates=new Map();
   let root=video.parentElement;
-  for(let depth=0;root&&depth<4;depth++,root=root.parentElement){
-   if(root.matches('body,html,main,[role="feed"],[role="main"]'))break;
-   for(const el of Array.from(root.querySelectorAll('input[type="range"],[role="slider"]')).slice(0,12)){
-    if(el.closest('.fpro-video-tools'))continue;
+  for(let depth=0;root&&depth<8;depth++,root=root.parentElement){
+   if(root.matches('body,html,[role="feed"]'))break;
+   const pageRoot=root.matches('main,[role="main"]');
+   if(pageRoot&&!immersive)break;
+   // A sibling footer is eligible only in this player's single-visible-video scope.
+   const live=Array.from(root.querySelectorAll('video')).filter(v=>{const r=v.getBoundingClientRect();return rendered(v)&&r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight;});
+   if(live.some(v=>v!==video))break;
+   for(const el of Array.from(root.querySelectorAll('input[type="range"],[role="slider"],[role="progressbar"],[aria-valuemin][aria-valuemax]')).slice(0,24)){
+    if(el.closest('.fpro-video-tools')||candidates.has(el))continue;
     const label=[el.getAttribute('aria-label'),el.getAttribute('title'),el.getAttribute('aria-valuetext')].filter(Boolean).join(' ');
-    if(/volume|sound|brightness|صوت|سطوع/i.test(label)||!(/seek|progress|playback|timeline|تقدم|تقدّم|تقديم|موضع|وقت|مدة/i.test(label)||/\d{1,2}:\d{2}/.test(label)))continue;
+    if(/volume|sound|brightness|صوت|سطوع/i.test(label))continue;
     const r=el.getBoundingClientRect(),c=getComputedStyle(el);
     if(c.display==='none'||c.opacity==='0'||(c.visibility==='hidden'&&!el.hasAttribute('data-fpro-native-seek')))continue;
-    if(r.width>=Math.min(100,rect.width*.4)&&r.height>0&&r.height<=40&&r.top>=rect.bottom-100&&r.top<=rect.bottom+100&&r.bottom>0&&r.bottom<=viewportBottom&&r.left>=rect.left-4&&r.right<=rect.right+4)return {el,rect:r};
+    const named=/seek|progress|playback|timeline|تقدم|تقدّم|تقديم|موضع|وقت|مدة/i.test(label)||/\d{1,2}:\d{2}/.test(label);
+    const bottomSlot=immersive&&r.top>=viewportBottom-90&&r.width>=rect.width*.65;
+    // An unlabeled full-width range/accessible slider in the isolated player footer
+    // is valid; a generic DIV or a narrow unlabeled/volume control is not.
+    if(!named&&!(bottomSlot&&!label.trim()&&el.matches('input[type="range"],[role="slider"],[role="progressbar"]')))continue;
+    const nearVideo=r.top>=rect.bottom-100&&r.top<=rect.bottom+100;
+    if(r.width>=Math.min(100,rect.width*.4)&&r.height>0&&r.height<=40&&(nearVideo||bottomSlot)&&r.bottom>0&&r.bottom<=viewportBottom&&r.left>=rect.left-4&&r.right<=rect.right+4)candidates.set(el,{el,rect:r});
    }
-   if(root.matches('article,[role="article"],[role="dialog"]'))break;
+   if(pageRoot||(!immersive&&root.matches('article,[role="article"],[role="dialog"]')))break;
   }
-  return null;
+  const list=Array.from(candidates.values());
+  // Prefer the isolated footer; refuse ambiguous controls rather than hide both.
+  const footer=list.filter(c=>immersive&&c.rect.top>=viewportBottom-90);
+  return footer.length===1?footer[0]:list.length===1?list[0]:null;
  }
  function attachVideo(video) {
   if(videos.has(video)) return;
@@ -575,7 +595,7 @@
    if(cfg.rainbow&&!overlay.hidden){if(!video.hasAttribute('data-fpro-rainbow'))video.setAttribute('data-fpro-rainbow','');}else video.removeAttribute('data-fpro-rainbow');
    overlay.style.left=r.left+'px';overlay.style.top=r.top+'px';overlay.style.width=r.width+'px';
    const viewportBottom=window.visualViewport?Math.min(innerHeight,window.visualViewport.offsetTop+window.visualViewport.height):innerHeight;
-   const immersive=(/^\/(?:reels?|watch|videos?)(?:\/|\.php|$)/.test(location.pathname)||!!document.fullscreenElement)&&r.height>innerHeight*.6;
+   const immersive=immersivePlayer(video,r);
    let bottom=immersive?viewportBottom:r.bottom;
    const native=!overlay.hidden&&cfg.rainbow?nativeSeekControl(video,r,viewportBottom):null;
    if(nativeTrack!==(native&&native.el)){releaseNativeTrack();if(native){nativeTrack=native.el;nativeTrack.setAttribute('data-fpro-native-seek','');}}
@@ -706,7 +726,7 @@
    .fpro-download{position:absolute;pointer-events:auto;box-sizing:border-box;display:grid;place-items:center;width:44px!important;height:44px!important;min-width:44px;min-height:44px;padding:0!important;border:1px solid #ffffff80!important;border-radius:50%!important;background:rgba(255,255,255,.12)!important;box-shadow:none!important;color:#fff!important;backdrop-filter:blur(2px);touch-action:none;-webkit-user-select:none;line-height:1}.fpro-download svg{pointer-events:none;color:inherit!important;background:none!important}
    .fpro-track{position:absolute;bottom:0;left:12px;right:12px;height:28px;overflow:visible!important;pointer-events:auto;background:transparent!important;box-shadow:none!important;border:0!important}
    .fpro-fill{position:absolute;overflow:visible!important;bottom:8px;left:0;height:3px;border-radius:4px;background:linear-gradient(90deg,red,orange,yellow,lime,cyan,blue,violet);width:0}
-   .fpro-ball{position:absolute;right:-8px;top:-6.5px;width:16px!important;height:16px!important;display:block!important;line-height:0!important;animation:fpro-ball-roll 1.1s linear infinite;animation-play-state:paused;transform-origin:center;pointer-events:none}
+   .fpro-ball{position:absolute;right:-8px;top:-6.5px;width:16px!important;height:16px!important;display:block!important;line-height:0!important;animation:fpro-ball-roll 3s linear infinite;animation-play-state:paused;transform-origin:center;pointer-events:none}
    .fpro-ball svg{display:block!important;width:16px!important;height:16px!important;max-width:none!important;overflow:visible!important}
    @keyframes fpro-ball-roll{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
    [data-fpro-native-seek]{visibility:hidden!important;pointer-events:none!important}
@@ -778,7 +798,7 @@
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
  function colorReport(){
-  const report={version:29,media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
+  const report={version:30,media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}

@@ -44,6 +44,7 @@ class VideoOverlayRegressionTest {
                                      try{
                                       const frames=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
                                       const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+                                      history.replaceState({},'', '/reel/letterboxed');
                                       const v=document.getElementById('fixtureVideo'),cta=document.getElementById('fixtureCTA');
                                       window.fixturePlaying=false;
                                       Object.defineProperty(v,'paused',{get:()=>!window.fixturePlaying});
@@ -67,7 +68,7 @@ class VideoOverlayRegressionTest {
                                       const aligned=Math.abs((line.top+line.height/2)-(original.top+original.height/2))<1;
                                       const oneTimeline=getComputedStyle(native).visibility==='hidden'&&getComputedStyle(volume).visibility!=='hidden';
                                       window.__fpro.update({...config,rainbow:false});await frames();
-                                      window.overlayResults=JSON.stringify({ctaHidden,search:getComputedStyle(document.getElementById('fixtureSearch')).display!=='none',fits,rotates:before!==after,stops:paused===stopped,aligned,oneTimeline,restored:getComputedStyle(native).visibility!=='hidden'});
+                                      window.overlayResults=JSON.stringify({ctaHidden,search:getComputedStyle(document.getElementById('fixtureSearch')).display!=='none',fits,rotates:before!==after,slow:getComputedStyle(ball).animationDuration==='3s',stops:paused===stopped,belowCaption:line.top>document.getElementById('fixtureCaption').getBoundingClientRect().bottom,aligned,oneTimeline,restored:getComputedStyle(native).visibility!=='hidden'});
                                      }catch(error){window.overlayResults=JSON.stringify({error:String(error)});}
                                     })()
                                 """.trimIndent(), null)
@@ -85,11 +86,12 @@ class VideoOverlayRegressionTest {
                 web.loadDataWithBaseURL("https://fixture.invalid/", """
                     <!doctype html><html><meta name="viewport" content="width=device-width,initial-scale=1">
                     <body style="margin:0;background:#18212a">
-                    <article style="position:fixed;top:0;right:0;bottom:0;left:0">
-                     <video id="fixtureVideo" style="position:absolute;top:0;left:0;width:100%;height:calc(100% - 32px)"></video>
-                     <input id="fixtureSeek" type="range" aria-label="Video progress" style="position:absolute;bottom:4px;left:12px;width:calc(100% - 24px);height:20px;margin:0">
+                    <main style="position:fixed;top:0;right:0;bottom:0;left:0"><article><div><div>
+                     <video id="fixtureVideo" style="position:absolute;top:35%;left:0;width:100%;height:28%"></video>
+                    </div></div></article><p id="fixtureCaption" style="position:absolute;bottom:45px;color:white">Caption stays above the footer</p>
+                     <input id="fixtureSeek" type="range" style="position:absolute;bottom:4px;left:12px;width:calc(100% - 24px);height:20px;margin:0">
                      <input id="fixtureVolume" type="range" aria-label="Volume" style="position:absolute;top:60px;left:12px;width:100px;height:20px;margin:0">
-                    </article>
+                    </main>
                     <aside style="position:fixed;top:0"><button id="fixtureCTA">فتح التطبيق</button><button id="fixtureSearch">Search</button></aside>
                     </body></html>
                 """.trimIndent(), "text/html", "UTF-8", null)
@@ -97,7 +99,7 @@ class VideoOverlayRegressionTest {
             assertTrue("Actual Chromium animation/layout fixture must complete", done.await(15, TimeUnit.SECONDS))
             val data = org.json.JSONObject(org.json.JSONArray("[${result.get()}]").getString(0))
             assertFalse("Fixture error: $data", data.has("error"))
-            for (key in listOf("ctaHidden", "search", "rotates", "stops", "aligned", "oneTimeline", "restored")) {
+            for (key in listOf("ctaHidden", "search", "rotates", "slow", "stops", "belowCaption", "aligned", "oneTimeline", "restored")) {
                 assertTrue("$key failed: $data", data.getBoolean(key))
             }
             val fits = data.getJSONArray("fits")
