@@ -42,6 +42,7 @@ for(const flag of ['orientation','screenSize','smallestScreenSize','density','ui
 
 assert(manifest.includes('android:screenOrientation="portrait"'),'Ordinary browsing starts locked in portrait');
 const showFull=native.slice(native.indexOf('override fun onShowCustomView'),native.indexOf('override fun onHideCustomView'));
-assert(showFull.includes('SCREEN_ORIENTATION_SENSOR'),'Only native fullscreen unlocks sensor rotation');
+assert(showFull.includes('startFullscreenRotation()'),'Fullscreen starts the portrait-first rotation gate');
+assert(!showFull.includes('SCREEN_ORIENTATION_SENSOR'),'Do not unlock the sensor immediately on entry');
 const closeFull=native.slice(native.indexOf('private fun closeFullscreen()'),native.indexOf('private fun systemBars('));
 assert(closeFull.includes('SCREEN_ORIENTATION_PORTRAIT'),'Leaving fullscreen restores portrait browsing');

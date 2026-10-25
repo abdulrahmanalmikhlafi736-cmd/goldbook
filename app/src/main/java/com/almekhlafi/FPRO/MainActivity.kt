@@ -78,6 +78,8 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private var loadState by mutableStateOf("تهيئة محرك الويب")
     private var failure by mutableStateOf<String?>(null)
     private var pageColor by mutableStateOf(Color(0xFF1877F2))
+    private var fullscreenRotation: FullscreenRotationGate? = null
+    private var fullscreenOrientationListener: android.view.OrientationEventListener? = null
     private var fullView: View? = null
     private var fullCallback: WebChromeClient.CustomViewCallback? = null
     private var fileCallback: ValueCallback<Array<Uri>>? = null
@@ -361,7 +363,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                 if (fullView != null) { callback.onCustomViewHidden(); return }
                 web.evaluateJavascript("window.__fproNativeFullscreen=true", null)
                 fullView = view; fullCallback = callback
-                requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
+                startFullscreenRotation()
                 (window.decorView as ViewGroup).addView(view, FrameLayout.LayoutParams(-1,-1))
                 systemBars(true)
             }
@@ -625,7 +627,36 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         }
     }
 
+    @Suppress("DEPRECATION")
+    private fun startFullscreenRotation() {
+        stopFullscreenRotation()
+        // Always enter portrait. Unlock only after a portrait reading followed
+        // by a real physical turn; the initial sensor reading must not flip us.
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        val rotation = windowManager.defaultDisplay.rotation
+        val quarterTurn = rotation == android.view.Surface.ROTATION_90 || rotation == android.view.Surface.ROTATION_270
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        fullscreenRotation = FullscreenRotationGate(if (quarterTurn) !landscape else landscape)
+        fullscreenOrientationListener = object : android.view.OrientationEventListener(this) {
+            override fun onOrientationChanged(orientation: Int) {
+                if (window.decorView.hasWindowFocus()) onFullscreenOrientation(orientation)
+            }
+        }.also { if (it.canDetectOrientation()) it.enable() }
+    }
+    internal fun onFullscreenOrientation(angle: Int) {
+        if (fullView == null || isFinishing || isDestroyed) return
+        val position = fullscreenRotation?.observe(angle) ?: return
+        val desired = if (position == FullscreenRotationGate.Position.LANDSCAPE)
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        if (requestedOrientation != desired) requestedOrientation = desired
+    }
+    private fun stopFullscreenRotation() {
+        fullscreenOrientationListener?.disable(); fullscreenOrientationListener = null
+        fullscreenRotation = null
+    }
     private fun closeFullscreen() {
+        stopFullscreenRotation()
         if (fullView != null && !isFinishing && !isDestroyed) requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         web.evaluateJavascript("window.__fproNativeFullscreen=false", null)
         fullView?.let { (it.parent as? ViewGroup)?.removeView(it) }; fullView = null
@@ -713,11 +744,13 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         }
     }
     override fun onPause() {
+        fullscreenOrientationListener?.disable()
         capturePosition(true)
         super.onPause()
     }
     override fun onResume() {
         super.onResume()
+        fullscreenOrientationListener?.let { if (it.canDetectOrientation()) it.enable() }
         externalHandoff = false; pipRequested = false
         if (::web.isInitialized && prefs.flag("rememberPosition", true) && positionUrl(lastPosition) == web.url && lastPosition != null) {
             pendingPosition = lastPosition
