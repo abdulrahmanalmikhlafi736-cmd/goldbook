@@ -693,7 +693,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                 val position = JSONArray("[$encoded]").optString(0)
                 val data = org.json.JSONObject(position)
                 if (data.optBoolean("login")) { lastPosition = null; pendingPosition = null; sessions.clear() }
-                else if (data.optString("url") == web.url && position.length <= 32768) {
+                else if (data.optString("url") == web.url && position.length <= 32768 && position != lastPosition) {
                     lastPosition = position
                     if (persist) persistPosition()
                 }

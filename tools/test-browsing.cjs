@@ -4,12 +4,12 @@ const position=fs.readFileSync('app/src/main/assets/browsing-position.js','utf8'
 const ready=fs.readFileSync('app/src/main/assets/page-ready.js','utf8');
 function fixture(html){const d=new JSDOM('<!doctype html><body>'+html+'</body>',{url:'https://m.facebook.com/',runScripts:'outside-only',pretendToBeVisual:true});const w=d.window;let y=0;Object.defineProperty(w,'scrollY',{get:()=>y});w.scrollTo=(x,n)=>{y=n};w.eval(position);return {w,d};}
 {
- const {w}=fixture('<article><p>PRIVATE_POST_TEXT</p><a href="/posts/42">post</a></article><input value="PRIVATE_FORM"><div id="scroll" style="overflow-y:auto"></div>');
+ const {w}=fixture('<article><p>PRIVATE_POST_TEXT</p><a href="/posts/42?fbclid=PRIVATE_TRACKING">post</a></article><input value="PRIVATE_FORM"><div id="scroll" style="overflow-y:auto"></div>');
  const a=w.document.querySelector('article');a.getBoundingClientRect=()=>({top:40,bottom:440,width:300,height:400});
  const el=w.document.querySelector('#scroll');Object.defineProperty(el,'clientHeight',{value:300});Object.defineProperty(el,'scrollHeight',{value:5000});el.scrollTop=720;
  w.scrollTo(0,1234);const snapshot=w.__fproPosition.capture(),data=JSON.parse(snapshot);
  assert.equal(data.y,1234);assert.equal(data.containers[0].y,720);assert.equal(data.anchor.key,'/posts/42');
- assert(!snapshot.includes('PRIVATE_POST_TEXT'));assert(!snapshot.includes('PRIVATE_FORM'));
+ assert(!snapshot.includes('PRIVATE_POST_TEXT'));assert(!snapshot.includes('PRIVATE_FORM'));assert(!snapshot.includes('PRIVATE_TRACKING'));
  w.scrollTo(0,0);el.scrollTop=0;assert.equal(w.__fproPosition.restore(snapshot),true);assert.equal(el.scrollTop,720);
  // Real gestures win immediately; delayed layout restoration must stop.
  w.dispatchEvent(new w.Event('touchstart'));w.scrollTo(0,55);assert.equal(w.scrollY,55);
