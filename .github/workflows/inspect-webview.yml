@@ -6,7 +6,7 @@ on:
     inputs:
       run_id:
         description: Completed emulator run to inspect
-        default: '40200702723'
+        default: '40201689146'
         required: true
 jobs:
   inspect:
@@ -21,7 +21,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id="${{ github.event.inputs.run_id || '40200702723' }}"
+          id="${{ github.event.inputs.run_id || '40201689146' }}"
           echo "run=$id" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
