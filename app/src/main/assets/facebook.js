@@ -709,7 +709,7 @@
    .fpro-ball svg{display:block!important;width:16px!important;height:16px!important;max-width:none!important;overflow:visible!important}
    @keyframes fpro-ball-roll{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
    [data-fpro-native-seek]{visibility:hidden!important;pointer-events:none!important}
-   .fpro-seek{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;pointer-events:auto;touch-action:pan-y}
+   .fpro-seek{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;margin:0;opacity:0;pointer-events:auto;touch-action:pan-y}
   `;
   scan();
  }

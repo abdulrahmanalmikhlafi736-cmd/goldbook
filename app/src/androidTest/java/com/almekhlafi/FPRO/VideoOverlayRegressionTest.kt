@@ -85,7 +85,7 @@ class VideoOverlayRegressionTest {
                 web.loadDataWithBaseURL("https://fixture.invalid/", """
                     <!doctype html><html><meta name="viewport" content="width=device-width,initial-scale=1">
                     <body style="margin:0;background:#18212a">
-                    <article style="position:fixed;inset:0">
+                    <article style="position:fixed;top:0;right:0;bottom:0;left:0">
                      <video id="fixtureVideo" style="position:absolute;top:0;left:0;width:100%;height:calc(100% - 32px)"></video>
                      <input id="fixtureSeek" type="range" aria-label="Video progress" style="position:absolute;bottom:4px;left:12px;width:calc(100% - 24px);height:20px;margin:0">
                      <input id="fixtureVolume" type="range" aria-label="Volume" style="position:absolute;top:60px;left:12px;width:100px;height:20px;margin:0">
