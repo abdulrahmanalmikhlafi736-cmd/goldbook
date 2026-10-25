@@ -23,6 +23,12 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 يوجد Workflow في `.github/workflows/android.yml`: عند دفع التغييرات إلى GitHub أو تشغيله يختبر ويبني ويرفع APK إلى **Artifacts → FPRO-0.0.1-debug**. هذا ملف بناء مُعدّ للتنفيذ وليس ادعاءً بأنه نُفّذ بالفعل.
 
+## البناء35 — استبدال الشريط وفق تقريري الحساب
+
+عالجنا الفارق المثبت بين التقريرين: مشغّل بملء مساحة العرض دون رابط Reels، ومنزلق وقت شفاف فوق طبقة رمادية مطابقة. أصبح الاكتشاف يعتمد على هندسة المشغّل المعزول أيضًا، ويُخفى المنزلق مع سطحه الرمادي الصغير وتُستعاد الطبقتان عند التعطيل، مع حماية الصوت والتحكم الآخر. بقي شكل الكرة وحجم16px ودوران3ثوان والتحديد23 دون تغيير. زر التشخيص مغلق افتراضيًا ويمكن إظهاره من إعدادات التوافق. [التفاصيل والقياسات وحدود التحقق](docs/FIXES-35.md).
+
+نجح [البناء وlint وJVM/DOM](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40210323420). أكد [فحص XML](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40210923935) نجاح اختبار WebView الجديد للمسار غير Reels والمنزلق الشفاف والطبقة الرمادية والمحاذاة والاستعادة على API29 وAPI35. الأجهزة **2/4**: API29 debug وAPI35 compact PASS؛ API35 debug أخفق بدء فيديو PiP بلمسة، وAPI36 compact أخفق الوصول إلى HTML العرض المحلي. [APK المختبر على Android15](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40210323394/artifacts/12605247471)، مصدر التطبيق `acf1125`. [أحدث مصدر مشروع نظيف ZIP](downloads/FPRO-build35-source.zip). هذه اختبارات تعيد إنتاج قياسات التقريرين، وليست تأكيدًا لنجاح الحساب الفعلي بعد التثبيت.
+
 ## البناء34 — نسخة تشخيص للشريط، لا إصلاح جديد
 
 صور الحساب تؤكد استمرار المشكلة في33. أُضيف زر **نسخ تشخيص الشريط** فوق صفحة الفيديو نفسها لجمع هندسة محدودة فقط دون نصوص أو روابط أو بيانات حساب، ولا رفع تلقائي. لم نغيّر موضع الشريط مجددًا. [كيفية الاستخدام وحدود الخصوصية](docs/DIAGNOSTICS-34.md). نجح [البناء وlint وJVM/DOM](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40206852763)، واختبار قارئ التقرير في Chromium على API29 وAPI35 وفق [فحص XML](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40207414529). الأجهزة **2/4**: API29 debug وAPI35 compact PASS؛ API35 debug أخفق بدء فيديو PiP، وAPI36 compact أخفق شرط فتح التطبيق. [APK التشخيص المختبر على Android15](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40206852730/artifacts/12603854868)، المصدر `ece2fb8`. ليس إصلاحًا للشريط ولا تأكيدًا للحساب.

@@ -45,8 +45,18 @@ selection, download handoff and other existing feature code are unchanged.
 - Native WebView regression now exercises a non-Reels URL, transparent unlabeled
   input with matching gray wrapper and explicitly visible paint descendant,
   transformed body, stale innerHeight, unaffected volume/caption, functional
-  transport and restoration. CI result pending.
-- Android lint, unit tests and APK build: CI pending.
+  transport and restoration: **PASS on API29 and API35**, confirmed by
+  [XML inspection 40210923935](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40210923935).
+- Android lint, unit tests, DOM and APK build: [PASS 40210323420](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40210323420).
+- Full device matrix [40210323394](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40210323394): **2/4**.
+  API29 debug and API35 compact passed. API35 debug failed the existing real-tap
+  playback prerequisite in the PiP test. API36 compact failed `Local HTML must be
+  accessible in actual WebView`. These failures are not counted as passes.
+- [Exact API35 device-tested compact APK](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40210323394/artifacts/12605247471)
+  (ZIP 1,006,716 bytes), application/test source `acf11251c171dabbfe5abf94c36265b6789539d7`.
+- [Clean complete build35 project source](../downloads/FPRO-build35-source.zip),
+  excluding older archives, APKs, generated build output and dependencies. The
+  archive includes the required Gradle wrapper and the small native test media.
 
 Passing reproduced geometry is not proof of the authenticated account's live DOM
 or actual-device rendering. Installation verification remains necessary. Existing
