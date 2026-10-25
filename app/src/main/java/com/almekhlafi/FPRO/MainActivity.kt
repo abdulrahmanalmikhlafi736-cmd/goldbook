@@ -639,7 +639,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         fullscreenRotation = FullscreenRotationGate(if (quarterTurn) !landscape else landscape)
         fullscreenOrientationListener = object : android.view.OrientationEventListener(this) {
             override fun onOrientationChanged(orientation: Int) {
-                if (window.decorView.hasWindowFocus()) onFullscreenOrientation(orientation)
+                if (fullscreenOrientationListener === this && window.decorView.hasWindowFocus()) onFullscreenOrientation(orientation)
             }
         }.also { if (it.canDetectOrientation()) it.enable() }
     }
