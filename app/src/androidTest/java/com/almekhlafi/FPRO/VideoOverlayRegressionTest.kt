@@ -52,7 +52,7 @@ class VideoOverlayRegressionTest {
                                       Object.defineProperty(v,'duration',{get:()=>120});
                                       cta.style.setProperty('display','block','important');await frames();
                                       const ctaHidden=getComputedStyle(cta).display==='none';
-                                      const config=$config;window.__fpro.update(config);await frames();
+                                      const config=$config;v.controls=true;window.__fpro.update(config);await frames();
                                       const ball=document.querySelector('.fpro-ball'),overlay=document.querySelector('.fpro-video-tools');
                                       const fits=[];
                                       for(const time of [0,60,120]){
@@ -68,10 +68,13 @@ class VideoOverlayRegressionTest {
                                       const line=document.querySelector('.fpro-fill').getBoundingClientRect(),original=native.getBoundingClientRect();
                                       const aligned=Math.abs((line.top+line.height/2)-(original.top+original.height/2))<1;
                                       const oneTimeline=getComputedStyle(native).visibility==='hidden'&&getComputedStyle(volume).visibility!=='hidden';
+                                      const controlsRemoved=!v.controls&&!document.querySelector('.fpro-transport').hidden;
+                                      const sound=document.querySelector('.fpro-transport').querySelectorAll('button')[1];const oldMuted=v.muted;sound.click();const soundWorks=v.muted!==oldMuted;sound.click();
+                                      v.controls=true;await frames();const staysRemoved=!v.controls;
                                       window.__fpro.update({...config,rainbow:false,amoled:true,dark:true});await frames();
                                       const backdrop=document.createElement('div');backdrop.setAttribute('role','dialog');backdrop.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.2)';document.body.appendChild(backdrop);await frames();
                                       const transparentReaction=getComputedStyle(backdrop).backgroundColor==='rgba(0, 0, 0, 0.2)';
-                                      window.overlayResults=JSON.stringify({smallBall:getComputedStyle(ball).fontSize==='16px',transparentReaction,ctaHidden,search:getComputedStyle(document.getElementById('fixtureSearch')).display!=='none',fits,rotates:before!==after,slow:getComputedStyle(ball).animationDuration==='3s',stops:paused===stopped,belowCaption:line.top>document.getElementById('fixtureCaption').getBoundingClientRect().bottom,aligned,oneTimeline,restored:getComputedStyle(native).visibility!=='hidden'});
+                                      window.overlayResults=JSON.stringify({controlsRemoved,soundWorks,staysRemoved,controlsRestored:v.controls,smallBall:getComputedStyle(ball).fontSize==='16px',transparentReaction,ctaHidden,search:getComputedStyle(document.getElementById('fixtureSearch')).display!=='none',fits,rotates:before!==after,slow:getComputedStyle(ball).animationDuration==='3s',stops:paused===stopped,belowCaption:line.top>document.getElementById('fixtureCaption').getBoundingClientRect().bottom,aligned,oneTimeline,restored:getComputedStyle(native).visibility!=='hidden'});
                                      }catch(error){window.overlayResults=JSON.stringify({error:String(error)});}
                                     })()
                                 """.trimIndent(), null)
@@ -102,7 +105,7 @@ class VideoOverlayRegressionTest {
             assertTrue("Actual Chromium animation/layout fixture must complete", done.await(15, TimeUnit.SECONDS))
             val data = org.json.JSONObject(org.json.JSONArray("[${result.get()}]").getString(0))
             assertFalse("Fixture error: $data", data.has("error"))
-            for (key in listOf("smallBall", "transparentReaction", "ctaHidden", "search", "rotates", "slow", "stops", "belowCaption", "aligned", "oneTimeline", "restored")) {
+            for (key in listOf("controlsRemoved", "soundWorks", "staysRemoved", "controlsRestored", "smallBall", "transparentReaction", "ctaHidden", "search", "rotates", "slow", "stops", "belowCaption", "aligned", "oneTimeline", "restored")) {
                 assertTrue("$key failed: $data", data.getBoolean(key))
             }
             val fits = data.getJSONArray("fits")

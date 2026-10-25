@@ -325,6 +325,16 @@ function fixture(html,config={},captureDownload=false) {
   assert.equal(nativeBounds.doc.querySelector('.fpro-track').style.top,'781.5px','Seek line is fixed to the real footer, not the caption');
   assert.equal(nativeBounds.doc.querySelector('.fpro-track').style.getPropertyPriority('top'),'important');
   assert.equal(nativeBounds.window.getComputedStyle(nativeBounds.doc.querySelector('.fpro-ball')).fontSize,'16px','Slightly smaller original ball');
+  const htmlControls=fixture('<article><video controls></video></article>',{enhance:false});htmlControls.window.history.replaceState({},'', '/reel/native-controls');
+  const hc=htmlControls.doc.querySelector('video');hc.getBoundingClientRect=()=>({left:0,top:100,right:320,bottom:400,width:320,height:300});
+  Object.defineProperty(hc,'duration',{configurable:true,value:30});Object.defineProperty(hc,'paused',{configurable:true,value:true});
+  let realPlayCalls=0;hc.play=()=>{realPlayCalls++;Object.defineProperty(hc,'paused',{configurable:true,value:false});hc.dispatchEvent(new htmlControls.window.Event('play'));return Promise.resolve();};hc.pause=()=>{Object.defineProperty(hc,'paused',{configurable:true,value:true});hc.dispatchEvent(new htmlControls.window.Event('pause'));};
+  htmlControls.run({enhance:true,rainbow:true,downloads:true});assert.equal(hc.controls,false,'Disable native HTML controls through the actual property, not CSS pseudo selectors');
+  const row=htmlControls.doc.querySelector('.fpro-transport');assert.equal(row.hidden,false);row.querySelector('button').click();assert.equal(realPlayCalls,1,'Replacement Play calls the actual media API');
+  const sound=row.querySelectorAll('button')[1];sound.click();assert.equal(hc.muted,true);sound.click();assert.equal(hc.muted,false);
+  const realSeek=htmlControls.doc.querySelector('.fpro-seek');realSeek.value='500';realSeek.dispatchEvent(new htmlControls.window.Event('input'));assert.equal(hc.currentTime,15);
+  hc.controls=true;await Promise.resolve();await Promise.resolve();assert.equal(hc.controls,false,'Site re-adding controls must not resurrect the native panel');
+  htmlControls.run({enhance:true,rainbow:false,downloads:true});assert.equal(hc.controls,true,'Restore originally enabled native controls when rainbow is disabled');assert.equal(row.hidden,true);
   const reaction=fixture('<article><video></video></article><div role="dialog" id="reactionBackdrop" style="background:rgba(0,0,0,.2)"><div style="background:#242526">Reactions</div></div>',{enhance:true,amoled:true,dark:true});
   assert.equal(reaction.window.getComputedStyle(reaction.doc.getElementById('reactionBackdrop')).backgroundColor,'rgba(0, 0, 0, 0.2)','Do not force a full-screen reaction backdrop opaque in AMOLED');
   assert(!reaction.doc.getElementById('fpro-style').textContent.includes('--dialog-background:'),'Do not globally override the site dialog surface token');
