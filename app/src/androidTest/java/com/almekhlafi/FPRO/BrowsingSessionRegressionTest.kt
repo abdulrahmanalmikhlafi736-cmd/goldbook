@@ -89,7 +89,7 @@ class BrowsingSessionRegressionTest {
                         }
                     }
                 }
-                web.loadDataWithBaseURL("https://m.facebook.com/__fpro_position_fixture", """
+                web.loadDataWithBaseURL("https://fixture.invalid/position", """
                     <!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0">
                     <p style="position:fixed;top:0">Visible fixture header</p>
                     <section id="nested" style="height:200px;width:200px;overflow-y:auto"><div style="height:1800px">Nested fixture</div></section>
