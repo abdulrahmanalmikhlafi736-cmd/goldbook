@@ -35,7 +35,7 @@ class Preferences(context: Context) {
         }.apply()
     }
     fun scriptConfig(): String = JSONObject().apply {
-        listOf("homeStories", "ads", "suggested", "reels", "stories", "people", "groups", "appBanner", "rainbow", "sticky", "reverse", "downloads").forEach { put(it, flag(it)) }
+        listOf("homeStories", "ads", "suggested", "reels", "stories", "people", "groups", "rainbow", "sticky", "reverse", "downloads").forEach { put(it, flag(it)) }
         put("enhance", flag("pageEnhancements"))
         put("doubleTapFullscreen", flag("doubleTapFullscreen", true))
         put("textSelection", flag("textSelection", true))

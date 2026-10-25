@@ -109,6 +109,7 @@
   if(cfg.textSelection!==false&&readingTarget(e.target))e.stopPropagation();
  },true);
  const colors = {'طبيعي':'#1877f2','ذهبي':'#d4af37','أحمر':'#c62828','أخضر':'#17833e','بنفسجي':'#8643c5','برتقالي':'#ed701b','فيروزي':'#008c95','وردي':'#d34489','بني':'#805539','فضي':'#9ba6b0','أبيض':'#ffffff'};
+ const LIGHT_MODE_FG = {'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'};
  const norm = s => (s || '').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');
  const selectionControlLabels=new Set(['like','love','reply','replies','share','follow','comment','comments','send','save','copy','cancel','more','see more','see less','play','pause','إعجاب','أعجبني','رد','ردود','مشاركة','متابعة','تعليق','تعليقات','التعليقات','إرسال','حفظ','نسخ','إلغاء','المزيد','عرض المزيد','عرض أقل','تشغيل','إيقاف'].map(norm));
  const words = {
@@ -230,9 +231,9 @@
    const r=el.getBoundingClientRect();return r.width>=24&&r.width<=144&&r.height>=24&&r.height<=144&&Math.abs(r.width-r.height)<20&&r.bottom>0&&r.right>0&&r.top<innerHeight&&r.left<innerWidth&&pictureSource(el);
   });
  }
- function avatarCanvasPairs(){
+ function avatarCanvasPairs(pictures=avatarPictures()){
   const pairs=[],seen=new Set();
-  for(const photo of avatarPictures().slice(0,12)){
+  for(const photo of pictures.slice(0,12)){
    const p=photo.getBoundingClientRect();let root=photo.parentElement;
    for(let depth=0;root&&depth<4;depth++,root=root.parentElement){
     const r=root.getBoundingClientRect();if(root.matches('body,html,main,article,nav,header,[role="article"],[role="navigation"],[role="banner"]')||r.width>innerWidth*1.1||r.height>160)break;
@@ -355,7 +356,8 @@
   for(const el of document.querySelectorAll('a[href*="/stories/"],a[href*="/stories/"] *,[data-sigil~="m-story-tray"] *,[data-pagelet*="Stories"] *'))ring(el);
   // Photo-based avatars can be IMG, SVG image or CSS background-image. Their
   // ring may be a sibling SVG or a pseudo layer on a square, non-rounded link.
-  for(const photo of avatarPictures()){
+  const avatars=avatarPictures();
+  for(const photo of avatars){
    let root=photo;
    for(let depth=0;root&&depth<5;depth++,root=root.parentElement){
     if(root.matches('article,[role="article"],header,[role="banner"],body,main,nav,[role="navigation"]'))break;
@@ -389,7 +391,7 @@
   }
   // An inline !important declaration outranks our stylesheet. Override only
   // already-approved accent properties and restore source values each pass.
-  const foreground=cfg.dark?colors[cfg.color]:({'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'}[cfg.color]||colors[cfg.color]);
+  const foreground=cfg.dark?colors[cfg.color]:(LIGHT_MODE_FG[cfg.color]||colors[cfg.color]);
   const properties={fg:['color',foreground],border:['border-color',foreground],outline:['outline-color',colors[cfg.color]],fill:['fill',foreground],stroke:['stroke',foreground]};
   for(const el of next)for(const [attr,[key,value]] of Object.entries(properties)){
    if(!el.hasAttribute('data-fpro-accent-'+attr))continue;
@@ -399,7 +401,7 @@
   // A separate canvas with an empty center can draw a story ring while all
   // computed border/background/SVG fields are empty. Never filter a canvas
   // that contains portrait/media pixels or cannot be read safely.
-  if(cfg.experimentalColorVars)for(const {canvas,photo} of avatarCanvasPairs()){
+  if(cfg.experimentalColorVars)for(const {canvas,photo} of avatarCanvasPairs(avatars)){
    const filter=getComputedStyle(canvas).filter;if(filter&&filter!=='none')continue;
    if(canvasRingEvidence(canvas,photo).blueRing){mark(canvas,'canvas-ring');tintVar(canvas,'filter','url("#fpro-canvas-palette")','important');filtered=true;}
   }
@@ -549,7 +551,7 @@
   const events=['timeupdate','durationchange','loadedmetadata','seeking','ended','emptied'];events.forEach(name=>video.addEventListener(name,progress));
   video.addEventListener('play',scheduleLayout);video.addEventListener('pause',scheduleLayout);
   if(resize)resize.observe(video);
-  videos.set(video,{layout(allowed=true){if(!allowed){overlay.hidden=true;return;}const r=video.getBoundingClientRect();const dialog=Array.from(document.querySelectorAll('[role="dialog"]')).find(el=>{const b=el.getBoundingClientRect(),s=getComputedStyle(el);return b.width>0&&b.height>0&&s.visibility!=='hidden'&&s.display!=='none'&&s.opacity!=='0';});overlay.hidden=!allowed||!(r.width>0&&r.height>0&&r.bottom>0&&r.right>0&&r.top<innerHeight&&r.left<innerWidth) || !!(dialog&&!dialog.contains(video));overlay.style.left=r.left+'px';overlay.style.top=r.top+'px';overlay.style.width=r.width+'px';const reel=/^\/reels?(?:\/|$)/.test(location.pathname) && r.height>innerHeight*0.6;const viewportBottom=window.visualViewport?Math.min(innerHeight,window.visualViewport.offsetTop+window.visualViewport.height):innerHeight;overlay.style.height=(reel?Math.max(0,viewportBottom-r.top):r.height)+'px';button.hidden=!cfg.downloads;track.hidden=!cfg.rainbow;placeButton();progress();},dispose(){video.removeEventListener('play',scheduleLayout);video.removeEventListener('pause',scheduleLayout);if(resize)resize.unobserve(video);clearTimeout(timer);events.forEach(name=>video.removeEventListener(name,progress));overlay.remove();}});
+  videos.set(video,{layout(allowed=true,dialog=visibleDialog()){if(!allowed){overlay.hidden=true;return;}const r=video.getBoundingClientRect();overlay.hidden=!allowed||!(r.width>0&&r.height>0&&r.bottom>0&&r.right>0&&r.top<innerHeight&&r.left<innerWidth) || !!(dialog&&!dialog.contains(video));overlay.style.left=r.left+'px';overlay.style.top=r.top+'px';overlay.style.width=r.width+'px';const reel=/^\/reels?(?:\/|$)/.test(location.pathname) && r.height>innerHeight*0.6;const viewportBottom=window.visualViewport?Math.min(innerHeight,window.visualViewport.offsetTop+window.visualViewport.height):innerHeight;overlay.style.height=(reel?Math.max(0,viewportBottom-r.top):r.height)+'px';button.hidden=!cfg.downloads;track.hidden=!cfg.rainbow;placeButton();progress();},dispose(){video.removeEventListener('play',scheduleLayout);video.removeEventListener('pause',scheduleLayout);if(resize)resize.unobserve(video);clearTimeout(timer);events.forEach(name=>video.removeEventListener(name,progress));overlay.remove();}});
  }
  // A document-level capture listener also sees touches on Facebook's player
  // cover layers. It is independent of download/progress overlay attachment.
@@ -600,7 +602,11 @@
  },true);
  document.addEventListener('dblclick',e=>{const video=gestureVideo(e);if(video){e.preventDefault();e.stopImmediatePropagation();enterFullscreen(video);}},true);
  function rendered(video){for(let el=video;el;el=el.parentElement){const c=getComputedStyle(el);if(c.display==='none'||c.visibility==='hidden'||c.visibility==='collapse'||c.opacity==='0')return false;}return true;}
+ // null means a completed search found no dialog; do not search again per video.
+ function visibleDialog(){return Array.from(document.querySelectorAll('[role="dialog"]')).find(el=>{const b=el.getBoundingClientRect(),s=getComputedStyle(el);return b.width>0&&b.height>0&&s.visibility!=='hidden'&&s.display!=='none'&&s.opacity!=='0';}) || null;}
  function layoutVideos(){
+  if(!videos.size)return;
+  const dialog=visibleDialog();
   const candidates=Array.from(videos.keys()).map((video,index)=>{const r=video.getBoundingClientRect();const w=Math.max(0,Math.min(innerWidth,r.right)-Math.max(0,r.left)),h=Math.max(0,Math.min(innerHeight,r.bottom)-Math.max(0,r.top));
    if(w*h<=0)return {video,r,index,visible:false,score:0};
    const stack=document.elementsFromPoint?document.elementsFromPoint(Math.max(0,Math.min(innerWidth-1,r.left+r.width/2)),Math.max(0,Math.min(innerHeight-1,r.top+r.height/2))):[];
@@ -608,7 +614,7 @@
   }).filter(c=>c.visible).sort((a,b)=>b.score-a.score);
   const chosen=[];
   for(const c of candidates){const overlaps=chosen.some(b=>{const area=Math.max(0,Math.min(c.r.right,b.r.right)-Math.max(c.r.left,b.r.left))*Math.max(0,Math.min(c.r.bottom,b.r.bottom)-Math.max(c.r.top,b.r.top));return area>Math.min(c.r.width*c.r.height,b.r.width*b.r.height)*.55;});if(!overlaps)chosen.push(c);}
-  videos.forEach((entry,video)=>entry.layout(chosen.some(c=>c.video===video)));
+  videos.forEach((entry,video)=>entry.layout(chosen.some(c=>c.video===video),dialog));
  }
  function storyImageSource(el){if(el.tagName==='IMG')return el.currentSrc||el.src||'';const m=getComputedStyle(el).backgroundImage.match(/url\(["']?(https:[^"')]+)["']?\)/);return m?m[1]:'';}
  const storyImages=new Map();
@@ -646,7 +652,7 @@
   observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','href','src','data-story-id','data-store','data-video-id','class','style','stroke','fill']});
   observer.observe(document.head,{childList:true,subtree:true,characterData:true});
   const accent=c.color==='طبيعي'?null:colors[c.color];
-  const foreground=c.dark?accent:({'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'}[c.color] || accent);
+  const foreground=c.dark?accent:(LIGHT_MODE_FG[c.color] || accent);
   const contrast=['ذهبي','فضي','أبيض','برتقالي'].includes(c.color)?'#111':'#fff';
   // Compute blue accents before applying our overrides. Never recolor photographs.
   tint();
@@ -694,7 +700,7 @@
     if(hashtag){
      el.setAttribute('data-fpro-accent-fg','');painted.add(el);fastHashes.add(el);
      if(el.style.getPropertyPriority('color')==='important'){
-      const fg=cfg.dark?colors[cfg.color]:({'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'}[cfg.color]||colors[cfg.color]);
+      const fg=cfg.dark?colors[cfg.color]:(LIGHT_MODE_FG[cfg.color]||colors[cfg.color]);
       tintVar(el,'color',fg,'important');
      }
     }else if(fastHashes.has(el)){
@@ -735,7 +741,7 @@
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
  function colorReport(){
-  const report={version:27,media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
+  const report={version:28,media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}

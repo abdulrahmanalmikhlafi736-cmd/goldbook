@@ -54,6 +54,31 @@ function fixture(html,config={},captureDownload=false) {
    assert.equal(prompt.doc.getElementById('safeSearch').style.display,'');assert.equal(prompt.doc.getElementById('safeAccount').style.display,'');
    prompt.window.FproNoapp.restore();assert.equal(prompt.doc.getElementById('prompt').style.display,'');
   }
+  // Count actual DOM queries, including the common case with no dialog present.
+  const layoutConfig={enhance:true,downloads:true,rainbow:true,textSelection:false};
+  const layoutBatch=fixture('<video id="batchOne"></video><video id="batchTwo"></video>',{enhance:false,textSelection:false});
+  const batchVideos=layoutBatch.doc.querySelectorAll('video');
+  batchVideos.forEach((video,index)=>video.getBoundingClientRect=()=>({left:index*340,top:0,right:index*340+320,bottom:300,width:320,height:300}));
+  let dialogQueries=0;
+  const batchQuery=layoutBatch.doc.querySelectorAll.bind(layoutBatch.doc);
+  layoutBatch.doc.querySelectorAll=selector=>{if(selector==='[role="dialog"]')dialogQueries++;return batchQuery(selector);};
+  layoutBatch.run(layoutConfig);
+  assert.equal(dialogQueries,1,'No-dialog layout must query once for the entire video batch, not once per player');
+  assert.equal(Array.from(batchQuery('.fpro-video-tools')).filter(el=>!el.hidden).length,2);
+  const batchDialog=layoutBatch.doc.createElement('div');batchDialog.setAttribute('role','dialog');batchDialog.getBoundingClientRect=()=>({left:0,top:0,right:320,bottom:300,width:320,height:300});layoutBatch.doc.body.appendChild(batchDialog);batchDialog.appendChild(batchVideos[0]);
+  dialogQueries=0;layoutBatch.run(layoutConfig);
+  assert.equal(dialogQueries,1,'Visible-dialog layout must also query once');
+  assert.equal(Array.from(batchQuery('.fpro-video-tools')).filter(el=>!el.hidden).length,1,'Dialog must still hide tools belonging to videos outside it');
+  batchDialog.removeAttribute('role');dialogQueries=0;layoutBatch.run(layoutConfig);
+  assert.equal(dialogQueries,1);assert.equal(Array.from(batchQuery('.fpro-video-tools')).filter(el=>!el.hidden).length,2,'Closing a dialog restores both players');
+  const avatarConfig={enhance:true,color:'أحمر',experimentalColorVars:true,textSelection:false};
+  const avatarBatch=fixture('<img src="portrait.jpg">',avatarConfig);
+  let avatarQueries=0;const avatarQuery=avatarBatch.doc.querySelectorAll.bind(avatarBatch.doc);
+  avatarBatch.doc.querySelectorAll=selector=>{if(selector==='img,svg image,[role="img"],[style*="background"],[data-mcomponent="Image"],[data-type="image"]')avatarQueries++;return avatarQuery(selector);};
+  avatarBatch.run(avatarConfig);
+  assert.equal(avatarQueries,1,'One tint pass must share its avatar snapshot with canvas pairing');
+  assert.equal((preferences.match(/put\("appBanner"/g)||[]).length,1);
+  assert(!preferences.split('fun scriptConfig()')[1].split('.forEach')[0].includes('"appBanner"'),'appBanner must not also be emitted by the generic loop');
   for(const text of ['مُـمَوَّل','Sponsored','<span>Spon</span><span>sored</span>']) {
    const surfaces=fixture('<header style="background-color:white"><svg><path id="bluepath" style="fill:rgb(8,102,255)"></path></svg></header><article style="background-color:rgb(242,242,242)">Post<img id="untouched"><video id="untouchedVideo"></video></article>',{color:'ذهبي'});
   assert(!surfaces.doc.querySelector('header').hasAttribute('data-fpro-surface'),'Do not tint header surfaces');
