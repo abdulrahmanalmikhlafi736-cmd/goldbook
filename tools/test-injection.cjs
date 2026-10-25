@@ -24,6 +24,36 @@ function fixture(html,config={},captureDownload=false) {
 }
 (async()=>{
  try {
+  // Preferences exports pageEnhancements as "enhance", not its native key name.
+  const preferences=fs.readFileSync('app/src/main/java/com/almekhlafi/FPRO/Preferences.kt','utf8');
+  assert(preferences.includes('put("enhance", flag("pageEnhancements"))'));
+  const pageInfo=fs.readFileSync('app/src/main/assets/page-info.js','utf8');
+  const coldPage=new JSDOM('<!doctype html><body></body>',{url:'https://m.facebook.com/',runScripts:'outside-only',pretendToBeVisual:true});windows.push(coldPage.window);
+  const query='(window.__fproPageInfo ? JSON.stringify(window.__fproPageInfo()) : '+pageInfo.trim().replace(/;$/,'')+')';
+  assert.equal(typeof JSON.parse(coldPage.window.eval(query)).gearVisible,'boolean','Cold fallback must be a valid executable expression before onPageFinished');
+  coldPage.window.__fproPageInfo=()=>({warm:true});assert.deepEqual(JSON.parse(coldPage.window.eval(query)),{warm:true},'Warm path must use the existing reporter');
+  // Exercise the actual combined document-start source on a fresh document.
+  const masterOff={enhance:false,ads:true,appBanner:true,referenceEngine:true,color:'أحمر',dark:true,textSelection:false,doubleTapFullscreen:true,downloads:true};
+  const combined=fs.readFileSync('app/src/main/assets/reference-engines.js','utf8')+'\n'+fs.readFileSync('app/src/main/assets/audio-mode.js','utf8')+'\n'+source;
+  const offPage=new JSDOM('<!doctype html><head></head><body><button id="offCTA">Open app</button><article><span>Sponsored</span><video></video></article></body>',{url:'https://m.facebook.com/',runScripts:'outside-only',pretendToBeVisual:true});windows.push(offPage.window);
+  offPage.window.eval(fs.readFileSync('app/src/main/assets/early-start.js','utf8').replace('__FPRO_SOURCE__',combined.replace('__CONFIG__',JSON.stringify(masterOff))));
+  assert(!offPage.window.document.querySelector('#fpro-style,.fpro-video-tools,[data-fpro-hidden],[data-fpro-reference-noapp]'),'Document-start with master off must not install filters/colors/download tools');
+  assert.equal(offPage.window.document.getElementById('offCTA').style.display,'');
+  assert(offPage.window.__fproAudio,'Audio is independent of the page-enhancement master switch');
+  offPage.window.__fpro.update({...masterOff,enhance:true});
+  assert(offPage.window.document.getElementById('fpro-style'),'Master on installs enhancement styling');
+  offPage.window.__fpro.update(masterOff);
+  assert(!offPage.window.document.querySelector('#fpro-style,.fpro-video-tools,[data-fpro-hidden],[data-fpro-reference-noapp]'),'Master off restores the page after an enabled session');
+  // Isolate the reference engine: the main engine cannot mask normalization bugs.
+  for(const label of ['\u200fافتح التطبيق\u2069','\u200bOPEN THE APP!','فَـتْح التطبيق؟']) {
+   const prompt=fixture('<button id="prompt"></button><button id="safeSearch">Search</button><a id="safeAccount" href="/me">الحساب</a>',{enhance:false,textSelection:false});
+   prompt.doc.getElementById('prompt').textContent=label;
+   prompt.window.eval(fs.readFileSync('app/src/main/assets/reference-engines.js','utf8'));
+   prompt.window.FproNoapp.set({noOpenApp:true});prompt.window.FproNoapp.scan([prompt.doc.body],true,false);
+   assert.equal(prompt.doc.getElementById('prompt').style.display,'none','Reference engine must normalize RTL marks, case, Arabic diacritics and suffix punctuation');
+   assert.equal(prompt.doc.getElementById('safeSearch').style.display,'');assert.equal(prompt.doc.getElementById('safeAccount').style.display,'');
+   prompt.window.FproNoapp.restore();assert.equal(prompt.doc.getElementById('prompt').style.display,'');
+  }
   for(const text of ['مُـمَوَّل','Sponsored','<span>Spon</span><span>sored</span>']) {
    const surfaces=fixture('<header style="background-color:white"><svg><path id="bluepath" style="fill:rgb(8,102,255)"></path></svg></header><article style="background-color:rgb(242,242,242)">Post<img id="untouched"><video id="untouchedVideo"></video></article>',{color:'ذهبي'});
   assert(!surfaces.doc.querySelector('header').hasAttribute('data-fpro-surface'),'Do not tint header surfaces');

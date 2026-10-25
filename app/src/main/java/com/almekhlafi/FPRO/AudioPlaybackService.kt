@@ -28,8 +28,8 @@ class AudioPlaybackService : Service() {
         wake = getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "FPRO:audio")
         session = MediaSession(this, "FPRO audio").apply {
             setCallback(object : MediaSession.Callback() {
-                override fun onPlay() { controls?.playAudio() }
-                override fun onPause() { controls?.pauseAudio() }
+                override fun onPlay() { requestPlayback(true) }
+                override fun onPause() { requestPlayback(false) }
                 override fun onStop() { controls?.stopAudio(); stopSelf() }
             }); isActive = true
         }
@@ -40,11 +40,18 @@ class AudioPlaybackService : Service() {
         if(controls == null) { stopSelf(); return START_NOT_STICKY }
         when(intent?.action) {
             STOP -> { controls?.stopAudio(); stopSelf(); return START_NOT_STICKY }
-            PLAY -> controls?.playAudio()
-            PAUSE -> controls?.pauseAudio()
+            PLAY -> requestPlayback(true)
+            PAUSE -> requestPlayback(false)
+            else -> render(intent?.getBooleanExtra("playing", playing) ?: playing)
         }
-        render(intent?.getBooleanExtra("playing", playing) ?: playing)
         return START_NOT_STICKY
+    }
+    private fun requestPlayback(value: Boolean) {
+        val owner = controls ?: run { stopSelf(); return }
+        // Reflect the requested transport state before invoking asynchronous JS.
+        // Actual playback events (including a rejected play promise) remain authoritative.
+        render(value)
+        if (value) owner.playAudio() else owner.pauseAudio()
     }
     @SuppressLint("WakelockTimeout") // Foreground only, released on pause/stop/destroy.
     private fun render(value: Boolean) {

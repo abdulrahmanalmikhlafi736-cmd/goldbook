@@ -467,7 +467,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code 26 / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff / Audio: $audioOnly / Early: ${earlyScript != null} / Gesture required: ${web.settings.mediaPlaybackRequiresUserGesture} / Music active: ${getSystemService(android.media.AudioManager::class.java).isMusicActive}"
+        return "FPRO code ${BuildConfig.VERSION_CODE} / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff / Audio: $audioOnly / Early: ${earlyScript != null} / Gesture required: ${web.settings.mediaPlaybackRequiresUserGesture} / Music active: ${getSystemService(android.media.AudioManager::class.java).isMusicActive}"
     }
 
     private fun showDisplayTest() {
