@@ -216,6 +216,12 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         override fun onWindowVisibilityChanged(visibility: Int) {
             super.onWindowVisibilityChanged(if(audioOnly) View.VISIBLE else visibility)
         }
+        override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+            super.onSizeChanged(w, h, oldw, oldh)
+            if (w > 0 && h > 0 && Navigation.isFacebook(url.orEmpty())) {
+                evaluateJavascript(viewportScript(w, h) + "window.dispatchEvent(new Event('resize'));", null)
+            }
+        }
         fun syncVisibility() { onWindowVisibilityChanged(windowVisibility) }
     }
     private fun createWebView(): WebView = PlaybackWebView().apply {
@@ -419,7 +425,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private fun installEarlyScript() {
         earlyScript?.remove(); earlyScript = null
         if(androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
-            val source = script.replace("__CONFIG__", prefs.scriptConfig())
+            val source = viewportScript(web.width, web.height) + script.replace("__CONFIG__", prefs.scriptConfig())
             val bootstrap = assets.open("early-start.js").bufferedReader().use { it.readText() }.replace("__FPRO_SOURCE__", source)
             earlyScript = androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web, bootstrap, setOf("https://facebook.com", "https://*.facebook.com", "https://messenger.com", "https://*.messenger.com"))
         }
@@ -485,6 +491,9 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         """.trimIndent(), "text/html", "UTF-8", null)
     }
 
+    // Physical WebView content bounds, not Android screen/status/navigation bars.
+    private fun viewportScript(width: Int, height: Int) = "window.__fproViewport={width:$width,height:$height};"
+
     private fun inject() {
         // The independent double-tap shortcut uses only delegated listeners.
         // DOM filters/styles still require the page-enhancement master switch.
@@ -498,7 +507,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         }
         if (!Navigation.isFacebook(web.url ?: "")) return
         enhancementsInstalled = enhance
-        web.evaluateJavascript(script.replace("__CONFIG__", prefs.scriptConfig()), null)
+        web.evaluateJavascript(viewportScript(web.width, web.height) + script.replace("__CONFIG__", prefs.scriptConfig()), null)
         if (enhance && prefs.flag("liveColor")) web.evaluateJavascript("document.querySelector('meta[name=\"theme-color\"]')?.content || getComputedStyle(document.body).backgroundColor") { result ->
             try {
                 val value = JSONArray("[$result]").getString(0)

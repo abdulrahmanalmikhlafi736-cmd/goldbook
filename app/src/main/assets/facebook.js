@@ -524,6 +524,15 @@
   const link=rawPermalink(video),old=identityBaseline.get(video);
   return staleIdentity(video)&&old&&link===old.link?'':link; // Never reuse the entry clip of a recycled player.
  }
+ function playerViewportBottom(){
+  const size=window.__fproViewport;
+  const vv=window.visualViewport;
+  const cssWidth=vv&&vv.scale>1?vv.width:innerWidth;
+  const measured=size&&size.width>0&&size.height>0?size.height*cssWidth/size.width:innerHeight;
+  const bottom=Number.isFinite(measured)&&measured>0?measured:innerHeight;
+  const keyboard=vv&&vv.height<innerHeight*.75&&document.activeElement&&document.activeElement.matches('input,textarea,[contenteditable="true"]');
+  return keyboard?Math.min(bottom,vv.offsetTop+vv.height):bottom;
+ }
  function immersivePlayer(video,rect){
   // Letterboxed Reels can have a short video rectangle in a full-height player.
   // Do not infer the player bottom from the decoded video's aspect ratio.
@@ -594,9 +603,7 @@
    const r=video.getBoundingClientRect();overlay.hidden=!(r.width>0&&r.height>0&&r.bottom>0&&r.right>0&&r.top<innerHeight&&r.left<innerWidth) || !!(dialog&&!dialog.contains(video));
    if(cfg.rainbow&&!overlay.hidden){if(!video.hasAttribute('data-fpro-rainbow'))video.setAttribute('data-fpro-rainbow','');}else video.removeAttribute('data-fpro-rainbow');
    overlay.style.left=r.left+'px';overlay.style.top=r.top+'px';overlay.style.width=r.width+'px';
-   const vv=window.visualViewport;
-   const keyboard=vv&&vv.height<innerHeight*.75&&document.activeElement&&document.activeElement.matches('input,textarea,[contenteditable="true"]');
-   const viewportBottom=keyboard?Math.min(innerHeight,vv.offsetTop+vv.height):innerHeight;
+   const viewportBottom=playerViewportBottom();
    const immersive=immersivePlayer(video,r);
    let bottom=immersive?viewportBottom:r.bottom;
    let native=null;
@@ -612,7 +619,11 @@
    // Replace only a confidently identified time slider, never volume/play/account controls.
    // Keep its layout slot so the site does not jump; restore it when our tools leave.
    if(native)bottom=Math.min(viewportBottom,native.rect.top+native.rect.height/2+13.5);
-   overlay.style.height=Math.max(0,bottom-r.top)+'px';button.hidden=!cfg.downloads;track.hidden=!cfg.rainbow;placeButton();progress();
+   overlay.style.height=Math.max(0,bottom-r.top)+'px';
+   // Anchor the seek surface in viewport coordinates, independent of video height
+   // and any site's inherited bottom/position rules on player descendants.
+   track.style.setProperty('position','fixed','important');track.style.setProperty('top',(bottom-32)+'px','important');track.style.setProperty('left',(r.left+16)+'px','important');track.style.setProperty('width',Math.max(0,r.width-32)+'px','important');track.style.setProperty('right','auto','important');track.style.setProperty('bottom','auto','important');
+   button.hidden=!cfg.downloads;track.hidden=!cfg.rainbow||overlay.hidden;placeButton();progress();
   },dispose(){releaseNativeTrack();video.removeAttribute('data-fpro-rainbow');video.removeEventListener('play',scheduleLayout);video.removeEventListener('pause',scheduleLayout);if(resize)resize.unobserve(video);clearTimeout(timer);events.forEach(name=>video.removeEventListener(name,progress));overlay.remove();}});
 
  }
@@ -736,7 +747,7 @@
    .fpro-download{position:absolute;pointer-events:auto;box-sizing:border-box;display:grid;place-items:center;width:44px!important;height:44px!important;min-width:44px;min-height:44px;padding:0!important;border:1px solid #ffffff80!important;border-radius:50%!important;background:rgba(255,255,255,.12)!important;box-shadow:none!important;color:#fff!important;backdrop-filter:blur(2px);touch-action:none;-webkit-user-select:none;line-height:1}.fpro-download svg{pointer-events:none;color:inherit!important;background:none!important}
    .fpro-track{position:absolute;bottom:0;left:16px;right:16px;height:32px;overflow:visible!important;pointer-events:auto;background:transparent!important;box-shadow:none!important;border:0!important}
    .fpro-fill{position:absolute;overflow:visible!important;bottom:12px;left:0;height:3px;border-radius:4px;background:linear-gradient(90deg,red,orange,yellow,lime,cyan,blue,violet);width:0}
-   .fpro-ball{position:absolute;right:-10px;top:-8.5px;width:20px!important;height:20px!important;display:block!important;font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif!important;font-size:18px!important;line-height:20px!important;text-align:center!important;overflow:visible!important;animation:fpro-ball-roll 3s linear infinite;animation-play-state:paused;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden;pointer-events:none}
+   .fpro-ball{position:absolute;right:-10px;top:-8.5px;width:20px!important;height:20px!important;display:block!important;font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif!important;font-size:16px!important;line-height:20px!important;text-align:center!important;overflow:visible!important;animation:fpro-ball-roll 3s linear infinite;animation-play-state:paused;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden;pointer-events:none}
    @keyframes fpro-ball-roll{from{transform:translateZ(0) rotate(0deg)}to{transform:translateZ(0) rotate(360deg)}}
    [data-fpro-native-seek]{visibility:hidden!important;pointer-events:none!important}
    video[data-fpro-rainbow]::-webkit-media-controls-timeline{display:none!important}
@@ -807,7 +818,7 @@
   if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
  });
  function colorReport(){
-  const report={version:31,media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
+  const report={version:32,media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}

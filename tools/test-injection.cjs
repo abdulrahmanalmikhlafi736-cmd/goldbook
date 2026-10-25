@@ -317,6 +317,14 @@ function fixture(html,config={},captureDownload=false) {
    assert.equal(replacement.style.display,'','A recycled CTA that becomes Search must be restored');
    repair.run({...repairConfig,appBanner:false});assert(!repair.doc.querySelector('[data-fpro-reference-noapp],[data-fpro-hidden]'),'Turning CTA filtering off restores markers: '+repair.doc.body.innerHTML);
   }
+  const nativeBounds=fixture('<main><article><video></video></article><input type="range" id="lowSeek" aria-label="Video progress"></main>',{enhance:false});
+  nativeBounds.window.history.replaceState({},'', '/reel/native-bounds');nativeBounds.window.__fproViewport={width:1024,height:824};
+  nativeBounds.doc.querySelector('video').getBoundingClientRect=()=>({left:0,top:200,right:320,bottom:360,width:320,height:160});
+  nativeBounds.doc.getElementById('lowSeek').getBoundingClientRect=()=>({left:12,top:790,right:308,bottom:810,width:296,height:20});
+  nativeBounds.run({enhance:true,rainbow:true});assert(nativeBounds.doc.getElementById('lowSeek').hasAttribute('data-fpro-native-seek'),'Native viewport bounds admit a footer below the shorter reported innerHeight');
+  assert.equal(nativeBounds.doc.querySelector('.fpro-track').style.top,'781.5px','Seek line is fixed to the real footer, not the caption');
+  assert.equal(nativeBounds.doc.querySelector('.fpro-track').style.getPropertyPriority('top'),'important');
+  assert.equal(nativeBounds.window.getComputedStyle(nativeBounds.doc.querySelector('.fpro-ball')).fontSize,'16px','Slightly smaller original ball');
   const reaction=fixture('<article><video></video></article><div role="dialog" id="reactionBackdrop" style="background:rgba(0,0,0,.2)"><div style="background:#242526">Reactions</div></div>',{enhance:true,amoled:true,dark:true});
   assert.equal(reaction.window.getComputedStyle(reaction.doc.getElementById('reactionBackdrop')).backgroundColor,'rgba(0, 0, 0, 0.2)','Do not force a full-screen reaction backdrop opaque in AMOLED');
   assert(!reaction.doc.getElementById('fpro-style').textContent.includes('--dialog-background:'),'Do not globally override the site dialog surface token');

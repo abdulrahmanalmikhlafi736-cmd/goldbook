@@ -38,13 +38,14 @@ class VideoOverlayRegressionTest {
                     override fun onPageFinished(view: WebView, url: String) {
                         view.evaluateJavascript("!!document.getElementById('fixtureVideo') && !window.overlayTestStarted") { ready ->
                             if (ready != "true") return@evaluateJavascript
-                            view.evaluateJavascript("window.overlayTestStarted=true;" + source) {
+                            view.evaluateJavascript("window.overlayTestStarted=true;window.__fproViewport={width:${view.width},height:${view.height}};" + source) {
                                 view.evaluateJavascript("""
                                     (async()=>{
                                      try{
                                       const frames=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
                                       const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
                                       history.replaceState({},'', '/reel/letterboxed');
+                                      Object.defineProperty(window,'innerHeight',{value:innerHeight-56,configurable:true});
                                       const v=document.getElementById('fixtureVideo'),cta=document.getElementById('fixtureCTA');
                                       window.fixturePlaying=false;
                                       Object.defineProperty(v,'paused',{get:()=>!window.fixturePlaying});
@@ -57,7 +58,7 @@ class VideoOverlayRegressionTest {
                                       for(const time of [0,60,120]){
                                        v.currentTime=time;v.dispatchEvent(new Event('timeupdate'));await frames();
                                        const b=ball.getBoundingClientRect(),r=overlay.getBoundingClientRect();
-                                       fits.push(b.width>=15&&b.height>=15&&b.left>=r.left&&b.right<=r.right&&b.top>=r.top&&b.bottom<=r.bottom&&b.bottom<=innerHeight);
+                                       fits.push(b.width>=15&&b.height>=15&&b.left>=r.left&&b.right<=r.right&&b.top>=r.top&&b.bottom<=r.bottom&&b.bottom<=window.__fproViewport.height*innerWidth/window.__fproViewport.width);
                                       }
                                       window.fixturePlaying=true;v.dispatchEvent(new Event('play'));await frames();
                                       const before=getComputedStyle(ball).transform;await sleep(180);const after=getComputedStyle(ball).transform;
@@ -70,7 +71,7 @@ class VideoOverlayRegressionTest {
                                       window.__fpro.update({...config,rainbow:false,amoled:true,dark:true});await frames();
                                       const backdrop=document.createElement('div');backdrop.setAttribute('role','dialog');backdrop.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.2)';document.body.appendChild(backdrop);await frames();
                                       const transparentReaction=getComputedStyle(backdrop).backgroundColor==='rgba(0, 0, 0, 0.2)';
-                                      window.overlayResults=JSON.stringify({transparentReaction,ctaHidden,search:getComputedStyle(document.getElementById('fixtureSearch')).display!=='none',fits,rotates:before!==after,slow:getComputedStyle(ball).animationDuration==='3s',stops:paused===stopped,belowCaption:line.top>document.getElementById('fixtureCaption').getBoundingClientRect().bottom,aligned,oneTimeline,restored:getComputedStyle(native).visibility!=='hidden'});
+                                      window.overlayResults=JSON.stringify({smallBall:getComputedStyle(ball).fontSize==='16px',transparentReaction,ctaHidden,search:getComputedStyle(document.getElementById('fixtureSearch')).display!=='none',fits,rotates:before!==after,slow:getComputedStyle(ball).animationDuration==='3s',stops:paused===stopped,belowCaption:line.top>document.getElementById('fixtureCaption').getBoundingClientRect().bottom,aligned,oneTimeline,restored:getComputedStyle(native).visibility!=='hidden'});
                                      }catch(error){window.overlayResults=JSON.stringify({error:String(error)});}
                                     })()
                                 """.trimIndent(), null)
@@ -101,7 +102,7 @@ class VideoOverlayRegressionTest {
             assertTrue("Actual Chromium animation/layout fixture must complete", done.await(15, TimeUnit.SECONDS))
             val data = org.json.JSONObject(org.json.JSONArray("[${result.get()}]").getString(0))
             assertFalse("Fixture error: $data", data.has("error"))
-            for (key in listOf("transparentReaction", "ctaHidden", "search", "rotates", "slow", "stops", "belowCaption", "aligned", "oneTimeline", "restored")) {
+            for (key in listOf("smallBall", "transparentReaction", "ctaHidden", "search", "rotates", "slow", "stops", "belowCaption", "aligned", "oneTimeline", "restored")) {
                 assertTrue("$key failed: $data", data.getBoolean(key))
             }
             val fits = data.getJSONArray("fits")

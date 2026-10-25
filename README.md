@@ -23,6 +23,10 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 يوجد Workflow في `.github/workflows/android.yml`: عند دفع التغييرات إلى GitHub أو تشغيله يختبر ويبني ويرفع APK إلى **Artifacts → FPRO-0.0.1-debug**. هذا ملف بناء مُعدّ للتنفيذ وليس ادعاءً بأنه نُفّذ بالفعل.
 
+## إصلاحات البناء32
+
+اعتماد قياس محتوى WebView الأصلي لتثبيت الشريط في أسفل الريلز عندما يختلف innerHeight، وتثبيت سطح التقدم بإحداثيات صريحة مع محاذاته بشريط الوقت الأصلي المكتشف. تصغير الكرة الأصلية من18px إلى16px دون تغيير مدة دورانها. [التفاصيل وحدود التحقق](docs/FIXES-32.md). Android قيد التنفيذ.
+
 ## إصلاحات البناء31
 
 منع فرض خلفية مصمتة على حوار التفاعلات في الداكن/AMOLED، وإخراج أدوات الفيديو من body المحوّل لتصحيح الإحداثيات، وضبط أسفل الريلز والتخفيف من استعلامات المنزلق المتكررة. استعادة الكرة ⚽️ بدل الرسم التقريبي مع دوران3s ومساحة كاملة. [التفاصيل وحدود التحقق](docs/FIXES-31.md). نجح [البناء وlint وJVM/DOM](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40201689139). أكد [فحص XML](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40202267898) نجاح اختبار شفافية التفاعلات ومحاذاة الشريط مع body محوّل واكتمال الكرة ودورانها/توقفها على API29 وAPI35. مجموعة الأجهزة **2/4**: API29 debug وAPI35 compact نجحا؛ API35 debug أخفق اختبار بدء فيديو PiP وبكسل شارة، وAPI36 compact أخفق الوصول إلى HTML الاختبار المحلي. [APK المصغر المختبر على Android15](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40201689146/artifacts/12602570851)، مصدر التطبيق `95ceffe`. لا قياس FPS ولا مصادقة على حساب المستخدم.
