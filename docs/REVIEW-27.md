@@ -30,3 +30,11 @@
 - Android: اختبار خدمة وإشعار وMediaSession حقيقيين باستخدام Controls اختبار لا يرسل أي حدث تشغيل؛ يعزل سباق الحالة القديمة، ثم يتحقق أن تقرير توقف حقيقي يتغلب على طلب Play. هذا ليس اختبار فك ترميز صوت، والذي يبقى في اختبار PiP المنفصل.
 
 نتائج الأجهزة والبناء لا تُستنتج من الاختبار المحلي؛ تُوثق بعد اكتمال GitHub Actions. لا يوجد اختبار حساب Meta مسجّل هنا.
+
+## النتائج المنفذة
+
+- مصدر التطبيق والاختبارات: `3759bcd`؛ لا SDK/Java محليًا، لذلك تحقق Android من GitHub Actions.
+- البناء وlint وJVM/DOM: PASS في [40175628410](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40175628410).
+- مجموعة الأجهزة: **2/4** في [40175628384](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40175628384): API29 debug وAPI36 compact PASS؛ API35 debug أخفق بدء فيديو PiP بلمسة، وAPI35 compact أخفق شرط بقاء عينات زر الدخول زرقاء. السبب غير محسوم، ولا نستنتج أنه خلل جديد أو أنه بلا أثر.
+- فحص XML المستقل [40176123494](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40176123494): اختبار الخدمة/الإشعار الجديد **PASS على API29 وAPI35**. التحديد/Copy الأصلي PASS على كليهما. الصوت/PiP PASS على API29 وFAIL على API35. الإطار المبكر/AMOLED PASS على API35 وSKIP على API29 غير الداعم.
+- APK المصغر المختبر على API36: artifact `12592710270`، ZIP بحجم 998106 بايت. اختبار compact ليس اختبار فك ترميز الصوت الخاص بنسخة debug.
