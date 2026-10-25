@@ -25,7 +25,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## إصلاحات البناء 29
 
-إعادة إخفاء CTA عندما يعيد الموقع كتابة تنسيقه، وكرة تقدم SVG كاملة تدور أثناء التشغيل وتتوقف مع الإيقاف، ومحاذاة شريط FPRO مع منزلق الوقت الأصلي المعروف بدل تكديسهما مع استعادة الأصل عند تعطيل الميزة. حماية البحث والحساب والصوت والتحديد 23 مستمرة. [التفاصيل وحدود اكتشاف المشغّلات](docs/FIXES-29.md). نتائج Android قيد التنفيذ.
+إعادة إخفاء CTA عندما يعيد الموقع كتابة تنسيقه، وكرة تقدم SVG كاملة تدور أثناء التشغيل وتتوقف مع الإيقاف، ومحاذاة شريط FPRO مع منزلق الوقت الأصلي المعروف بدل تكديسهما مع استعادة الأصل عند تعطيل الميزة. حماية البحث والحساب والصوت والتحديد 23 مستمرة. [التفاصيل وحدود اكتشاف المشغّلات](docs/FIXES-29.md). نجح [البناء وlint وJVM/DOM](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40199322563). أكد [فحص XML المستقل](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40199862344) نجاح اختبار CTA/الكرة/المحاذاة والتحديد/Copy والإشعار على API29 وAPI35. نجحت **2 من 4 إعدادات الأجهزة** في [40199322592](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40199322592): API29 debug وAPI35 compact؛ فشل API35 debug في بدء فيديو PiP بلمسة، وAPI36 compact في فحص لون زر الدخول. [APK المصغر المختبر على Android 15](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40199322592/artifacts/12600897975)، مصدر التطبيق `7892e49`. لا توجد مصادقة على حساب المستخدم أو كل طبقات Meta.
 
 ## تحسينات البناء 28
 

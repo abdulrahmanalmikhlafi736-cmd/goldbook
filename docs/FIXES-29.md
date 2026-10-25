@@ -22,4 +22,12 @@
 - Android WebView: اختبار Chromium حقيقي لحدود الكرة عند 0/50/100%، اختلاف transform أثناء الدوران وثباته بعد التوقف، ومحاذاة شريط واحد، وإعادة إخفاء CTA. حالة الفيديو فيه مضبوطة للاختبار وليست اختبار فك ترميز/حساب Facebook.
 - اختبار التحديد المطابق لـ23 واختبارات الانحدار السابقة مستمرة.
 
-نتائج Android قيد التنفيذ؛ نجاح DOM ليس إثبات إصلاح الحساب الفعلي.
+## نتائج التنفيذ
+
+- المصدر النهائي: `7892e4904cf0c9031df3219de2577329907b0d5f`، versionCode29/name0.0.1.
+- [البناء 40199322563](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40199322563): PASS، بما فيه lint وJVM/DOM وAPK debug/compact.
+- [فحص XML المستقل 40199862344](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40199862344): اختبار `resurrectedCtaAndCompleteRotatingBallWithOneTimeline` **PASS على API29 وAPI35**؛ التحديد/النسخ الأصلي والإشعار PASS على كليهما. اختبار document-start/AMOLED PASS على API35 وSKIP على API29 غير الداعم.
+- مجموعة الأجهزة [40199322592](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40199322592): **2/4**؛ API29 debug وAPI35 compact PASS. API35 debug FAIL في شرط بدء فيديو PiP بلمسة، وAPI36 compact FAIL في شرط لون زر الدخول؛ لا نعدهما ناجحين ولا نجزم بسبب إخفاقهما.
+- APK المصغر المختبر على API35: artifact `12600897975`، ZIP بحجم 999646 بايت. الاختبار المصغر لا يعادل اختبار فك ترميز صوت نسخة debug.
+- الجولة الأولى أخفق فيها تخطيط صفحة الاختبار على API29 مع استخدام inset؛ استُبدل بحدود top/right/bottom/left صريحة في الصفحة وفي منزلق التطبيق، ثم نجح اختبار API29. لم تُحذف Assertions فشل التخطيط/الدوران لتجاوز الاختبار.
+- هذه نتائج Chromium وصفحات اختبار محلية، لا إثبات لكل مشغّلات الحساب الفعلي. قد يبقى شريط خاص لا يحمل تعريف وقت موثوقًا؛ لا نخفي البحث/الحساب/الصوت لمحاولة مطاردته بالتخمين.
