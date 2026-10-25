@@ -25,7 +25,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## إصلاحات البناء33
 
-استبدال أدوات الفيديو الأصلية فعليًا عند وجود video.controls في مشغّل الريلز مع تفعيل الشريط المتقدم؛ توفير تشغيل/إيقاف وصوت ووقت وملء شاشة مرتبطة بالفيديو نفسه، واستعادة الأصل عند تعطيل الميزة. لم نعد نعتمد على CSS داخل أدوات Chromium الأصلية وحده. [التفاصيل والحدود](docs/FIXES-33.md). Android قيد التنفيذ.
+استبدال أدوات الفيديو الأصلية فعليًا عند وجود video.controls في مشغّل الريلز مع تفعيل الشريط المتقدم؛ توفير تشغيل/إيقاف وصوت ووقت وملء شاشة مرتبطة بالفيديو نفسه، واستعادة الأصل عند تعطيل الميزة. لم نعد نعتمد على CSS داخل أدوات Chromium الأصلية وحده. [التفاصيل والحدود](docs/FIXES-33.md). نجح [البناء وlint وJVM/DOM](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40205870623). أكد [فحص XML](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40206414418) نجاح اختبار تعطيل controls الأصلية ومنع عودتها واستعادتها والصوت والهندسة على API29 وAPI35. مجموعة الأجهزة **3/4**: API29 debug وAPI35/36 compact نجحت؛ API35 debug أخفق اختبار بدء فيديو PiP. [APK المختبر على Android15](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40205870619/artifacts/12603488844)، مصدر التطبيق `3e0bd58`. لا يُعد هذا إثباتًا لنوع لوحة الحساب الفعلي أو إصلاحه.
 
 ## إصلاحات البناء32
 

@@ -15,4 +15,12 @@
 DOM: تعطيل خاصية controls، منع عودتها من الموقع، ربط أزرار البديل بواجهات الوسائط، سحب فعلي لـcurrentTime، استعادة الأصل عند التعطيل.
 Chromium: فيديو له controls أصلية في مشغّل طويل/تذييل شقيق؛ تحقق الخاصية والبديل وزر الصوت وإعادة الموقع تفعيل controls ثم الاستعادة، إلى جانب هندسة الشريط والكرة والخلفية الشفافة.
 
-هذه الاختبارات لا تثبت أن واجهة الحساب الفعلية من النوع ذاته؛ إذا لم تكن اللوحة الرمادية صادرة عن controls للفيديو، فلا نوقف عناصر مجهولة بالتخمين. نتائج Android قيد التنفيذ.
+هذه الاختبارات لا تثبت أن واجهة الحساب الفعلية من النوع ذاته؛ إذا لم تكن اللوحة الرمادية صادرة عن controls للفيديو، فلا نوقف عناصر مجهولة بالتخمين.
+
+## نتائج التنفيذ
+
+- مصدر التطبيق `3e0bd58e8fe7da9b32022673061f71ed1738e4b3`، versionCode33/name0.0.1.
+- [البناء40205870623](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40205870623): PASS مع lint/JVM/DOM وdebug/compact APK.
+- [فحص XML40206414418](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40206414418): اختبار controlsRemoved/soundWorks/staysRemoved/controlsRestored وبقية الهندسة/الكرة/الشفافية **PASS على API29 وAPI35**. ملكية controls مثبتة على عنصر فيديو الاختبار، وليست إثبات نوع مشغّل حساب المستخدم.
+- [الأجهزة40205870619](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40205870619): **3/4**؛ API29 debug وAPI35/36 compact PASS. API35 debug FAIL في شرط بدء فيديو PiP بلمسة، ولا يُحسب ناجحًا.
+- APK API35: artifact12603488844، ZIP1002243بايت. API36: artifact12604090037، ZIP1002240بايت.
