@@ -322,6 +322,9 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                 // Install lightweight filters once real content has committed;
                 // do not wait for all Facebook resources or reload the player.
                 if (Navigation.isFacebook(url.orEmpty())) inject()
+                // Start bounded position recovery at commit, not after every
+                // remote image/tracker finishes; lazy content can arrive later.
+                restorePosition()
             }
             override fun onPageFinished(view: WebView, url: String?) {
                 CookieManager.getInstance().flush()
