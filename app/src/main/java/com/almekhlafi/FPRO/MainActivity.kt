@@ -78,6 +78,8 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private var loadState by mutableStateOf("تهيئة محرك الويب")
     private var failure by mutableStateOf<String?>(null)
     private var pageColor by mutableStateOf(Color(0xFF1877F2))
+    private var fullscreenSensorAvailable = false
+    private var fullscreenLastAngle = android.view.OrientationEventListener.ORIENTATION_UNKNOWN
     private var fullscreenRotation: FullscreenRotationGate? = null
     private var fullscreenOrientationListener: android.view.OrientationEventListener? = null
     private var fullView: View? = null
@@ -541,7 +543,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code ${BuildConfig.VERSION_CODE} / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff / Audio: $audioOnly / Early: ${earlyScript != null} / Gesture required: ${web.settings.mediaPlaybackRequiresUserGesture} / Music active: ${getSystemService(android.media.AudioManager::class.java).isMusicActive}"
+        return "FPRO code ${BuildConfig.VERSION_CODE} / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff / Audio: $audioOnly / Early: ${earlyScript != null} / Gesture required: ${web.settings.mediaPlaybackRequiresUserGesture} / Fullscreen: ${fullView != null} / Orientation request: $requestedOrientation / Sensor available: $fullscreenSensorAvailable / Last angle: $fullscreenLastAngle / Turn gate: ${fullscreenRotation != null} / Music active: ${getSystemService(android.media.AudioManager::class.java).isMusicActive}"
     }
 
     private fun showDisplayTest() {
@@ -632,6 +634,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         // Keep portrait on entry regardless of the first sensor pose. A real
         // subsequent turn releases the lock; Android then handles both axes.
         requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        fullscreenLastAngle = android.view.OrientationEventListener.ORIENTATION_UNKNOWN
         fullscreenRotation = FullscreenRotationGate()
         fullscreenOrientationListener = object : android.view.OrientationEventListener(this) {
             override fun onOrientationChanged(orientation: Int) {
@@ -639,10 +642,11 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                 // Lifetime/identity guards, not focus, delimit this listener.
                 if (fullscreenOrientationListener === this) onFullscreenOrientation(orientation)
             }
-        }.also { if (it.canDetectOrientation()) it.enable() }
+        }.also { fullscreenSensorAvailable = it.canDetectOrientation(); if (fullscreenSensorAvailable) it.enable() }
     }
     internal fun onFullscreenOrientation(angle: Int) {
         if (fullView == null || isFinishing || isDestroyed) return
+        fullscreenLastAngle = angle
         if (fullscreenRotation?.observe(angle) != true) return
         requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
         // Do not keep imposing landscape/portrait decisions over Android's own
