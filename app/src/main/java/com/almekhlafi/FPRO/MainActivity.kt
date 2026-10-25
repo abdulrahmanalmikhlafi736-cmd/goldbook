@@ -704,7 +704,9 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         val position = pendingPosition ?: return
         if (!prefs.flag("rememberPosition", true) || positionUrl(position) != web.url) return
         pendingPosition = null
-        web.evaluateJavascript(positionScript + "\nwindow.__fproPosition.restore(" + org.json.JSONObject.quote(position) + ")", null)
+        web.evaluateJavascript(positionScript + "\nwindow.__fproPosition.restore(" + org.json.JSONObject.quote(position) + ")") { accepted ->
+            if (accepted == "false" && !sessionClosing) { lastPosition = null; sessions.clear() }
+        }
     }
     override fun onPause() {
         capturePosition(true)

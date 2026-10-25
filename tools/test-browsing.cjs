@@ -14,7 +14,7 @@ function fixture(html){const d=new JSDOM('<!doctype html><body>'+html+'</body>',
  // Real gestures win immediately; delayed layout restoration must stop.
  w.dispatchEvent(new w.Event('touchstart'));w.scrollTo(0,55);assert.equal(w.scrollY,55);
  assert.equal(w.__fproPosition.restore({...data,url:'https://evil.invalid/'}),false);
- w.document.body.innerHTML='<input type="password" value="PRIVATE_PASSWORD">';assert.equal(JSON.parse(w.__fproPosition.capture()).login,true);
+ w.document.body.innerHTML='<input type="password" value="PRIVATE_PASSWORD">';assert.equal(JSON.parse(w.__fproPosition.capture()).login,true);assert.equal(w.__fproPosition.restore(snapshot),false,'Never restore into a password form');
  w.close();
 }
 {

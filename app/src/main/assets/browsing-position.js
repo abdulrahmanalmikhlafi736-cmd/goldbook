@@ -13,9 +13,9 @@
  function restore(raw){
   if(cancelRestore)cancelRestore();
   let s;try{s=typeof raw==='string'?JSON.parse(raw):raw;}catch(_){return false;}
-  if(!s||s.v!==1||s.url!==location.href)return false;
+  if(!s||s.v!==1||s.url!==location.href||document.querySelector('input[type="password"]'))return false;
   // A warm return must not disturb a live document that kept its exact position.
-  if(s.token===token&&Math.abs(scrollY-s.y)<3&&(s.containers||[]).every(c=>{try{const el=document.querySelector(c.path);return el&&Math.abs(el.scrollTop-c.y)<3;}catch(_){return false;}}))return true;
+  if(s.token===token&&Math.abs(scrollX-s.x)<3&&Math.abs(scrollY-s.y)<3&&(s.containers||[]).every(c=>{try{const el=document.querySelector(c.path);return el&&Math.abs(el.scrollLeft-c.x)<3&&Math.abs(el.scrollTop-c.y)<3;}catch(_){return false;}}))return true;
   let stopped=false,timer=null,observer=null,settled=0,last=null;
   function stop(){if(stopped)return;stopped=true;clearTimeout(timer);if(observer)observer.disconnect();['touchstart','pointerdown','wheel','keydown'].forEach(e=>window.removeEventListener(e,stop,true));if(cancelRestore===stop)cancelRestore=null;}
   ['touchstart','pointerdown','wheel','keydown'].forEach(e=>window.addEventListener(e,stop,{capture:true,passive:true}));cancelRestore=stop;
