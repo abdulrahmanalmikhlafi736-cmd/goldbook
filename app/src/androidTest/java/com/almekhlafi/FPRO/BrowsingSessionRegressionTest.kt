@@ -74,6 +74,7 @@ class BrowsingSessionRegressionTest {
                             if (loaded != "true") return@evaluateJavascript
                             view.evaluateJavascript(source + "\n" + """
                                 (async()=>{
+                                 try {
                                   window.fixtureStarted=true;window.fixtureToken='unchanged';
                                   const frames=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
                                   await frames();const ready=($ready);scrollTo(0,760);document.getElementById('nested').scrollTop=320;await frames();
@@ -81,6 +82,7 @@ class BrowsingSessionRegressionTest {
                                   scrollTo(0,0);document.getElementById('nested').scrollTop=0;
                                   const accepted=window.__fproPosition.restore(checkpoint);await frames();
                                   window.sessionFixture=JSON.stringify({ready,accepted,y:scrollY,nested:document.getElementById('nested').scrollTop});
+                                 } catch(error) { window.sessionFixture=JSON.stringify({error:String(error)}); }
                                 })()
                             """.trimIndent(), null)
                             fun probe(attempt: Int) {
@@ -102,6 +104,7 @@ class BrowsingSessionRegressionTest {
             }
             assertTrue("Offline fixture must finish after native bootstrap", done.await(15, TimeUnit.SECONDS))
             val data = org.json.JSONObject(org.json.JSONArray("[${result.get()}]").getString(0))
+            assertFalse("Fixture script error: $data", data.has("error"))
             assertTrue("Visible-content readiness: $data", data.getBoolean("ready")); assertTrue("Position restore accepted: $data", data.getBoolean("accepted"))
             assertEquals(760, data.getInt("y")); assertEquals(320, data.getInt("nested"))
             scenario.moveToState(Lifecycle.State.CREATED)

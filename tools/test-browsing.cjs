@@ -1,6 +1,7 @@
 const {JSDOM}=require('jsdom');
 const fs=require('node:fs'),assert=require('node:assert/strict');
 const position=fs.readFileSync('app/src/main/assets/browsing-position.js','utf8');
+assert(!position.includes('?.')&&!position.includes('??'),'Keep the session helper compatible with older WebView syntax');
 const ready=fs.readFileSync('app/src/main/assets/page-ready.js','utf8');
 function fixture(html){const d=new JSDOM('<!doctype html><body>'+html+'</body>',{url:'https://m.facebook.com/',runScripts:'outside-only',pretendToBeVisual:true});const w=d.window;let y=0;Object.defineProperty(w,'scrollY',{get:()=>y});w.scrollTo=(x,n)=>{y=n};w.eval(position);return {w,d};}
 {

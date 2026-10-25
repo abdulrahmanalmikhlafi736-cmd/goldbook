@@ -27,7 +27,7 @@
    if(matched){const delta=matched.getBoundingClientRect().top-Number(s.anchor.top||0);const scrollParent=scrollers().find(el=>el.contains(matched));if(scrollParent)scrollParent.scrollTop+=delta;else scrollTo(scrollX,scrollY+delta);}
    else {if(s.anchor)ok=false;scrollTo(clamp(s.x),clamp(s.y));if(Math.abs(scrollY-clamp(s.y))>3)ok=false;}
    // Allow delayed images and feed layout to settle, but never fight a real touch.
-   const signature=[scrollY,...targets.map(c=>{try{return document.querySelector(c.path)?.scrollTop;}catch(_){return null;}}),matched?matched.getBoundingClientRect().top:null].join(',');
+   const signature=[scrollY,...targets.map(c=>{try{const el=document.querySelector(c.path);return el?el.scrollTop:null;}catch(_){return null;}}),matched?matched.getBoundingClientRect().top:null].join(',');
    settled=ok&&signature===last?settled+1:0;last=signature;
    if(settled>=5){stop();return;}timer=setTimeout(tick,250);
   }
