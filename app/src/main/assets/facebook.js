@@ -582,9 +582,10 @@
     if(c.opacity==='0'&&!el.matches('input[type="range"],[role="slider"]'))continue;
     const named=/seek|progress|playback|timeline|تقدم|تقدّم|تقديم|موضع|وقت|مدة/i.test(label)||/\d{1,2}:\d{2}/.test(label);
     const bottomSlot=immersive&&r.top>=viewportBottom-90&&r.width>=rect.width*.65;
-    // An unlabeled full-width range/accessible slider in the isolated player footer
-    // is valid; a generic DIV or a narrow unlabeled/volume control is not.
-    if(!named&&!(bottomSlot&&!label.trim()&&el.matches('input[type="range"],[role="slider"],[role="progressbar"]')))continue;
+    // A full-width semantic range in an isolated player footer is eligible even
+    // with an unfamiliar localized label. Diagnostic booleans do not reveal
+    // whether an unrecognized label exists. Volume exclusions still apply.
+    if(!named&&!(bottomSlot&&el.matches('input[type="range"],[role="slider"],[role="progressbar"]')))continue;
     const nearVideo=r.top>=rect.bottom-100&&r.top<=rect.bottom+100;
     if(r.width>=Math.min(100,rect.width*.4)&&r.height>0&&r.height<=40&&(immersive?bottomSlot:nearVideo)&&r.bottom>0&&r.bottom<=viewportBottom&&r.left>=rect.left-4&&r.right<=rect.right+4)candidates.set(el,{el,rect:r,surface:seekVisualSurface(el,r)});
    }

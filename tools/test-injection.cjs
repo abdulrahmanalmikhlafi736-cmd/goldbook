@@ -367,6 +367,8 @@ function fixture(html,config={},captureDownload=false) {
   }
   {
    const f=accountPlayer(false),range=f.doc.querySelector('#paint input');
+   range.setAttribute('aria-label','فيديو');f.run({enhance:true,rainbow:false});f.run({enhance:true,rainbow:true});
+   assert.ok(range.hasAttribute('data-fpro-native-seek'),'unrecognized localized label must not veto an isolated semantic footer');
    range.setAttribute('aria-label','Volume');f.run({enhance:true,rainbow:false});f.run({enhance:true,rainbow:true});
    assert.ok(!range.hasAttribute('data-fpro-native-seek'),'transparent volume stays visible');
    f.run({enhance:true,rainbow:false});range.removeAttribute('aria-label');

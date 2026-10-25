@@ -6,7 +6,8 @@ need for another arbitrary bottom offset:
 - Both videos have `controls=false` and the same rectangle (0,39,411,730).
 - The working page has a Reels route. The broken page does not, but has the same
   isolated, full-viewport player frame (0,0,411,808).
-- The broken page has an unlabeled `input[type=range]`, opacity zero, at
+- The broken page has an `input[type=range]` with neither seek nor volume label
+  recognized by the private report, opacity zero, at
   (12,779,387,25), inside an identically sized DIV that paints the gray track.
 - The previous injected track started at y737 because the route-only test fell
   back to the video bottom; the actual site's seek center is y791.5.
@@ -16,7 +17,9 @@ need for another arbitrary bottom offset:
 1. Recognize an isolated, near-full-width player in a bounded viewport-sized
    ancestor, independently of the URL. Stop before body, HTML and feed roots;
    reject multiple visible videos. Existing Reels/Watch/fullscreen handling stays.
-2. Accept transparent semantic range/slider hit layers. Still reject absent,
+2. Accept transparent semantic range/slider hit layers, including unfamiliar
+   localized labels in the isolated footer (report booleans cannot prove a label
+   is absent). Still reject absent,
    narrow, volume/sound/brightness and ambiguous controls.
 3. Hide the matching paint surface only when it is a small, text-free DIV/SPAN
    with almost identical geometry, exactly one semantic range and no other
@@ -34,6 +37,8 @@ selection, download handoff and other existing feature code are unchanged.
 ## Verification
 
 - Local JavaScript syntax and full DOM regression suite: passed.
+- The same paired test fails against build34 at the exact reported y737, and
+  passes against build35.
 - Numeric-only paired account report fixture: working route, non-Reels
   transparent range plus gray wrapper, restoration, volume protection and
   multiple-visible-video rejection: passed.
