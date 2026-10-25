@@ -25,7 +25,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## إصلاحات البناء32
 
-اعتماد قياس محتوى WebView الأصلي لتثبيت الشريط في أسفل الريلز عندما يختلف innerHeight، وتثبيت سطح التقدم بإحداثيات صريحة مع محاذاته بشريط الوقت الأصلي المكتشف. تصغير الكرة الأصلية من18px إلى16px دون تغيير مدة دورانها. [التفاصيل وحدود التحقق](docs/FIXES-32.md). Android قيد التنفيذ.
+اعتماد قياس محتوى WebView الأصلي لتثبيت الشريط في أسفل الريلز عندما يختلف innerHeight، وتثبيت سطح التقدم بإحداثيات صريحة مع محاذاته بشريط الوقت الأصلي المكتشف. تصغير الكرة الأصلية من18px إلى16px دون تغيير مدة دورانها. [التفاصيل وحدود التحقق](docs/FIXES-32.md). نجح [البناء وlint وJVM/DOM](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40203431833). أكد [فحص XML](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40204023478) نجاح اختبار محاذاة الشريط بالقياس الأصلي والكرة16px على API29 وAPI35. مجموعة الأجهزة **3/4**: API29 debug وAPI35/36 compact نجحت؛ API35 debug أخفق اختبار بدء فيديو PiP بلمسة. [APK المختبر على Android15](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40203431907/artifacts/12603077521)، مصدر التطبيق `4eab5e1`. لا يُعد نجاح الاختبار تأكيدًا لإصلاح الحساب.
 
 ## إصلاحات البناء31
 

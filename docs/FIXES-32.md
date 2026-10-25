@@ -12,4 +12,13 @@
 
 اختبارات DOM وChromium تتعمد جعل innerHeight أقل من نافذة المحتوى بـ56px مع بقاء CSS layout بحجمه الحقيقي، وتبقي شريطًا أصليًا أسفل الوصف على body محوّل. تتحقق من استخدام قياس WebView، ومحاذاة الشريط، وبقائه أسفل النص، واستعادة الأصل، وحجم الكرة16px.
 
-هذا يفحص فرضية اختلاف قياس الارتفاع ولا يثبت أنها سبب بلاغ الحساب تحديدًا؛ لا DOM مسجّل من جهاز المستخدم. نتائج Android قيد التنفيذ.
+هذا يفحص فرضية اختلاف قياس الارتفاع ولا يثبت أنها سبب بلاغ الحساب تحديدًا؛ لا DOM مسجّل من جهاز المستخدم.
+
+## نتائج التنفيذ
+
+- المصدر المختبر `4eab5e1caf9cdf66d1dc93ba787ac7a828636c5d`، versionCode32/name0.0.1.
+- [البناء40203431833](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40203431833): PASS، بما فيه lint/JVM/DOM وAPK debug/compact.
+- [فحص XML40204023478](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40204023478): اختبار اختلاف innerHeight عن أبعاد WebView ومحاذاة الشريط تحت النص وحجم الكرة16px وبقية assertions **PASS على API29 وAPI35**.
+- [الأجهزة40203431907](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40203431907): **3/4**؛ API29 debug وAPI35/36 compact PASS. API35 debug FAIL عند بدء فيديو PiP بلمسة؛ لا يُحسب ناجحًا.
+- APK المصغر المختبر على API35: artifact12603077521، ZIP1001368بايت؛ API36 artifact12602599123، ZIP1001373بايت.
+- الاختبار يحاكي فرضية هندسية ولا يثبت أن DOM الحساب نفسه يحمل منزلقًا قابلًا للاكتشاف أو أن السبب الفعلي محصور في innerHeight.
