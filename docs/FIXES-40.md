@@ -20,4 +20,15 @@ Local DOM and browsing tests PASS. Pure unit cases cover arbitrary initial
 poses, initial jitter, both turn directions, zero-degree wrap and fresh re-entry.
 Native policy test injects an initial landscape pose, jitter and a later turn
 without any exact portrait reading, then checks SENSOR and portrait-on-exit.
-These are policy tests, not evidence of the owner's physical sensor. CI pending.
+These are policy tests, not evidence of the owner's physical sensor.
+
+Build/lint/JVM/DOM PASS: [40246487870](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40246487870).
+Native policy/history/continuity tests PASS API29 and API35, confirmed by
+[XML inspection 40246992551](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40246992551).
+Full matrix [40246487948](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40246487948): **2/4**. API35/36 compact PASS; both API29/35 debug fail the real-tap playback prerequisite in the PiP test. Neither failure is counted as a success or claimed fixed.
+[Exact API35 tested APK](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40246487948/artifacts/12618674197), ZIP 1,013,001 bytes; source `ace2c796c949cb8739deb18ca65cbcf809b6bec2`.
+[Clean complete source](../downloads/FPRO-build40-source.zip).
+The existing explicit native diagnostics now include only bounded in-memory
+orientation request, sensor capability, last angle and gate/fullscreen booleans;
+no motion log, persistence or upload. Actual account/hardware confirmation remains
+necessary.
