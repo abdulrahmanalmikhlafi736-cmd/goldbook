@@ -46,3 +46,8 @@ assert(showFull.includes('startFullscreenRotation()'),'Fullscreen starts the por
 assert(!showFull.includes('SCREEN_ORIENTATION_SENSOR'),'Do not unlock the sensor immediately on entry');
 const closeFull=native.slice(native.indexOf('private fun closeFullscreen()'),native.indexOf('private fun systemBars('));
 assert(closeFull.includes('SCREEN_ORIENTATION_PORTRAIT'),'Leaving fullscreen restores portrait browsing');
+
+assert(!native.includes('SCREEN_ORIENTATION_SENSOR_LANDSCAPE'),'Do not permanently constrain fullscreen to one sensor axis');
+const gate=native.slice(native.indexOf('private fun startFullscreenRotation()'),native.indexOf('private fun stopFullscreenRotation()'));
+assert(!gate.includes('hasWindowFocus()'),'Fullscreen rotation must not be blocked by custom view focus');
+assert(gate.includes('SCREEN_ORIENTATION_SENSOR'),'After a turn let Android handle both orientations');

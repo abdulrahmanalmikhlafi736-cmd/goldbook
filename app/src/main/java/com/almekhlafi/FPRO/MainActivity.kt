@@ -627,29 +627,27 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun startFullscreenRotation() {
         stopFullscreenRotation()
-        // Always enter portrait. Unlock only after a portrait reading followed
-        // by a real physical turn; the initial sensor reading must not flip us.
+        // Keep portrait on entry regardless of the first sensor pose. A real
+        // subsequent turn releases the lock; Android then handles both axes.
         requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        val rotation = windowManager.defaultDisplay.rotation
-        val quarterTurn = rotation == android.view.Surface.ROTATION_90 || rotation == android.view.Surface.ROTATION_270
-        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        fullscreenRotation = FullscreenRotationGate(if (quarterTurn) !landscape else landscape)
+        fullscreenRotation = FullscreenRotationGate()
         fullscreenOrientationListener = object : android.view.OrientationEventListener(this) {
             override fun onOrientationChanged(orientation: Int) {
-                if (fullscreenOrientationListener === this && window.decorView.hasWindowFocus()) onFullscreenOrientation(orientation)
+                // Fullscreen custom views need not give the WebView window focus.
+                // Lifetime/identity guards, not focus, delimit this listener.
+                if (fullscreenOrientationListener === this) onFullscreenOrientation(orientation)
             }
         }.also { if (it.canDetectOrientation()) it.enable() }
     }
     internal fun onFullscreenOrientation(angle: Int) {
         if (fullView == null || isFinishing || isDestroyed) return
-        val position = fullscreenRotation?.observe(angle) ?: return
-        val desired = if (position == FullscreenRotationGate.Position.LANDSCAPE)
-            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        if (requestedOrientation != desired) requestedOrientation = desired
+        if (fullscreenRotation?.observe(angle) != true) return
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
+        // Do not keep imposing landscape/portrait decisions over Android's own
+        // sensor handling; this gate has completed its single purpose.
+        stopFullscreenRotation()
     }
     private fun stopFullscreenRotation() {
         fullscreenOrientationListener?.disable(); fullscreenOrientationListener = null
