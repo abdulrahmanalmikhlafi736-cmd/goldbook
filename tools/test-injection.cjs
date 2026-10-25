@@ -255,7 +255,7 @@ function fixture(html,config={},captureDownload=false) {
   video.getBoundingClientRect=()=>({left:10,top:30,right:330,bottom:230,width:320,height:200});
   Object.defineProperty(video,'duration',{configurable:true,value:120});video.currentTime=30;
   f.run({downloads:true,rainbow:true});
-  assert.equal(f.doc.querySelectorAll('.fpro-download').length,1);
+  assert.equal(f.doc.querySelectorAll('.fpro-download').length,1);assert(video.hasAttribute('data-fpro-rainbow'),'Native HTML time slider is replaced only on the active rainbow player');
   assert.equal(f.doc.querySelector('.fpro-video-tools').hidden,false);
   assert.equal(f.window.getComputedStyle(f.doc.querySelector('.fpro-track')).backgroundColor,'rgba(0, 0, 0, 0)','No dark panel under timeline');
   assert.equal(f.window.getComputedStyle(f.doc.querySelector('.fpro-fill')).bottom,'8px','Timeline reserves enough bottom space to keep the complete ball inside its player');
@@ -274,7 +274,7 @@ function fixture(html,config={},captureDownload=false) {
   f.run({downloads:true,rainbow:true});
   assert.equal(f.doc.querySelector('.fpro-video-tools').style.height,f.window.innerHeight+'px','Reels timeline follows the visible player bottom');
 
-  f.run({downloads:false,rainbow:false});assert.equal(f.doc.querySelectorAll('.fpro-video-tools').length,0);
+  f.run({downloads:false,rainbow:false});assert(!video.hasAttribute('data-fpro-rainbow'),'Removing rainbow tools restores native HTML timeline styling');assert.equal(f.doc.querySelectorAll('.fpro-video-tools').length,0);
   Object.defineProperty(video,'duration',{configurable:true,value:Infinity});f.run({rainbow:true});assert.equal(f.doc.querySelector('.fpro-seek').disabled,true,'Live stream is not falsely seekable');
   const ball=f.doc.querySelector('.fpro-ball');assert(ball.querySelector('svg circle'),'Soccer ball is a complete vector icon, not a clipped font glyph');
   assert.equal(f.window.getComputedStyle(ball).width,'16px');

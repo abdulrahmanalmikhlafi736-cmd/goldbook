@@ -570,8 +570,9 @@
   let nativeTrack=null;
   function releaseNativeTrack(){if(nativeTrack){nativeTrack.removeAttribute('data-fpro-native-seek');nativeTrack=null;}}
   videos.set(video,{layout(allowed=true,dialog=visibleDialog()){
-   if(!allowed){overlay.hidden=true;releaseNativeTrack();return;}
+   if(!allowed){overlay.hidden=true;releaseNativeTrack();video.removeAttribute('data-fpro-rainbow');return;}
    const r=video.getBoundingClientRect();overlay.hidden=!(r.width>0&&r.height>0&&r.bottom>0&&r.right>0&&r.top<innerHeight&&r.left<innerWidth) || !!(dialog&&!dialog.contains(video));
+   if(cfg.rainbow&&!overlay.hidden){if(!video.hasAttribute('data-fpro-rainbow'))video.setAttribute('data-fpro-rainbow','');}else video.removeAttribute('data-fpro-rainbow');
    overlay.style.left=r.left+'px';overlay.style.top=r.top+'px';overlay.style.width=r.width+'px';
    const viewportBottom=window.visualViewport?Math.min(innerHeight,window.visualViewport.offsetTop+window.visualViewport.height):innerHeight;
    const immersive=(/^\/(?:reels?|watch|videos?)(?:\/|\.php|$)/.test(location.pathname)||!!document.fullscreenElement)&&r.height>innerHeight*.6;
@@ -582,7 +583,7 @@
    // Keep its layout slot so the site does not jump; restore it when our tools leave.
    if(native)bottom=Math.min(viewportBottom,native.rect.top+native.rect.height/2+9.5);
    overlay.style.height=Math.max(0,bottom-r.top)+'px';button.hidden=!cfg.downloads;track.hidden=!cfg.rainbow;placeButton();progress();
-  },dispose(){releaseNativeTrack();video.removeEventListener('play',scheduleLayout);video.removeEventListener('pause',scheduleLayout);if(resize)resize.unobserve(video);clearTimeout(timer);events.forEach(name=>video.removeEventListener(name,progress));overlay.remove();}});
+  },dispose(){releaseNativeTrack();video.removeAttribute('data-fpro-rainbow');video.removeEventListener('play',scheduleLayout);video.removeEventListener('pause',scheduleLayout);if(resize)resize.unobserve(video);clearTimeout(timer);events.forEach(name=>video.removeEventListener(name,progress));overlay.remove();}});
 
  }
  // A document-level capture listener also sees touches on Facebook's player
@@ -709,6 +710,7 @@
    .fpro-ball svg{display:block!important;width:16px!important;height:16px!important;max-width:none!important;overflow:visible!important}
    @keyframes fpro-ball-roll{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
    [data-fpro-native-seek]{visibility:hidden!important;pointer-events:none!important}
+   video[data-fpro-rainbow]::-webkit-media-controls-timeline{display:none!important}
    .fpro-seek{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;margin:0;opacity:0;pointer-events:auto;touch-action:pan-y}
   `;
   scan();
