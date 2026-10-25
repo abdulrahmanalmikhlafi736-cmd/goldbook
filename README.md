@@ -23,6 +23,12 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 يوجد Workflow في `.github/workflows/android.yml`: عند دفع التغييرات إلى GitHub أو تشغيله يختبر ويبني ويرفع APK إلى **Artifacts → FPRO-0.0.1-debug**. هذا ملف بناء مُعدّ للتنفيذ وليس ادعاءً بأنه نُفّذ بالفعل.
 
+## البناء38 — التصفح العادي عمودي فقط
+
+حسب طلب المستخدم الجديد: التصفح العادي ثابت بالعمودي. يُسمح بالتدوير بالحساس فقط داخل عرض الفيديو الأصلي بملء الشاشة، ويُعاد العمودي عند الخروج. لا تغيير لحفظ الموضع أو الدخول أو الشريط. [التفاصيل والاختبارات](docs/FIXES-38.md).
+
+نجح [البناء وlint وJVM وDOM](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40244103164). أكد [فحص XML](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40244661500) نجاح اختبار عمودي→حساس في ملء الشاشة→عمودي على API29 وAPI35، وكذلك الحفظ واستمرارية المستند. الأجهزة **2/4**: API29 debug وAPI35 compact PASS؛ API35 debug أخفق بدء PiP بلمسة، وAPI36 compact أخفق الوصول إلى HTML المحلي. [APK المختبر على Android15](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40244103108/artifacts/12618032384)، مصدر التطبيق `6b85e1e`. [أحدث مصدر كامل ونظيف](downloads/FPRO-build38-source.zip).
+
 ## البناء37 — التدوير دون إعادة تهيئة التصفح
 
 بعد تأكيد المستخدم إصلاح الدخول وحفظ الموضع في36، أُضيف تعديل خاص بالتدوير: تهيئة المتصفح لم تعد ضمن تأثير Compose قابل لإعادة التشغيل، وتحديث القياسات الأصلي يستخدم حدثًا خاصًا بأدوات FPRO بدل إرسال resize إضافي للموقع، مع إبقاء Activity وWebView عند تغييرات التدوير وكثافة العرض المصاحبة. لا قفل للعمودي ولا تثبيت مصطنع لعرض الصفحة. [التفاصيل وحدود التحقق](docs/FIXES-37.md).
