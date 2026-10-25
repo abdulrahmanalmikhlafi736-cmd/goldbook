@@ -258,7 +258,7 @@ function fixture(html,config={},captureDownload=false) {
   assert.equal(f.doc.querySelectorAll('.fpro-download').length,1);
   assert.equal(f.doc.querySelector('.fpro-video-tools').hidden,false);
   assert.equal(f.window.getComputedStyle(f.doc.querySelector('.fpro-track')).backgroundColor,'rgba(0, 0, 0, 0)','No dark panel under timeline');
-  assert.equal(f.window.getComputedStyle(f.doc.querySelector('.fpro-fill')).bottom,'0px','Timeline sits at the video bottom');
+  assert.equal(f.window.getComputedStyle(f.doc.querySelector('.fpro-fill')).bottom,'8px','Timeline reserves enough bottom space to keep the complete ball inside its player');
   assert.equal(f.window.getComputedStyle(f.doc.querySelector('.fpro-download')).borderRadius,'50%','Circular download button');
   assert(f.doc.querySelector('.fpro-download svg'),'Centered vector download icon');
 
@@ -276,6 +276,36 @@ function fixture(html,config={},captureDownload=false) {
 
   f.run({downloads:false,rainbow:false});assert.equal(f.doc.querySelectorAll('.fpro-video-tools').length,0);
   Object.defineProperty(video,'duration',{configurable:true,value:Infinity});f.run({rainbow:true});assert.equal(f.doc.querySelector('.fpro-seek').disabled,true,'Live stream is not falsely seekable');
+  const ball=f.doc.querySelector('.fpro-ball');assert(ball.querySelector('svg circle'),'Soccer ball is a complete vector icon, not a clipped font glyph');
+  assert.equal(f.window.getComputedStyle(ball).width,'16px');
+  Object.defineProperty(video,'duration',{configurable:true,value:120});Object.defineProperty(video,'paused',{configurable:true,value:false});video.dispatchEvent(new f.window.Event('play'));
+  assert.equal(ball.style.animationPlayState,'running','Ball rotates only while actual video plays');
+  Object.defineProperty(video,'paused',{configurable:true,value:true});video.dispatchEvent(new f.window.Event('pause'));assert.equal(ball.style.animationPlayState,'paused');
+  const sliders=fixture('<article><video></video><input id="originalTimeline" type="range" aria-label="Video progress" style="visibility:visible"><input id="originalVolume" type="range" aria-label="Volume"></article>',{enhance:false});
+  const sv=sliders.doc.querySelector('video');sv.getBoundingClientRect=()=>({left:0,top:0,right:320,bottom:300,width:320,height:300});
+  sliders.doc.getElementById('originalTimeline').getBoundingClientRect=()=>({left:12,top:310,right:308,bottom:330,width:296,height:20});
+  sliders.doc.getElementById('originalVolume').getBoundingClientRect=()=>({left:12,top:280,right:308,bottom:300,width:296,height:20});
+  sliders.run({rainbow:true});assert(sliders.doc.getElementById('originalTimeline').hasAttribute('data-fpro-native-seek'),'Replace a confidently identified player-local time slider');
+  assert(!sliders.doc.getElementById('originalVolume').hasAttribute('data-fpro-native-seek'),'Never replace volume');
+  assert.equal(sliders.doc.querySelector('.fpro-video-tools').style.height,'329.5px','New timeline occupies original seek line instead of stacking above it');
+  sliders.run({rainbow:false,downloads:true});assert(!sliders.doc.querySelector('[data-fpro-native-seek]'),'Original timeline returns when rainbow is disabled');assert.equal(sliders.doc.getElementById('originalTimeline').style.visibility,'visible','Do not rewrite the original inline style');
+  for(const referenceEngine of [true,false]){
+   const repairConfig={enhance:true,referenceEngine,appBanner:true,textSelection:false};
+   const repair=fixture('<aside><button id="reappearing">فتح التطبيق</button><button id="keepSearch">Search</button><a id="keepAccount" href="/me">الحساب</a></aside>',{enhance:false,textSelection:false});
+   if(referenceEngine)repair.window.eval(fs.readFileSync('app/src/main/assets/reference-engines.js','utf8'));
+   repair.run(repairConfig);await Promise.resolve();await Promise.resolve();
+   const cta=repair.doc.getElementById('reappearing');assert.equal(cta.style.display,'none');
+   for(const display of ['display:block!important','display:flex','']){
+    cta.style.cssText=display;await Promise.resolve();await Promise.resolve();await Promise.resolve();
+    assert.equal(cta.style.display,'none','Reapply hiding after site overwrites styles; referenceEngine='+referenceEngine);assert.equal(cta.style.getPropertyPriority('display'),'important');
+   }
+   const replacement=repair.doc.createElement('button');replacement.id='reappearing';replacement.textContent='فتح التطبيق';cta.replaceWith(replacement);await Promise.resolve();await Promise.resolve();await Promise.resolve();
+   assert.equal(replacement.style.display,'none','A replacement CTA node must also be hidden');
+   assert.equal(repair.doc.getElementById('keepSearch').style.display,'');assert.equal(repair.doc.getElementById('keepAccount').style.display,'');
+   replacement.textContent='Search';await Promise.resolve();await Promise.resolve();repair.run(repairConfig);
+   assert.equal(replacement.style.display,'','A recycled CTA that becomes Search must be restored');
+   repair.run({...repairConfig,appBanner:false});assert(!repair.doc.querySelector('[data-fpro-reference-noapp],[data-fpro-hidden]'),'Turning CTA filtering off restores markers: '+repair.doc.body.innerHTML);
+  }
   const selection=fixture('<article><p id="text" style="user-select:none">Selectable post</p><span id="comment" dir="auto">Comment</span><a href="/hashtag/test">#test</a><button id="button">Like</button><textarea></textarea></article>',{enhance:false,textSelection:true});
   assert(selection.doc.querySelector('#fpro-selection-style'),'Native selection CSS is independent of enhancement master');
   assert.equal(selection.doc.querySelector('#fpro-style'),null,'Selection alone must not enable tint/filter CSS');
