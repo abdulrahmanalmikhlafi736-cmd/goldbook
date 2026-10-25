@@ -1,0 +1,34 @@
+const {JSDOM}=require('jsdom');
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const position=fs.readFileSync('app/src/main/assets/browsing-position.js','utf8');
+const ready=fs.readFileSync('app/src/main/assets/page-ready.js','utf8');
+function fixture(html){const d=new JSDOM('<!doctype html><body>'+html+'</body>',{url:'https://m.facebook.com/',runScripts:'outside-only',pretendToBeVisual:true});const w=d.window;let y=0;Object.defineProperty(w,'scrollY',{get:()=>y});w.scrollTo=(x,n)=>{y=n};w.eval(position);return {w,d};}
+{
+ const {w}=fixture('<article><p>PRIVATE_POST_TEXT</p><a href="/posts/42">post</a></article><input value="PRIVATE_FORM"><div id="scroll" style="overflow-y:auto"></div>');
+ const a=w.document.querySelector('article');a.getBoundingClientRect=()=>({top:40,bottom:440,width:300,height:400});
+ const el=w.document.querySelector('#scroll');Object.defineProperty(el,'clientHeight',{value:300});Object.defineProperty(el,'scrollHeight',{value:5000});el.scrollTop=720;
+ w.scrollTo(0,1234);const snapshot=w.__fproPosition.capture(),data=JSON.parse(snapshot);
+ assert.equal(data.y,1234);assert.equal(data.containers[0].y,720);assert.equal(data.anchor.key,'/posts/42');
+ assert(!snapshot.includes('PRIVATE_POST_TEXT'));assert(!snapshot.includes('PRIVATE_FORM'));
+ w.scrollTo(0,0);el.scrollTop=0;assert.equal(w.__fproPosition.restore(snapshot),true);assert.equal(el.scrollTop,720);
+ // Real gestures win immediately; delayed layout restoration must stop.
+ w.dispatchEvent(new w.Event('touchstart'));w.scrollTo(0,55);assert.equal(w.scrollY,55);
+ assert.equal(w.__fproPosition.restore({...data,url:'https://evil.invalid/'}),false);
+ w.document.body.innerHTML='<input type="password" value="PRIVATE_PASSWORD">';assert.equal(JSON.parse(w.__fproPosition.capture()).login,true);
+ w.close();
+}
+{
+ const {w}=fixture('<p>visible content</p>');const p=w.document.querySelector('p');
+ p.getBoundingClientRect=()=>({top:10,bottom:40,left:0,right:300,width:300,height:30});
+ assert.equal(w.eval(ready),true);p.style.visibility='hidden';assert.equal(w.eval(ready),false);p.style.visibility='visible';w.document.body.style.opacity='0';assert.equal(w.eval(ready),false);w.close();
+}
+{
+ const {w}=fixture('<img>');const img=w.document.querySelector('img');img.getBoundingClientRect=()=>({top:0,bottom:80,left:0,right:80,width:80,height:80});
+ assert.equal(w.eval(ready),false,'An unloaded image is not a painted page');w.close();
+}
+const native=fs.readFileSync('app/src/main/java/com/almekhlafi/FPRO/MainActivity.kt','utf8');
+const resume=native.slice(native.indexOf('override fun onResume()'),native.indexOf('override fun onStop()'));
+assert(!/\.reload\(|\.loadUrl\(/.test(resume),'Warm resume must not reload the live document');
+assert(!native.includes('delay(600)'),'Do not reveal a blank surface on a fixed splash deadline');
+assert(native.includes('postVisualStateCallback'),'Require a compositor frame before first reveal');
+console.log('Browsing regressions passed: private position/container/anchor capture, restore, gesture cancellation, URL isolation, password exclusion, meaningful first paint and no resume reload.');

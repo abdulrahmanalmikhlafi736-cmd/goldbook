@@ -53,6 +53,14 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if(granted)startAudioOnly() else toast("يلزم السماح بإشعار التحكم للتشغيل الصوتي") }
     private lateinit var prefs: Preferences
     private lateinit var web: WebView
+    private lateinit var sessions: BrowsingSessionStore
+    private var lastPosition: String? = null
+    private var pendingPosition: String? = null
+    private var resumeRestoreUntil = 0L
+    private var sessionClosing = false
+    private val positionScript by lazy { assets.open("browsing-position.js").bufferedReader().use { it.readText() } }
+    private val readyScript by lazy { assets.open("page-ready.js").bufferedReader().use { it.readText() } }
+
     private var settings by mutableStateOf(false)
     private var homeControls by mutableStateOf(false)
     private var gearX by mutableFloatStateOf(0f)
@@ -86,6 +94,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = Preferences(this)
+        sessions = BrowsingSessionStore(this)
         web = createWebView()
         WindowCompat.setDecorFitsSystemWindows(window, true)
         applySettings(false)
@@ -181,14 +190,36 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                         LaunchedEffect(Unit) {
                             // Begin network/bootstrap immediately, underneath the splash.
                             web.post {
-                                if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) {
-                                    web.loadUrl("https://m.facebook.com/")
+                                val remembered = if (prefs.flag("rememberPosition", true)) sessions.read() else null
+                                pendingPosition = if (prefs.flag("rememberPosition", true)) savedInstanceState?.getString("fpro.position") ?: remembered?.position else null
+                                lastPosition = pendingPosition
+                                val history = savedInstanceState ?: remembered?.history
+                                if (history == null || web.restoreState(history) == null) {
+                                    web.loadUrl(remembered?.url ?: "https://m.facebook.com/")
                                 }
                             }
                         }
                         LaunchedEffect(Unit) {
-                            delay(600)
-                            splash = false
+                            // Do not expose an empty Chromium surface after a fixed 600ms.
+                            val started = android.os.SystemClock.elapsedRealtime()
+                            while (splash) {
+                                if (failure != null) { splash = false; break }
+                                if (android.os.SystemClock.elapsedRealtime() - started > 25_000) {
+                                    failure = "تأخر ظهور محتوى فيسبوك. تحقق من الاتصال ثم اختر إعادة المحاولة؛ لم نعد تحميل الصفحة تلقائيًا."
+                                    splash = false; break
+                                }
+                                web.evaluateJavascript(readyScript) { ready ->
+                                    if (ready == "true" && splash && !isDestroyed) {
+                                        val sequence = pageSequence
+                                        web.postVisualStateCallback(sequence.toLong(), object : WebView.VisualStateCallback() {
+                                            override fun onComplete(requestId: Long) {
+                                                if (sequence == pageSequence) { pageConfirmed = true; splash = false }
+                                            }
+                                        })
+                                    }
+                                }
+                                delay(250)
+                            }
                         }
                         LaunchedEffect(Unit) {
                             delay(1200)
@@ -198,6 +229,12 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                                 } else homeControls = false
                                 // Player routes do not need frequent header-logo queries.
                                 delay(if (homeControls) 650 else 1200)
+                            }
+                        }
+                        LaunchedEffect(Unit) {
+                            while (true) {
+                                delay(15_000)
+                                if (web.hasWindowFocus() && !splash) capturePosition(true)
                             }
                         }
                         // Native watchdog: it must NOT wait for a JavaScript callback to
@@ -230,8 +267,17 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         }
         fun syncVisibility() { onWindowVisibilityChanged(windowVisibility) }
     }
+    @SuppressLint("ClickableViewAccessibility")
     private fun createWebView(): WebView = PlaybackWebView().apply {
         layoutDirection = View.LAYOUT_DIRECTION_LTR
+        // Observe without consuming gestures; a real touch cancels recovery.
+        setOnTouchListener { _, event ->
+            if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                resumeRestoreUntil = 0L; pendingPosition = null
+                evaluateJavascript("window.__fproPosition && window.__fproPosition.cancel()", null)
+            }
+            false
+        }
         setOnScrollChangeListener { _, _, y, _, _ -> if (y >= 4) homeControls = false }
         isLongClickable = true // Preserve WebView native text-selection ActionMode.
         // Boolean-only playback hint; never exposes files, text, cookies or intents.
@@ -257,6 +303,12 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = route(Uri.parse(url), true)
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 failure = null
+                if (Navigation.isFacebook(url.orEmpty()) && !BrowsingSessionStore.eligible(url.orEmpty())) {
+                    lastPosition = null; pendingPosition = null; sessions.clear()
+                } else if (resumeRestoreUntil > android.os.SystemClock.elapsedRealtime() && positionUrl(lastPosition) == url) {
+                    pendingPosition = lastPosition
+                }
+                if (pendingPosition != null && positionUrl(pendingPosition) != url) pendingPosition = null
                 homeControls = false
                 if(audioOnly)stopAudioMode(true)
                 updatePlaybackState(false)
@@ -273,6 +325,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
             }
             override fun onPageFinished(view: WebView, url: String?) {
                 CookieManager.getInstance().flush()
+                restorePosition()
                 loadingProgress = 100
                 loadState = "انتهى التحميل: $url"
                 // Do not probe or mutate the DOM while Facebook's bootstrap is
@@ -407,6 +460,10 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
 
     private fun applySettings(reloadDesktop: Boolean) {
+        if (!prefs.flag("rememberPosition", true)) {
+            lastPosition = null; pendingPosition = null; resumeRestoreUntil = 0L; sessions.clear()
+            web.evaluateJavascript("window.__fproPosition && window.__fproPosition.cancel()", null)
+        }
         web.setLayerType(if (prefs.flag("software")) View.LAYER_TYPE_SOFTWARE else View.LAYER_TYPE_NONE, null)
         val compatibleAgent = if (prefs.flag("browserAgent")) Navigation.browserAgent(mobileAgent) else mobileAgent
         val agent = if (prefs.flag("desktop")) "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" else compatibleAgent
@@ -621,18 +678,61 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
             if(!audioRequested)web.evaluateJavascript("window.__fproAudio && window.__fproAudio.leavePip()", null)
         }
     }
+    private fun positionUrl(value: String?): String? = try { value?.let { org.json.JSONObject(it).optString("url") } } catch (_: Exception) { null }
+    private fun persistPosition() {
+        val position = lastPosition ?: return
+        val url = web.url.orEmpty()
+        if (!prefs.flag("rememberPosition", true) || positionUrl(position) != url || !BrowsingSessionStore.eligible(url)) return
+        val history = Bundle()
+        if (web.saveState(history) != null) sessions.write(history, position, url)
+    }
+    private fun capturePosition(persist: Boolean) {
+        if (sessionClosing || !::web.isInitialized || !prefs.flag("rememberPosition", true) || !BrowsingSessionStore.eligible(web.url.orEmpty())) return
+        web.evaluateJavascript(positionScript + "\nwindow.__fproPosition.capture()") { encoded ->
+            if (!sessionClosing && !isDestroyed && prefs.flag("rememberPosition", true)) try {
+                val position = JSONArray("[$encoded]").optString(0)
+                val data = org.json.JSONObject(position)
+                if (data.optBoolean("login")) { lastPosition = null; pendingPosition = null; sessions.clear() }
+                else if (data.optString("url") == web.url && position.length <= 32768) {
+                    lastPosition = position
+                    if (persist) persistPosition()
+                }
+            } catch (_: Exception) { /* A checkpoint must not interrupt the page. */ }
+        }
+    }
+    private fun restorePosition() {
+        val position = pendingPosition ?: return
+        if (!prefs.flag("rememberPosition", true) || positionUrl(position) != web.url) return
+        pendingPosition = null
+        web.evaluateJavascript(positionScript + "\nwindow.__fproPosition.restore(" + org.json.JSONObject.quote(position) + ")", null)
+    }
+    override fun onPause() {
+        capturePosition(true)
+        super.onPause()
+    }
     override fun onResume() {
         super.onResume()
         externalHandoff = false; pipRequested = false
+        if (::web.isInitialized && prefs.flag("rememberPosition", true) && positionUrl(lastPosition) == web.url && lastPosition != null) {
+            pendingPosition = lastPosition
+            resumeRestoreUntil = android.os.SystemClock.elapsedRealtime() + 8_000
+            web.post { if (!isDestroyed) restorePosition() }
+        }
         if(::web.isInitialized && !audioOnly && !audioRequested && !pip)web.settings.mediaPlaybackRequiresUserGesture = true
         if (::web.isInitialized) { web.onResume(); configurePictureInPicture(); web.evaluateJavascript("window.__fproReportPlayback && window.__fproReportPlayback()", null) }
     }
     override fun onStop() {
+        persistPosition()
         if (!audioOnly && !pip && !pipRequested && !(Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode)) web.onPause()
         super.onStop()
     }
-    override fun onSaveInstanceState(outState: Bundle) { web.saveState(outState); super.onSaveInstanceState(outState) }
+    override fun onSaveInstanceState(outState: Bundle) {
+        web.saveState(outState)
+        if (prefs.flag("rememberPosition", true)) outState.putString("fpro.position", lastPosition)
+        super.onSaveInstanceState(outState)
+    }
     override fun onDestroy() {
+        sessionClosing = true; sessions.close()
         earlyScript?.remove(); earlyScript = null; stopAudioMode(true)
         closeFullscreen(); fileCallback?.onReceiveValue(null); fileCallback = null
         web.removeJavascriptInterface("FproPlayback")
@@ -650,6 +750,7 @@ private fun Splash() {
     Column(Modifier.fillMaxSize().background(Color(0xFF101013)), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Text("F", color = Color(0xFFD4AF37), style = MaterialTheme.typography.displayLarge)
         Text("FPRO", color = Color(0xFFD4AF37), style = MaterialTheme.typography.headlineMedium)
+        Text("جارٍ تحميل فيسبوك…", color = Color.White, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(30.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             repeat(5) { index -> Box(Modifier.size(9.dp).background(Color(0xFFD4AF37).copy(alpha = if (phase.toInt() == index) 1f else .25f), CircleShape)) }
