@@ -764,7 +764,7 @@
   if(cfg.enhance!==false){if(pending!==null)clearTimeout(pending);pending=setTimeout(()=>{pending=null;scan();},350);}
   if(frame===null)frame=requestAnimationFrame(()=>{frame=null;layoutVideos();syncStoryImages();});
  }
- window.addEventListener('scroll',scheduleLayout,true);window.addEventListener('resize',scheduleLayout);window.addEventListener('popstate',scheduleLayout);window.addEventListener('hashchange',scheduleLayout);
+ window.addEventListener('scroll',scheduleLayout,true);window.addEventListener('resize',scheduleLayout);window.addEventListener('fproviewportchange',scheduleLayout);window.addEventListener('popstate',scheduleLayout);window.addEventListener('hashchange',scheduleLayout);
  const resize=typeof ResizeObserver==='function'?new ResizeObserver(scheduleLayout):null;
  function update(c){
   if(JSON.stringify(cfg)===JSON.stringify(c)&&(window.__fpro&&window.__fpro.ready)){updateSelection();scan();return;}

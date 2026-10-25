@@ -106,6 +106,17 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
             addView(web, FrameLayout.LayoutParams(-1, -1))
             addView(controls, FrameLayout.LayoutParams(-1, -1))
         })
+        // Navigation belongs to this Activity/WebView, never to a restartable
+        // Compose effect. Reattaching/recomposing controls must not restore/reload.
+        web.post {
+            val remembered = if (prefs.flag("rememberPosition", true)) sessions.read() else null
+            pendingPosition = if (prefs.flag("rememberPosition", true)) savedInstanceState?.getString("fpro.position") ?: remembered?.position else null
+            lastPosition = pendingPosition
+            val history = savedInstanceState ?: remembered?.history
+            if (history == null || web.restoreState(history) == null) {
+                web.loadUrl(remembered?.url ?: "https://m.facebook.com/")
+            }
+        }
         controls.setContent {
             @Suppress("UNUSED_VARIABLE") val themeRevision = revision
             val dark = prefs.flag("dark") || prefs.flag("amoled")
@@ -188,18 +199,6 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                         }
                         BackHandler { smartBack() }
                         LaunchedEffect(Unit) {
-                            // Begin network/bootstrap immediately, underneath the splash.
-                            web.post {
-                                val remembered = if (prefs.flag("rememberPosition", true)) sessions.read() else null
-                                pendingPosition = if (prefs.flag("rememberPosition", true)) savedInstanceState?.getString("fpro.position") ?: remembered?.position else null
-                                lastPosition = pendingPosition
-                                val history = savedInstanceState ?: remembered?.history
-                                if (history == null || web.restoreState(history) == null) {
-                                    web.loadUrl(remembered?.url ?: "https://m.facebook.com/")
-                                }
-                            }
-                        }
-                        LaunchedEffect(Unit) {
                             // Do not expose an empty Chromium surface after a fixed 600ms.
                             val started = android.os.SystemClock.elapsedRealtime()
                             while (splash) {
@@ -262,7 +261,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
             super.onSizeChanged(w, h, oldw, oldh)
             if (w > 0 && h > 0 && Navigation.isFacebook(url.orEmpty())) {
-                evaluateJavascript(viewportScript(w, h) + "window.dispatchEvent(new Event('resize'));", null)
+                evaluateJavascript(viewportScript(w, h) + "window.dispatchEvent(new Event('fproviewportchange'));", null)
             }
         }
         fun syncVisibility() { onWindowVisibilityChanged(windowVisibility) }

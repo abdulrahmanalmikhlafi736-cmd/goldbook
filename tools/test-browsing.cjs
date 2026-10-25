@@ -33,3 +33,9 @@ assert(!/\.reload\(|\.loadUrl\(/.test(resume),'Warm resume must not reload the l
 assert(!native.includes('delay(600)'),'Do not reveal a blank surface on a fixed splash deadline');
 assert(native.includes('postVisualStateCallback'),'Require a compositor frame before first reveal');
 console.log('Browsing regressions passed: private position/container/anchor capture, restore, gesture cancellation, URL isolation, password exclusion, meaningful first paint and no resume reload.');
+
+assert(native.indexOf('web.restoreState(history)') < native.indexOf('controls.setContent {'),'Initial history restore must not belong to a Compose effect');
+assert(!native.includes("new Event('resize')"),'Native size publication must not broadcast duplicate site resize events');
+assert(native.includes("new Event('fproviewportchange')"));
+const manifest=fs.readFileSync('app/src/main/AndroidManifest.xml','utf8');
+for(const flag of ['orientation','screenSize','smallestScreenSize','density','uiMode'])assert(manifest.includes(flag),'Handle rotation-related '+flag+' without recreating Activity');

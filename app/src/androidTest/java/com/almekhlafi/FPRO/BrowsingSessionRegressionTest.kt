@@ -54,7 +54,7 @@ class BrowsingSessionRegressionTest {
         if (view is ViewGroup) for (i in 0 until view.childCount) findWeb(view.getChildAt(i))?.let { return it }
         return null
     }
-    @Test fun realWebViewRestoresScrollAndWarmResumeKeepsDocument() {
+    @Test fun realWebViewRestoresScrollAndWarmResumeAndRotationKeepDocument() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         ActivityScenario.launch<MainActivity>(android.content.Intent(instrumentation.targetContext, MainActivity::class.java)).use { scenario ->
             // Match the existing overlay fixture: let Compose issue its one-time
@@ -63,8 +63,12 @@ class BrowsingSessionRegressionTest {
             Thread.sleep(2300)
             val done = CountDownLatch(1)
             val result = AtomicReference("null")
+            val originalActivity = AtomicReference<MainActivity>()
+            val originalWeb = AtomicReference<WebView>()
             scenario.onActivity { activity ->
+                originalActivity.set(activity)
                 val web = requireNotNull(findWeb(activity.window.decorView))
+                originalWeb.set(web)
                 web.stopLoading()
                 val source = activity.assets.open("browsing-position.js").bufferedReader().use { it.readText() }
                 val ready = activity.assets.open("page-ready.js").bufferedReader().use { it.readText() }
@@ -75,7 +79,7 @@ class BrowsingSessionRegressionTest {
                             view.evaluateJavascript(source + "\n" + """
                                 (async()=>{
                                  try {
-                                  window.fixtureStarted=true;window.fixtureToken='unchanged';
+                                  window.fixtureStarted=true;window.fixtureToken='unchanged';window.fixtureHistory=history.length;
                                   const frames=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
                                   await frames();const ready=($ready);scrollTo(0,760);document.getElementById('nested').scrollTop=320;await frames();
                                   const checkpoint=window.__fproPosition.capture();
@@ -116,6 +120,32 @@ class BrowsingSessionRegressionTest {
             }
             assertTrue(resumed.await(5, TimeUnit.SECONDS))
             assertEquals("Warm return must keep the live document, not reload it", "true", same.get())
+            for (landscape in listOf(true, false)) {
+                val rotated = CountDownLatch(1)
+                val kept = AtomicReference("not settled")
+                scenario.onActivity { activity ->
+                    assertSame("Rotation must keep the Activity", originalActivity.get(), activity)
+                    val view = requireNotNull(findWeb(activity.window.decorView))
+                    assertSame("Rotation must keep the WebView", originalWeb.get(), view)
+                    activity.requestedOrientation = if (landscape) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    fun probe(attempt: Int) {
+                        val expected = if (landscape) android.content.res.Configuration.ORIENTATION_LANDSCAPE else android.content.res.Configuration.ORIENTATION_PORTRAIT
+                        if (activity.resources.configuration.orientation == expected && (if (landscape) view.width > view.height else view.height > view.width)) {
+                            view.evaluateJavascript("window.fixtureToken==='unchanged' && Math.abs(scrollY-760)<3 && document.getElementById('nested').scrollTop===320 && history.length===window.fixtureHistory") { value ->
+                                kept.set(value); rotated.countDown()
+                            }
+                        } else if (attempt < 80) view.postDelayed({ probe(attempt + 1) }, 100)
+                    }
+                    view.postDelayed({ probe(0) }, 400)
+                }
+                assertTrue("Actual orientation change must settle", rotated.await(12, TimeUnit.SECONDS))
+                assertEquals("Rotation must preserve document, scroll and navigation history", "true", kept.get())
+                scenario.onActivity { activity ->
+                    assertSame("No Activity recreation after rotation", originalActivity.get(), activity)
+                    assertSame(originalWeb.get(), findWeb(activity.window.decorView))
+                }
+            }
+
         }
     }
 }
