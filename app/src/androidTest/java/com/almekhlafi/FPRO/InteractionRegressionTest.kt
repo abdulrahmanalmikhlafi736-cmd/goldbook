@@ -149,8 +149,14 @@ class InteractionRegressionTest {
                             // Disable paint/filter work, NOT native selection: isolate the
                             // swallowed site pointerdown defect from performance changes.
                             val source=activity.assets.open("facebook.js").bufferedReader().use { it.readText() }.replace("__CONFIG__", "{\"enhance\":false,\"textSelection\":true}")
-                            web.evaluateJavascript(source+";document.cookie='fproPullSentinel=retained;path=/';localStorage.setItem('fproPullSentinel','retained');") {
-                                web.postVisualStateCallback(42,object: WebView.VisualStateCallback(){override fun onComplete(requestId: Long){ready.countDown()}})
+                            web.evaluateJavascript(source+";localStorage.setItem('fproPullSentinel','retained');") {
+                                // Establish the test cookie with an acknowledged write,
+                                // not an unchecked DOM setter racing native cookie IPC.
+                                val cookies=android.webkit.CookieManager.getInstance()
+                                cookies.setCookie(fixtureOrigin,"fproPullSentinel=retained; Path=/; Secure; SameSite=Lax") {
+                                    cookies.flush()
+                                    web.postVisualStateCallback(42,object: WebView.VisualStateCallback(){override fun onComplete(requestId: Long){ready.countDown()}})
+                                }
                             }
                         } else if(attempt<40)web.postDelayed({probe(attempt+1)},200)
                     }
@@ -163,6 +169,8 @@ class InteractionRegressionTest {
                 scenario.onActivity { activity ->requireNotNull(findWeb(activity.window.decorView)).evaluateJavascript(script){out.set(it);latch.countDown()} }
                 assertTrue(latch.await(5,TimeUnit.SECONDS));return out.get()
             }
+            assertEquals("Fixture cookie must exist BEFORE any gesture","true",evaluate("document.cookie.indexOf('fproPullSentinel=retained')>=0"))
+            assertEquals("Fixture storage must exist BEFORE any gesture","true",evaluate("localStorage.getItem('fproPullSentinel')==='retained'"))
             val point=FloatArray(3);val measured=CountDownLatch(1)
             scenario.onActivity { activity ->
                 val web=requireNotNull(findWeb(activity.window.decorView))
@@ -201,7 +209,8 @@ class InteractionRegressionTest {
             assertEquals("Deliberate downward pull must cause exactly one real native reload: ${pullState.get()}",2,requests.get())
             Thread.sleep(700)
             assertEquals("Refreshed document must be the real second response","2",evaluate("window.fixtureNavigation"))
-            assertEquals("No cookie/cache/storage clearing to disguise a freeze","true",evaluate("document.cookie.indexOf('fproPullSentinel=retained')>=0 && localStorage.getItem('fproPullSentinel')==='retained'"))
+            assertEquals("Native pull must retain the established cookie","true",evaluate("document.cookie.indexOf('fproPullSentinel=retained')>=0"))
+            assertEquals("Native pull must retain the established storage","true",evaluate("localStorage.getItem('fproPullSentinel')==='retained'"))
             assertEquals("No automatic refresh loop",2,requests.get())
             component.get()?.cancel()
         }
