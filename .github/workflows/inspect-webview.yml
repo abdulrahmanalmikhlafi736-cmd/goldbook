@@ -6,7 +6,7 @@ on:
     inputs:
       run_id:
         description: Completed emulator run to inspect
-        default: '40268749771'
+        default: '40271627553'
         required: true
 jobs:
   inspect:
@@ -21,7 +21,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id="${{ github.event.inputs.run_id || '40268749771' }}"
+          id="${{ github.event.inputs.run_id || '40271627553' }}"
           echo "run=$id" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
@@ -65,13 +65,13 @@ jobs:
                   seen.add(text)
                   print('::notice title=Device test stack::'+text.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
           PYCODE
-      - name: Verify build41 copy and reaction tests explicitly
+      - name: Verify native copy, reactions and pull refresh explicitly
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
-          required = {'realTapAndHeldReactionSurviveFeedChurn', 'zNativeLongPressSelectsPostsCommentsAndHashtags'}
-          seen = set()
+          required = {'realTapAndHeldReactionSurviveFeedChurn', 'zNativeLongPressSelectsPostsCommentsAndHashtags', 'nativePullComponentWorksWithSelectionGuardAndRetainsStorage', 'nativePullReloadsOnceDespiteBlockedSiteDownAndKeepsStorage'}
+          seen = {}
           for path in Path('previous-diagnostics').rglob('*.xml'):
               try: root = ET.parse(path).getroot()
               except ET.ParseError: continue
@@ -80,9 +80,10 @@ jobs:
                   if name not in required: continue
                   api = '29' if '29-debug' in str(path) else '35' if '35-debug' in str(path) else 'unknown'
                   status = 'FAIL' if case.find('failure') is not None or case.find('error') is not None else 'SKIP' if case.find('skipped') is not None else 'PASS'
-                  print('::notice title=Build41 input evidence::API' + api + ': ' + name + ': ' + status)
-                  if status == 'PASS': seen.add((api, name))
-          assert seen == {(api, name) for api in ('29', '35') for name in required}, 'Missing/failed core input evidence: ' + repr(seen)
+                  print('::notice title=Build42 input evidence::API' + api + ': ' + name + ': ' + status)
+                  seen[(api, name)] = status
+          expected = {(api, name): ('SKIP' if api == '29' and name == 'nativePullReloadsOnceDespiteBlockedSiteDownAndKeepsStorage' else 'PASS') for api in ('29', '35') for name in required}
+          assert seen == expected, 'Missing/failed core input evidence: ' + repr(seen)
           PY
       - name: Inspect browsing session assertions separately
         run: |
@@ -117,7 +118,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re, urllib.request, urllib.parse
-          seen = set()
+          seen = {}
           scripts = set()
           for log in Path('previous-diagnostics').rglob('logcat.txt'):
               selected = []

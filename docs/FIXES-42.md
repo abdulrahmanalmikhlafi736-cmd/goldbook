@@ -64,9 +64,21 @@ next-request release, duplicate/old result isolation, gesture threshold, early
 movement vs long press, cancellation, JS rejection/no answer and top boundaries.
 
 New OS-input instrumentation `nativePullReloadsOnceDespiteBlockedSiteDownAndKeepsStorage`
-uses a real MainActivity WebView, the real native controller, intercepted HTTPS
-fixture responses, native finger down/move/up and the build23 reading guard. It
+uses the actual MainActivity host binding on API35, intercepted HTTPS fixture
+responses, native finger down/move/up and the build23 reading guard. It
 requires short scroll=no reload, delegated site pointerdown=0, deliberate pull=
 exactly one real second navigation/response, cookies and localStorage retained,
-and no refresh loop. Existing actual native Copy and reaction-hold tests remain.
-CI/device outcomes pending. Fixture success is not authenticated-account proof.
+and no refresh loop. Independently, `nativePullComponentWorksWithSelectionGuardAndRetainsStorage`
+exercises the identical controller with a controlled non-Facebook origin on both
+API29/35, like the existing Copy fixture. Production Facebook-only origin gating
+is not weakened. Existing actual native Copy and reaction-hold tests remain.
+
+The first API29 real-host fixture was NOT successful: a native error overlay
+covered the WebView, and diagnostic evidence showed **zero native touch events**
+(`nowAllowed=true events=0 ... failure=true`). Thus its short-drag/site-down
+checks alone were not sufficient input evidence. No input assertion was changed
+to accept a failed reload, no engine UA was spoofed, and no production error UI
+was disabled. The modern real-host test remains required on35; on29 it is
+explicitly SKIPPED, with independent native controller/selection/storage coverage
+at the controlled origin instead. Do not report the29 real-host integration as
+passed. CI/device outcomes pending. Fixture success is not account proof.
