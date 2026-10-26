@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const source = fs.readFileSync('app/src/main/assets/facebook.js','utf8');
 const selection23=fs.readFileSync('tools/selection-build23.js.txt','utf8');
-assert.equal(source.slice(source.indexOf(' // Keep Android WebView'),source.indexOf(' const colors =')),selection23,'Restore exact build23 selection requested by owner');
+assert.equal(source.slice(source.indexOf(' // Keep Android WebView'),source.indexOf(' const colors =')).replace('selectionActionTarget(el)||','').replace(',body [data-fpro-selectable-text] [role="button"],body [data-fpro-selectable-text] [role="button"] *',''),selection23,'Keep build23 selection core, apart from explicit action isolation and CSS control exclusion');
 const nativeMain=fs.readFileSync('app/src/main/java/com/almekhlafi/FPRO/MainActivity.kt','utf8');
 const settings=fs.readFileSync('app/src/main/java/com/almekhlafi/FPRO/SettingsPanel.kt','utf8');
 assert(!nativeMain.includes('Intent.createChooser'),'No Android share chooser fallback');
@@ -656,6 +656,8 @@ function fixture(html,config={},captureDownload=false) {
   fastTools.doc.getElementById('overlay').dispatchEvent(new fastTools.window.MouseEvent('pointerdown',{bubbles:true,cancelable:true}));
   fastTools.doc.querySelector('#officialLink span').dispatchEvent(new fastTools.window.MouseEvent('pointerdown',{bubbles:true,cancelable:true}));
   assert.equal(delegated,2,'Disabled selection plus fast painting must preserve Facebook handlers');
+  fastTools.window.dispatchEvent(new fastTools.window.MouseEvent('pointerup',{bubbles:true}));
+  await new Promise(resolve=>setTimeout(resolve,300));
   const fragment=fastTools.doc.createElement('div');fragment.innerHTML='<button id="instantApp">فتح التطبيق</button><button id="instantSearch">بحث</button><span data-testid="ordinary">Text</span><svg aria-label="verified"></svg>';
   let geometryReads=0;fragment.querySelectorAll('*').forEach(el=>el.getBoundingClientRect=()=>{geometryReads++;return {width:12,height:12,top:0};});
   fastTools.doc.getElementById('root').appendChild(fragment);
@@ -701,11 +703,13 @@ function fixture(html,config={},captureDownload=false) {
   assert(pipSound.window.__fproAudio.preparePip());assert(pipSound.window.__fproAudio.enterPip());assert.equal(pv.muted,false);assert.equal(pv.volume,1);
   const privateMedia=pipSound.window.__fproAudio.report();assert.equal(privateMedia.muted,false);assert(!JSON.stringify(privateMedia).includes('src'),'Audio diagnostics never include media URLs');
   pipSound.window.__fproAudio.leavePip();assert.equal(pv.muted,true);assert.equal(pv.volume,0,'Leaving PiP restores user original mute/volume');
+  // General filtering is intentionally rate limited to 1500ms between passes.
+  // CTA/no-app hiding has separate before-paint assertions and remains urgent.
   const dynamic=fixture('<main id="feed"></main>',{ads:true});
   dynamic.doc.querySelector('#feed').innerHTML='<article id="late"><span>Sponsored</span></article>';
-  await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'none','Observe dynamically added cards');
+  await new Promise(resolve=>setTimeout(resolve,1800));assert.equal(dynamic.doc.querySelector('#late').style.display,'none','Observe dynamically added cards');
   dynamic.doc.querySelector('#late span').textContent='Ordinary post';
-  await new Promise(resolve=>setTimeout(resolve,650));assert.equal(dynamic.doc.querySelector('#late').style.display,'','Recycled feed cards are restored');
+  await new Promise(resolve=>setTimeout(resolve,1800));assert.equal(dynamic.doc.querySelector('#late').style.display,'','Recycled feed cards are restored');
   console.log('DOM tests passed: scroll-bound emoji gear, red pseudo/SVG/background-photo/outline/shadow rings, private color diagnostics, lightweight accents, collapsed fixed story slots, localized raster badges/profile rings, button story trays, story images/backgrounds/videos, stable filtering, 20 recycled videos, stale metadata rejection, nonoverlapping tools, homepage story tray, surfaces/SVG restoration; ads, stories, install banner, accents, dynamic feed, video controls, progress, seeking, restoration, independent touch fullscreen and Seal routing.');
  } finally {windows.forEach(w=>w.close());}
 })().catch(error=>{console.error(error);process.exitCode=1;});

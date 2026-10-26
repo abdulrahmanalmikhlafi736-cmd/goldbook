@@ -28,6 +28,7 @@ jobs:
           node --check app/src/main/assets/facebook.js
           node tools/test-injection.cjs
           node tools/test-browsing.cjs
+          node tools/test-interaction.cjs
       - name: Test, lint and build debug APK
         shell: bash
         run: |
