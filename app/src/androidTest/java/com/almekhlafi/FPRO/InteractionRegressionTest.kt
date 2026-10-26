@@ -168,7 +168,12 @@ class InteractionRegressionTest {
             evaluate("getSelection().removeAllRanges()")
             drag(160f)
             repeat(25){if(requests.get()<2)Thread.sleep(100)}
-            assertEquals("Deliberate downward pull must cause exactly one real native reload",2,requests.get())
+            val pullState=AtomicReference("")
+            scenario.onActivity { activity ->
+                val field=MainActivity::class.java.getDeclaredField("pullRefresh");field.isAccessible=true
+                pullState.set((field.get(activity) as? NativePullRefresh)?.report().orEmpty())
+            }
+            assertEquals("Deliberate downward pull must cause exactly one real native reload: ${pullState.get()}",2,requests.get())
             Thread.sleep(700)
             assertEquals("Refreshed document must be the real second response","2",evaluate("window.fixtureNavigation"))
             assertEquals("No cookie/cache/storage clearing to disguise a freeze","true",evaluate("document.cookie.indexOf('fproPullSentinel=retained')>=0 && localStorage.getItem('fproPullSentinel')==='retained'"))

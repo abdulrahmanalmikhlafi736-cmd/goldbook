@@ -20,22 +20,30 @@ internal class NativePullRefresh(
         ViewConfiguration.get(web.context).scaledTouchSlop.toFloat(), ViewConfiguration.getLongPressTimeout().toLong())
     private val checks = SingleFlightQuery()
     private var lastRefresh = -2500L
+    private var hostAllowed=false
+    private var checked=false
+    private var eligible=false
+    private var completion="none"
+    internal fun report() = "allowed=$hostAllowed checked=$checked eligible=$eligible $completion"
     private fun atTop() = web.scrollY <= 1 && !web.canScrollVertically(-1)
     fun cancel() = gesture.cancel()
     fun onNavigation() { cancel();checks.invalidate() }
     fun observe(event: MotionEvent) {
-        if (!allowed() || event.pointerCount != 1) { cancel(); return }
+        hostAllowed=allowed()
+        if (!hostAllowed || event.pointerCount != 1) { cancel(); return }
         when(event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                checked=false;eligible=false;completion="down"
                 val token=gesture.down(event.x,event.y,event.eventTime,atTop())
                 val check = if(atTop() && web.width>0) checks.begin() else null
                 if (check != null) {
                     val script=query.replace("__X__",event.x.toString()).replace("__Y__",event.y.toString()).replace("__WIDTH__",web.width.toString())
-                    web.evaluateJavascript(script) { result -> if(checks.complete(check)) gesture.approve(token,result=="true") }
+                    web.evaluateJavascript(script) { result -> if(checks.complete(check)) { checked=true;eligible=result=="true";gesture.approve(token,eligible) } }
                 }
             }
             MotionEvent.ACTION_MOVE -> gesture.move(event.x,event.y,event.eventTime)
             MotionEvent.ACTION_UP -> {
+                completion=gesture.state(event.x,event.y,event.eventTime)+" top=${atTop()}"
                 val requested=gesture.up(event.x,event.y,event.eventTime,atTop())
                 val now=SystemClock.elapsedRealtime()
                 if(requested && now-lastRefresh>=2500) { lastRefresh=now;refresh() }

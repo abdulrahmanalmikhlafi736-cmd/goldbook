@@ -27,6 +27,8 @@ internal class PullRefreshGesture(private val distance: Float, private val slop:
             earlyDrag = true
         }
     }
+    fun state(px: Float, py: Float, time: Long): String =
+        "active=$active eligible=$eligible early=$earlyDrag distance=${py-y>=distance} vertical=${py-y>abs(px-x)*2} timely=${time-downTime<=1500}"
     fun up(px: Float, py: Float, time: Long, stillAtTop: Boolean): Boolean {
         move(px,py,time)
         val refresh = active && eligible && earlyDrag && stillAtTop && py-y >= distance && py-y > abs(px-x)*2 && time-downTime <= 1500
