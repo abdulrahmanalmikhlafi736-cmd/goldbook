@@ -43,9 +43,18 @@ attachment, rather than assuming Activity resumed implies WebView ready.
 Added native bridge test: real main-frame message accepted, same-origin iframe
 message and malformed/non-boolean messages rejected.
 
-Android build/lint and emulator results must be recorded from CI before calling
-this release verified. No authenticated Facebook or Note 20 Ultra measurement
-has been performed. No speed percentage or freeze-resolution claim is made.
+Verified production app source is byte-identical from `16fd76c` through `0a27292`
+and the Android13 gate commit `6a083c7` (later commits refine test fixtures/workflows).
+
+- [Build / lint / JVM / four DOM suites / debug + compact APKs](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40410738982): PASS, tested commit `0a27292`.
+- [Android13 focused gate](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40411515373): all three upgrade tests PASS, no skips. This exercises the callback recovery contract, not a real OS low-memory kill.
+- [Full device matrix](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40410738983): **2/4**. Compact API35 and36 PASS. Debug API29 and35 fail the existing real-tap video-playback prerequisite in `zzPictureInPictureUsesRealPlaybackAndHome`; no assertion was disabled. Do not call the full suite green or PiP/audio playback proven.
+- [Explicit native XML inspection](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40411631535): Copy, held reactions, recovery callback and playback reporting PASS on both API29/35; origin/frame/malformed bridge test PASS on35. It is explicitly SKIP on29 because that stock provider lacks WEB_MESSAGE_LISTENER, while its separate, non-skipped fallback test PASSes.
+- The initial bridge fixture gave a false playback hint on an empty page; the real page-info reporter could immediately revoke it. The corrected fixture uses intercepted HTTPS navigation, verifies its own DOM marker, keeps synthetic video state consistent, and prevents subsequent page probes masking illicit iframe state changes. Original security assertions remain.
+
+No authenticated Facebook, actual Note20 Ultra, long-session renderer PSS or
+startup before/after measurement has been performed. No speed percentage or
+freeze-resolution claim is made.
 
 ## On-device memory / performance protocol (debug only)
 
