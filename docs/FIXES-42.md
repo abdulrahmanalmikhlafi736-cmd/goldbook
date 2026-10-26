@@ -64,7 +64,7 @@ next-request release, duplicate/old result isolation, gesture threshold, early
 movement vs long press, cancellation, JS rejection/no answer and top boundaries.
 
 New OS-input instrumentation `nativePullReloadsOnceDespiteBlockedSiteDownAndKeepsStorage`
-uses the actual MainActivity host binding on API35, intercepted HTTPS fixture
+uses the actual MainActivity host binding on API35, intercepted allowlisted HTTPS fixture
 responses, native finger down/move/up and the build23 reading guard. It
 requires short scroll=no reload, delegated site pointerdown=0, deliberate pull=
 exactly one real second navigation/response, cookies and localStorage retained,
@@ -78,7 +78,56 @@ covered the WebView, and diagnostic evidence showed **zero native touch events**
 (`nowAllowed=true events=0 ... failure=true`). Thus its short-drag/site-down
 checks alone were not sufficient input evidence. No input assertion was changed
 to accept a failed reload, no engine UA was spoofed, and no production error UI
-was disabled. The modern real-host test remains required on35; on29 it is
+was disabled. The modern native-host binding test remains required on35; on29 it is
 explicitly SKIPPED, with independent native controller/selection/storage coverage
 at the controlled origin instead. Do not report the29 real-host integration as
-passed. CI/device outcomes pending. Fixture success is not account proof.
+passed.
+
+The initial Facebook-origin cookie check also failed after navigation, and was
+NOT counted as preserved storage. There are no cookie/storage clearing calls in
+the new production path. The final host-binding fixture uses an isolated
+`pull-fixture.messenger.com` allowlisted namespace, with all nonfixture requests
+answered locally, rather than mixing its sentinels with the live Facebook
+bootstrap's cookie/network state. It explicitly acknowledges native cookie setup
+and asserts cookie AND localStorage exist before input and remain after reload.
+No retention assertion was removed or changed to accept missing data. This proves
+controlled native reload behavior, not Facebook's own cookie policy.
+## Verified results / exact delivery
+
+[Build/lint/JVM/four DOM suites 40273033234](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40273033234): **PASS**.
+Tested app/test source: `9398c853aa8c73b2aa62b867fcea5505ac7df2c9`.
+[Explicit XML inspection 40273657162](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40273657162): **PASS**, requiring all seven positive cases below and the one declared skip:
+
+| Native assertion | API29 | API35 |
+|---|---|---|
+| Original native long-press selection + Copy | PASS | PASS |
+| Held reaction + ordinary Like during feed churn | PASS | PASS |
+| Controller pull, real second response, cookie + localStorage retained | PASS | PASS |
+| MainActivity allowlisted host binding + real pull + retained storage | SKIP (see above) | PASS |
+
+The tests establish preconditions before dragging, keep selection guards active,
+require site-delegated reading pointerdown to remain blocked, require no reload
+on a short drag, exactly one real navigation on the completed deliberate pull,
+and no late/automatic refresh loop. No fake trusted input or Copy UI is used.
+They are controlled fixtures, NOT authenticated Facebook/account/physical-phone
+coverage. The independent gate unit tests simulate missing/duplicate callbacks;
+10,000 poll attempts admit one unanswered request, not a measured phone heap/FPS
+benchmark.
+
+[Latest device matrix 40273033272](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40273033272): **1/4**, not all green.
+API35 compact PASS. API29/35 debug fail the existing PiP real-tap playback
+prerequisite, while the input assertions above pass/skip as declared. API36
+compact fails local HTML accessibility and the live Facebook login-button blue
+pixel assertion. None is disabled, counted successful or claimed repaired.
+Earlier42 runs had compact36 success, but that does not turn this latest failure
+into a pass. The production renderer/bootstrap source needs further native36
+investigation if that failure reproduces; this patch makes no API36 account claim.
+The first compile attempt's receiver-shadowed settings property and the evidence
+inspector's accidental dict/set de-duplication error were corrected; failed
+attempts were not used as successful build/device evidence.
+
+[Exact compact APK verified on API35](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40273033272/artifacts/12629541042), artifact ZIP 1,018,035 bytes.
+[Clean complete build42 source](../downloads/FPRO-build42-source.zip), adjacent
+SHA256 and SOURCE-COMMIT.txt identify the project snapshot and tested app source.
+[PR3](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/pull/3) remains open;
+no automatic merge of this new change after the already-completed PR2 merge.
