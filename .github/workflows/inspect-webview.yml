@@ -65,6 +65,25 @@ jobs:
                   seen.add(text)
                   print('::notice title=Device test stack::'+text.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
           PYCODE
+      - name: Verify build41 copy and reaction tests explicitly
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          required = {'realTapAndHeldReactionSurviveFeedChurn', 'zNativeLongPressSelectsPostsCommentsAndHashtags'}
+          seen = set()
+          for path in Path('previous-diagnostics').rglob('*.xml'):
+              try: root = ET.parse(path).getroot()
+              except ET.ParseError: continue
+              for case in root.iter('testcase'):
+                  name = case.get('name', '')
+                  if name not in required: continue
+                  api = '29' if '29-debug' in str(path) else '35' if '35-debug' in str(path) else 'unknown'
+                  status = 'FAIL' if case.find('failure') is not None or case.find('error') is not None else 'SKIP' if case.find('skipped') is not None else 'PASS'
+                  print('::notice title=Build41 input evidence::API' + api + ': ' + name + ': ' + status)
+                  if status == 'PASS': seen.add((api, name))
+          assert seen == {(api, name) for api in ('29', '35') for name in required}, 'Missing/failed core input evidence: ' + repr(seen)
+          PY
       - name: Inspect browsing session assertions separately
         run: |
           python3 - <<'PY'
