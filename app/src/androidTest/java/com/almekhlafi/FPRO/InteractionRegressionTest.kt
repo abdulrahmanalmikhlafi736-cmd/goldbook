@@ -27,6 +27,7 @@ class InteractionRegressionTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val automation = instrumentation.getUiAutomation(0)
         ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            awaitBrowserReady(scenario)
             Thread.sleep(2300)
             val ready = CountDownLatch(1)
             scenario.onActivity { activity ->

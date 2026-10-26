@@ -26,6 +26,7 @@ class VideoOverlayRegressionTest {
     @Test fun resurrectedCtaAndCompleteRotatingBallWithOneTimeline() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         ActivityScenario.launch<MainActivity>(android.content.Intent(instrumentation.targetContext, MainActivity::class.java)).use { scenario ->
+            awaitBrowserReady(scenario)
             Thread.sleep(2300)
             val done = CountDownLatch(1)
             val result = AtomicReference("null")

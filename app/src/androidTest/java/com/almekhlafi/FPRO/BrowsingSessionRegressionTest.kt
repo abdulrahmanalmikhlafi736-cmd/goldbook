@@ -52,6 +52,7 @@ class BrowsingSessionRegressionTest {
     @Test fun fullscreenStartsPortraitAndOnlyLaterPhysicalTurnUnlocksLandscape() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         ActivityScenario.launch<MainActivity>(android.content.Intent(instrumentation.targetContext, MainActivity::class.java)).use { scenario ->
+            awaitBrowserReady(scenario)
             scenario.onActivity { activity ->
                 assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, activity.requestedOrientation)
                 val web = requireNotNull(findWeb(activity.window.decorView))
@@ -81,6 +82,7 @@ class BrowsingSessionRegressionTest {
     @Test fun realWebViewRestoresScrollAndWarmResumeAndRotationKeepDocument() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         ActivityScenario.launch<MainActivity>(android.content.Intent(instrumentation.targetContext, MainActivity::class.java)).use { scenario ->
+            awaitBrowserReady(scenario)
             // Match the existing overlay fixture: let Compose issue its one-time
             // bootstrap navigation before installing the offline test document.
             // Otherwise API29 can replace our fixture with that queued home load.

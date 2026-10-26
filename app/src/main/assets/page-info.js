@@ -1,10 +1,31 @@
 (() => {
- // Playback events update native PiP eligibility before the user presses Home.
- // Independent of page recoloring and never starts a paused video by itself.
+ // This bridge is deliberately top-frame only, independent of recoloring.
+ if(window.top!==window)return JSON.stringify({});
+ function playbackSnapshot(){
+  const active=Array.from(document.querySelectorAll('video')).filter(v=>!v.paused&&!v.ended&&v.readyState>=2);
+  const video=active.includes(window.__fproLastPlayingVideo)?window.__fproLastPlayingVideo:active[0];
+  let box=null;
+  if(video){
+   const r=video.getBoundingClientRect(),vv=window.visualViewport;
+   box={x:r.left-(vv?vv.offsetLeft:0),y:r.top-(vv?vv.offsetTop:0),w:r.width,h:r.height,
+    viewportWidth:vv?vv.width:innerWidth,viewportHeight:vv?vv.height:innerHeight,
+    mediaWidth:video.videoWidth||r.width,mediaHeight:video.videoHeight||r.height};
+  }
+  return {playing:!!video,video:box};
+ }
  if(!window.__fproPlaybackHooks){
   window.__fproPlaybackHooks=true;
-  const report=e=>{try{const live=Array.from(document.querySelectorAll('video')).find(v=>!v.paused&&!v.ended&&v.readyState>=2);if(e&&e.target&&e.target.tagName==='VIDEO'&&!e.target.paused)window.__fproLastPlayingVideo=e.target;else if(live&&(!window.__fproLastPlayingVideo||!window.__fproLastPlayingVideo.isConnected||window.__fproLastPlayingVideo.paused))window.__fproLastPlayingVideo=live;if(window.FproPlayback)window.FproPlayback.playing(!!live);}catch(_){}};
-  ['playing','pause','ended','emptied'].forEach(type=>document.addEventListener(type,report,true));
+  let last='',timer=null,playing=false;
+  const report=e=>{try{
+   if(e&&e.target&&e.target.tagName==='VIDEO'&&!e.target.paused)window.__fproLastPlayingVideo=e.target;
+   const state=playbackSnapshot();playing=state.playing;const text=JSON.stringify(state);
+   if(window.FproPlayback&&typeof window.FproPlayback.postMessage==='function'&&text!==last){window.FproPlayback.postMessage(text);last=text;}
+  }catch(_){}};
+  const geometry=()=>{if(!playing)return;if(timer===null)timer=setTimeout(()=>{timer=null;report();},150);};
+  ['playing','pause','ended','emptied','loadedmetadata'].forEach(type=>document.addEventListener(type,report,true));
+  addEventListener('resize',geometry);addEventListener('scroll',geometry,{passive:true,capture:true});
+  addEventListener('fullscreenchange',geometry);addEventListener('fproviewportchange',geometry);
+  if(window.visualViewport){visualViewport.addEventListener('resize',geometry);visualViewport.addEventListener('scroll',geometry);}
   window.__fproReportPlayback=report;
  }
  function info() {
@@ -33,7 +54,7 @@
   // separate, so scrolling does not disable the home story filter.
   const scrolled=(window.scrollY||document.documentElement.scrollTop||0)>=4||Array.from(document.querySelectorAll('[role="main"],[role="feed"]')).some(el=>el.scrollTop>=4);
   const gearVisible=home && !scrolled && (entry||!logoPresent||anchored);
-  return {home,gearVisible,x,y,width:innerWidth,anchored};
+  return {home,gearVisible,x,y,width:innerWidth,anchored,...playbackSnapshot()};
  }
  window.__fproPageInfo=info;
  return JSON.stringify(info());

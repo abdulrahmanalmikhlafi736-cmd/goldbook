@@ -676,7 +676,7 @@ function fixture(html,config={},captureDownload=false) {
   recycledCTA.querySelector('span').textContent='فتح التطبيق';
   await new Promise(resolve=>fastTools.window.queueMicrotask(resolve));assert.equal(recycledCTA.style.display,'none','Text changes inside already-recolored controls must still trigger immediate banner hiding');
   const media=fixture('<video></video>',{enhance:false});let playingHint=null;
-  media.window.FproPlayback={playing:value=>{playingHint=value;}};
+  media.window.FproPlayback={postMessage:value=>{playingHint=JSON.parse(value).playing;}};
   const mediaVideo=media.doc.querySelector('video');Object.defineProperty(mediaVideo,'paused',{value:false,configurable:true});Object.defineProperty(mediaVideo,'readyState',{value:4,configurable:true});
   media.doc.dispatchEvent(new media.window.Event('playing',{bubbles:true}));assert.equal(playingHint,true,'Report actual playing state before Home');
   Object.defineProperty(mediaVideo,'paused',{value:true,configurable:true});mediaVideo.dispatchEvent(new media.window.Event('pause'));assert.equal(playingHint,false,'Pausing must revoke PiP eligibility');
