@@ -33,6 +33,48 @@ class WebViewUpgradeRegressionTest {
         }
         fail("Expected browser state did not arrive")
     }
+    private fun loadPlaybackFixture(scenario: ActivityScenario<MainActivity>) {
+    val loaded = CountDownLatch(1)
+    scenario.onActivity { activity ->
+        val web = requireNotNull(browser(activity.window.decorView))
+        web.stopLoading()
+        val fixtureUrl = "https://m.facebook.com/fpro-bridge44-test"
+        web.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? {
+                if (request.url.toString() != fixtureUrl) return null
+                val html = "<html><body id='bridge44'><video id='fixtureVideo'></video></body></html>"
+                return android.webkit.WebResourceResponse("text/html", "UTF-8", html.byteInputStream())
+            }
+            override fun onPageFinished(view: WebView, url: String?) {
+                if (url == fixtureUrl) view.evaluateJavascript("!!document.getElementById('bridge44')") {
+                    if (it == "true") loaded.countDown()
+                }
+            }
+        }
+        web.loadUrl(fixtureUrl)
+    }
+    assertTrue(loaded.await(10, TimeUnit.SECONDS))
+    }
+
+    @Test fun playbackReportingTracksPageOnEveryProvider() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java)).use { scenario ->
+            awaitBrowserReady(scenario)
+            loadPlaybackFixture(scenario)
+            val field = MainActivity::class.java.getDeclaredField("mediaPlaying").apply { isAccessible = true }
+            scenario.onActivity { activity ->
+                val web = requireNotNull(browser(activity.window.decorView))
+                val reporter = activity.assets.open("page-info.js").bufferedReader().use { it.readText() }
+                web.evaluateJavascript("Object.defineProperties(document.getElementById('fixtureVideo'),{paused:{value:false,configurable:true},ended:{value:false},readyState:{value:4}});" + reporter, null)
+            }
+            waitFor(scenario) { field.getBoolean(it) }
+            scenario.onActivity { activity ->
+                requireNotNull(browser(activity.window.decorView)).evaluateJavascript("Object.defineProperty(document.getElementById('fixtureVideo'),'paused',{value:true,configurable:true});window.__fproReportPlayback();", null)
+            }
+            waitFor(scenario) { !field.getBoolean(it) }
+        }
+    }
+
     @androidx.test.filters.SdkSuppress(minSdkVersion = 26)
     @Test fun rendererCallbackReplacesBrowserAndBoundsAutomaticReloads() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -66,26 +108,7 @@ class WebViewUpgradeRegressionTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java)).use { scenario ->
             awaitBrowserReady(scenario)
-            val loaded = CountDownLatch(1)
-            scenario.onActivity { activity ->
-                val web = requireNotNull(browser(activity.window.decorView))
-                web.stopLoading()
-                val fixtureUrl = "https://m.facebook.com/fpro-bridge44-test"
-                web.webViewClient = object : WebViewClient() {
-                    override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? {
-                        if (request.url.toString() != fixtureUrl) return null
-                        val html = "<html><body id='bridge44'><video id='fixtureVideo'></video></body></html>"
-                        return android.webkit.WebResourceResponse("text/html", "UTF-8", html.byteInputStream())
-                    }
-                    override fun onPageFinished(view: WebView, url: String?) {
-                        if (url == fixtureUrl) view.evaluateJavascript("!!document.getElementById('bridge44')") {
-                            if (it == "true") loaded.countDown()
-                        }
-                    }
-                }
-                web.loadUrl(fixtureUrl)
-            }
-            assertTrue(loaded.await(10, TimeUnit.SECONDS))
+            loadPlaybackFixture(scenario)
             val field = MainActivity::class.java.getDeclaredField("mediaPlaying").apply { isAccessible = true }
             fun send(script: String) { scenario.onActivity { requireNotNull(browser(it.window.decorView)).evaluateJavascript(script, null) } }
             // Keep automatic page-info reporting consistent with the synthetic transport state.
