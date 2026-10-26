@@ -65,5 +65,15 @@ known reaction cases remain tested.
 Native Copy fixture now also long-presses `wrappedPlain`, a plain span in a
 role-button/popup reading wrapper inside an article, requiring the real Android
 selection and Copy action. Existing post/comment/hashtag/direct-div assertions
-and actual reaction hold/tap remain. CI/device outcomes pending; no claim of
-account resolution before the owner's test.
+and actual reaction hold/tap remain.
+
+[Build/lint/JVM/four DOM suites 40274729407](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40274729407): PASS.
+[Explicit native XML inspection 40275334638](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40275334638): PASS, requiring both native Copy (including wrappedPlain) and held reaction/tap tests on API29 and API35, with no skip accepted for those four results.
+Exact tested app/test source: `c67675248c1814ce591a43e60b752eacb3e331bd`.
+
+[Full matrix 40274729405](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40274729405): **1/4**, not all green. API35 compact PASS; API29/35 debug fail the existing real-tap playback prerequisite in PiP; API36 compact fails local HTML accessibility. No failed result is counted successful, no assertions disabled to label this an account fix.
+
+[Exact compact APK verified on API35](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40274729405/artifacts/12630141296), artifact ZIP 1,015,348 bytes.
+[Complete clean source43](../downloads/FPRO-build43-source.zip), adjacent SHA256 and SOURCE-COMMIT.txt identify the snapshot and exact tested app source.
+[PR3](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/pull/3) remains open, not automatically merged.
+These fixtures do not establish account Copy or actual site refresh. Owner verification remains necessary.
