@@ -34,26 +34,26 @@ class WebViewUpgradeRegressionTest {
         fail("Expected browser state did not arrive")
     }
     private fun loadPlaybackFixture(scenario: ActivityScenario<MainActivity>) {
-    val loaded = CountDownLatch(1)
-    scenario.onActivity { activity ->
-        val web = requireNotNull(browser(activity.window.decorView))
-        web.stopLoading()
-        val fixtureUrl = "https://m.facebook.com/fpro-bridge44-test"
-        web.webViewClient = object : WebViewClient() {
-            override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? {
-                if (request.url.toString() != fixtureUrl) return null
-                val html = "<html><body id='bridge44'><video id='fixtureVideo'></video></body></html>"
-                return android.webkit.WebResourceResponse("text/html", "UTF-8", html.byteInputStream())
-            }
-            override fun onPageFinished(view: WebView, url: String?) {
-                if (url == fixtureUrl) view.evaluateJavascript("!!document.getElementById('bridge44')") {
-                    if (it == "true") loaded.countDown()
+        val loaded = CountDownLatch(1)
+        scenario.onActivity { activity ->
+            val web = requireNotNull(browser(activity.window.decorView))
+            web.stopLoading()
+            val fixtureUrl = "https://m.facebook.com/fpro-bridge44-test"
+            web.webViewClient = object : WebViewClient() {
+                override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? {
+                    if (request.url.toString() != fixtureUrl) return null
+                    val html = "<html><body id='bridge44'><video id='fixtureVideo'></video></body></html>"
+                    return android.webkit.WebResourceResponse("text/html", "UTF-8", html.byteInputStream())
+                }
+                override fun onPageFinished(view: WebView, url: String?) {
+                    if (url == fixtureUrl) view.evaluateJavascript("!!document.getElementById('bridge44')") {
+                        if (it == "true") loaded.countDown()
+                    }
                 }
             }
+            web.loadUrl(fixtureUrl)
         }
-        web.loadUrl(fixtureUrl)
-    }
-    assertTrue(loaded.await(10, TimeUnit.SECONDS))
+        assertTrue(loaded.await(10, TimeUnit.SECONDS))
     }
 
     @Test fun playbackReportingTracksPageOnEveryProvider() {
@@ -121,6 +121,7 @@ class WebViewUpgradeRegressionTest {
             scenario.onActivity { activity ->
                 requireNotNull(browser(activity.window.decorView)).evaluateJavascript("""
                     (async()=>{
+                      window.__fproReportPlayback=()=>{}; // Do not let a later header probe mask an illicit iframe update.
                       FproPlayback.postMessage('not json');
                       FproPlayback.postMessage(JSON.stringify({playing:'true'}));
                       const frame=document.createElement('iframe');
