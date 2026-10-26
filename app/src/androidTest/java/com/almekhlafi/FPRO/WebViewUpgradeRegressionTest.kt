@@ -70,17 +70,29 @@ class WebViewUpgradeRegressionTest {
             scenario.onActivity { activity ->
                 val web = requireNotNull(browser(activity.window.decorView))
                 web.stopLoading()
+                val fixtureUrl = "https://m.facebook.com/fpro-bridge44-test"
                 web.webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView, url: String?) { loaded.countDown() }
+                    override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? {
+                        if (request.url.toString() != fixtureUrl) return null
+                        val html = "<html><body id='bridge44'><video id='fixtureVideo'></video></body></html>"
+                        return android.webkit.WebResourceResponse("text/html", "UTF-8", html.byteInputStream())
+                    }
+                    override fun onPageFinished(view: WebView, url: String?) {
+                        if (url == fixtureUrl) view.evaluateJavascript("!!document.getElementById('bridge44')") {
+                            if (it == "true") loaded.countDown()
+                        }
+                    }
                 }
-                web.loadDataWithBaseURL("https://m.facebook.com/", "<html><body>Bridge fixture</body></html>", "text/html", "UTF-8", null)
+                web.loadUrl(fixtureUrl)
             }
             assertTrue(loaded.await(10, TimeUnit.SECONDS))
             val field = MainActivity::class.java.getDeclaredField("mediaPlaying").apply { isAccessible = true }
             fun send(script: String) { scenario.onActivity { requireNotNull(browser(it.window.decorView)).evaluateJavascript(script, null) } }
-            send("FproPlayback.postMessage(JSON.stringify({playing:true}))")
+            // Keep automatic page-info reporting consistent with the synthetic transport state.
+            // Otherwise the real header probe correctly revokes a true hint on a page with no playing video.
+            send("Object.defineProperties(document.getElementById('fixtureVideo'),{paused:{value:false,configurable:true},ended:{value:false},readyState:{value:4}});FproPlayback.postMessage(JSON.stringify({playing:true}))")
             waitFor(scenario) { field.getBoolean(it) }
-            send("FproPlayback.postMessage(JSON.stringify({playing:false}))")
+            send("Object.defineProperty(document.getElementById('fixtureVideo'),'paused',{value:true,configurable:true});FproPlayback.postMessage(JSON.stringify({playing:false}))")
             waitFor(scenario) { !field.getBoolean(it) }
             val frameDone = CountDownLatch(1)
             scenario.onActivity { activity ->
