@@ -53,7 +53,6 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if(granted)startAudioOnly() else toast("يلزم السماح بإشعار التحكم للتشغيل الصوتي") }
     private lateinit var prefs: Preferences
     private lateinit var web: WebView
-    private var pullRefresh: NativePullRefresh? = null
     private val headerQueries = SingleFlightQuery()
     private val readinessQueries = SingleFlightQuery()
     private val positionQueries = SingleFlightQuery()
@@ -279,12 +278,8 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     @SuppressLint("ClickableViewAccessibility")
     private fun createWebView(): WebView = PlaybackWebView().apply {
         layoutDirection = View.LAYOUT_DIRECTION_LTR
-        pullRefresh = NativePullRefresh(this,
-            allowed = { fullView == null && !audioOnly && !pip && !this@MainActivity.settings && !splash && Navigation.isFacebook(url.orEmpty()) },
-            refresh = { failure = null; reload() })
         // Observe without consuming gestures; a real touch cancels recovery.
         setOnTouchListener { _, event ->
-            pullRefresh?.observe(event)
             if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
                 val cancellingRestore = resumeRestoreUntil > 0L || pendingPosition != null
                 resumeRestoreUntil = 0L; pendingPosition = null
@@ -316,7 +311,6 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
             @Deprecated("Required for Android 6")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = route(Uri.parse(url), true)
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
-                pullRefresh?.onNavigation()
                 headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
                 failure = null
                 if (Navigation.isFacebook(url.orEmpty()) && !BrowsingSessionStore.eligible(url.orEmpty())) {
@@ -767,7 +761,6 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         }
     }
     override fun onPause() {
-        pullRefresh?.cancel()
         fullscreenOrientationListener?.disable()
         capturePosition(true)
         super.onPause()
@@ -795,7 +788,6 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         super.onSaveInstanceState(outState)
     }
     override fun onDestroy() {
-        pullRefresh?.cancel(); pullRefresh = null
         headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
         sessionClosing = true; sessions.close()
         earlyScript?.remove(); earlyScript = null; stopAudioMode(true)

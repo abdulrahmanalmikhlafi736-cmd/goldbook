@@ -97,7 +97,7 @@
    body p,body span,body [dir="auto"],body [role="article"],body [role="article"] *,body article,body article *,body a[href*="/hashtag/"],body a[href*="hashtag="],body [data-ad-preview="message"],body [data-ad-comet-preview="message"]{-webkit-user-select:text!important;user-select:text!important}
    body button,body button *,body [role="button"],body [role="button"] *,body select,body video,body canvas,.fpro-video-tools,.fpro-video-tools *{-webkit-user-select:none!important;user-select:none!important}
    body [data-fpro-selectable-text],body [data-fpro-selectable-text] *{-webkit-user-select:text!important;user-select:text!important}
-   body [data-fpro-selectable-text] button,body [data-fpro-selectable-text] button *,body [data-fpro-selectable-text] [role="button"],body [data-fpro-selectable-text] [role="button"] *{-webkit-user-select:none!important;user-select:none!important}
+   body [data-fpro-selectable-text] button,body [data-fpro-selectable-text] button *{-webkit-user-select:none!important;user-select:none!important}
    body input,body textarea,body [contenteditable]:not([contenteditable="false"]),body [contenteditable]:not([contenteditable="false"]) *{-webkit-user-select:auto!important;user-select:auto!important}
   `;
   if(!selectionStyle.isConnected)document.head.appendChild(selectionStyle);
@@ -112,24 +112,26 @@
  const LIGHT_MODE_FG = {'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'};
  const norm = s => (s || '').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');
  const selectionControlLabels=new Set(['like','love','reply','replies','share','follow','comment','comments','send','save','copy','cancel','more','see more','see less','play','pause','إعجاب','أعجبني','رد','ردود','مشاركة','متابعة','تعليق','تعليقات','التعليقات','إرسال','حفظ','نسخ','إلغاء','المزيد','عرض المزيد','عرض أقل','تشغيل','إيقاف'].map(norm));
- // Interaction41: preserve build23 reading handlers, but never steal a reaction
- // control's pointer/touch/context-menu sequence, including localized counters.
+ // Build43: only positive action evidence excludes reading. Generic role,
+ // pressed/popup metadata and prose-prefixed aria labels are not action proof.
  function selectionActionTarget(el){
-  if(el.closest('[role="toolbar"],[role="menu"],[role="menubar"],[role="listbox"],[role="menuitem"],[role="menuitemradio"]'))return true;
+  const ui=el.closest('[role="toolbar"],[role="menu"],[role="menubar"],[role="listbox"],[role="menuitem"],[role="menuitemradio"]');
+  const article=el.closest('article,[role="article"],[role="comment"],[data-commentid]');
+  if(ui&&(!article||article.contains(ui)))return true;
   let node=el;
   for(let depth=0;node&&depth<7;depth++,node=node.parentElement){
    if(node.matches('article,[role="article"],[role="comment"],[data-commentid],body,html'))break;
    if(node.matches('[role="button"],[role="link"],a,[onclick],[tabindex],[aria-pressed],[aria-haspopup]')){
-    if(node.hasAttribute('aria-pressed')||node.hasAttribute('aria-haspopup'))return true;
     const href=node.getAttribute('href')||'',sigil=node.getAttribute('data-sigil')||'',test=node.getAttribute('data-testid')||'';
     if(/\/(?:a\/)?(?:like|reaction|reactions|ufi)(?:\.php|\/|\?|$)/i.test(href)||/(?:^|\s)(?:like|reaction)(?:-|\s|$)/i.test(sigil)||/reaction|ufi.*like/i.test(test))return true;
-    const action=/^(?:[👍❤️❤😆😮😢😡🥰]+\s*)?(?:like|liked|unlike|remove like|react|reactions?|love|reply|share|comment|(?:ال)?اعجاب|اعجبني|اعجبنى|اعجبك|الغاء الاعجاب|ازاله الاعجاب|تسجيل الاعجاب|اضافه تفاعل|اضافة تفاعل|اختر تفاعل|تفاعل|تفاعلات|رد|مشاركه|مشاركة|تعليق)(?:$|[\s\d:،,·•().!?])/i;
-    for(const name of ['aria-label','title']){const label=norm(node.getAttribute(name));if(label.length<=160&&(selectionControlLabels.has(label)||action.test(label)))return true;}
     const visible=node.textContent||'';
     if(visible.length<=90){const text=norm(visible),counter=/^(?:like|liked|unlike|react|reactions?|love|reply|share|comment|(?:ال)?اعجاب|اعجبني|اعجبنى|تفاعل|تفاعلات|رد|مشاركة|تعليق)[\s\d٠-٩۰-۹.,،:·•()👍❤️❤😆😮😢😡🥰]*$/i;if(selectionControlLabels.has(text)||counter.test(text))return true;}
-    // Unknown standalone role-buttons belong to the site. Reading blocks inside
-    // interactive post/comment wrappers retain the proven selection path.
-    if(node.matches('[role="button"]')&&!el.closest('p,[dir="auto"],[data-ad-preview="message"],[data-ad-comet-preview="message"]')&&!node.querySelector('p,[dir="auto"],[data-ad-preview="message"],[data-ad-comet-preview="message"]'))return true;
+    // Icon-only controls need explicit action evidence. Never infer an action
+    // from an unknown role-button containing a real post/comment sentence.
+    if(/^[\s\d٠-٩۰-۹.,،:·•()👍❤️❤😆😮😢😡🥰]*$/.test(visible)){
+     if(node.hasAttribute('aria-pressed')||node.hasAttribute('aria-haspopup'))return true;
+     for(const name of ['aria-label','title'])if(/^(?:like|unlike|react|reaction|اعجاب|تفاعل)(?:$|\s)/i.test(norm(node.getAttribute(name))))return true;
+    }
    }
   }
   return false;
@@ -940,7 +942,7 @@
   requestScan();
  });
  function colorReport(){
-  const report={version:41,work:{...workStats,interactionBusy:interactionBusy()},media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
+  const report={version:43,work:{...workStats,interactionBusy:interactionBusy()},media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}

@@ -13,7 +13,6 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   '<a href="/a/like.php?id=7"><span>👍 12</span></a>',
   '<div role="button" aria-pressed="false"><span>👍</span></div>',
   '<div role="toolbar"><div tabindex="0"><span>تفاعل جديد</span></div></div>',
-  '<div role="button"><span>Unfamiliar localized action</span></div>'
  ];
  for(const html of variants){const {w,doc}=fixture('<article role="button"><p id="reading">Like minded people can copy this actual paragraph.</p>'+html+'</article>',{enhance:false});let delegated=0;for(const name of ['pointerdown','touchstart','contextmenu'])doc.addEventListener(name,()=>delegated++,true);const target=doc.querySelector('article > :last-child span');for(const name of ['pointerdown','touchstart','contextmenu'])event(w,target,name);assert.equal(delegated,3,'Every long-press event must reach the site: '+html);assert(!target.hasAttribute('data-fpro-selectable-text'));event(w,target,'pointerup');event(w,target,'touchend');const text=doc.querySelector('#reading');const before=delegated;event(w,text,'pointerdown');assert.equal(delegated,before,'Actual reading remains protected, even when its text starts Like');assert.equal(text.style.getPropertyValue('user-select'),'text');w.close();}
  {
