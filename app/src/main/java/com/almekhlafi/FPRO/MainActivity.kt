@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private var messageBridgeInstalled = false
     private val recoveryPolicy = RendererRecoveryPolicy()
     private var rendererRecoveries = 0
+    private var lastNavigationUrl = "https://m.facebook.com/"
     private var lastGeometryAt = 0L
     private var pipRect: android.graphics.Rect? = null
     private var pipRatio = Rational(16, 9)
@@ -340,6 +341,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         settings.setSupportMultipleWindows(false)
         CookieManager.getInstance().setAcceptCookie(true)
         webViewClient = object : WebViewClient() {
+            @androidx.annotation.RequiresApi(26)
             override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
                 recoverRenderer(view, detail.didCrash())
                 return true
@@ -350,6 +352,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
                 failure = null
+                if (url != null && url.length <= 8192 && BrowsingSessionStore.eligible(url)) lastNavigationUrl = url
                 pipRect = null; pipRatio = Rational(16, 9)
                 if (Navigation.isFacebook(url.orEmpty()) && !BrowsingSessionStore.eligible(url.orEmpty())) {
                     lastPosition = null; pendingPosition = null; sessions.clear()
@@ -906,11 +909,12 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private fun recoverRenderer(dead: WebView, crashed: Boolean) {
         if (!::web.isInitialized || dead !== web || isDestroyed) { disposeWebView(dead); return }
         // Never ask the dead renderer for URL/state/JS. Use only the last native checkpoint.
-        val destination = positionUrl(lastPosition)?.takeIf { BrowsingSessionStore.eligible(it) } ?: "https://m.facebook.com/"
+        val destination = positionUrl(lastPosition)?.takeIf { BrowsingSessionStore.eligible(it) } ?: lastNavigationUrl
         headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
         pageSequence++; pageConfirmed = false; homeControls = false; splash = true
         earlyScript?.remove(); earlyScript = null
         stopFullscreenRotation()
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         fullView?.let { (it.parent as? ViewGroup)?.removeView(it) }; fullView = null
         fullCallback = null
         fileCallback?.onReceiveValue(null); fileCallback = null
