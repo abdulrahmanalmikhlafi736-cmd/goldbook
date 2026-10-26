@@ -171,7 +171,12 @@ class InteractionRegressionTest {
             val pullState=AtomicReference("")
             scenario.onActivity { activity ->
                 val field=MainActivity::class.java.getDeclaredField("pullRefresh");field.isAccessible=true
-                pullState.set((field.get(activity) as? NativePullRefresh)?.report().orEmpty())
+                val flags=listOf("splash", "settings", "pip", "failure").joinToString { name ->
+                    val stateField=MainActivity::class.java.getDeclaredField(name+"\$delegate");stateField.isAccessible=true
+                    val value=(stateField.get(activity) as androidx.compose.runtime.State<*>).value
+                    name+"="+(if(name=="failure")value!=null else value)
+                }
+                pullState.set((field.get(activity) as? NativePullRefresh)?.report().orEmpty()+" "+flags)
             }
             assertEquals("Deliberate downward pull must cause exactly one real native reload: ${pullState.get()}",2,requests.get())
             Thread.sleep(700)

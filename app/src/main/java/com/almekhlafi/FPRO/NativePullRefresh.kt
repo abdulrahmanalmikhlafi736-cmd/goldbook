@@ -20,15 +20,17 @@ internal class NativePullRefresh(
         ViewConfiguration.get(web.context).scaledTouchSlop.toFloat(), ViewConfiguration.getLongPressTimeout().toLong())
     private val checks = SingleFlightQuery()
     private var lastRefresh = -2500L
+    private var observed=0
     private var hostAllowed=false
     private var checked=false
     private var eligible=false
     private var completion="none"
-    internal fun report() = "allowed=$hostAllowed checked=$checked eligible=$eligible $completion"
+    internal fun report() = "nowAllowed=${allowed()} events=$observed allowed=$hostAllowed checked=$checked eligible=$eligible $completion"
     private fun atTop() = web.scrollY <= 1 && !web.canScrollVertically(-1)
     fun cancel() = gesture.cancel()
     fun onNavigation() { cancel();checks.invalidate() }
     fun observe(event: MotionEvent) {
+        observed++
         hostAllowed=allowed()
         if (!hostAllowed || event.pointerCount != 1) { cancel(); return }
         when(event.actionMasked) {
