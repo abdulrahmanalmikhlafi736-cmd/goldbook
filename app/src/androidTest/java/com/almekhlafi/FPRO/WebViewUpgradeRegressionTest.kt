@@ -33,6 +33,34 @@ class WebViewUpgradeRegressionTest {
         }
         fail("Expected browser state did not arrive")
     }
+    @androidx.test.filters.SdkSuppress(minSdkVersion = 26)
+    @Test fun rendererCallbackReplacesBrowserAndBoundsAutomaticReloads() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java)).use { scenario ->
+            awaitBrowserReady(scenario)
+            scenario.onActivity { activity ->
+                val detail = object : android.webkit.RenderProcessGoneDetail() {
+                    override fun didCrash() = false
+                    override fun rendererPriorityAtExit() = WebView.RENDERER_PRIORITY_BOUND
+                }
+                val first = requireNotNull(browser(activity.window.decorView))
+                val firstClient = first.webViewClient
+                assertTrue(firstClient.onRenderProcessGone(first, detail))
+                val second = requireNotNull(browser(activity.window.decorView))
+                assertNotSame("Recovery must never reuse the dead instance", first, second)
+                assertTrue(second.webViewClient.onRenderProcessGone(second, detail))
+                val third = requireNotNull(browser(activity.window.decorView))
+                assertNotSame(second, third)
+                val failure = MainActivity::class.java.getDeclaredField("failure\$delegate").apply { isAccessible = true }
+                val state = failure.get(activity) as androidx.compose.runtime.State<*>
+                assertNotNull("Second death must require explicit retry", state.value)
+                // Late callbacks for an already disposed instance must be harmless.
+                assertTrue(firstClient.onRenderProcessGone(first, detail))
+                assertSame(third, browser(activity.window.decorView))
+            }
+        }
+    }
+
     @Test fun messageBridgeRejectsSameOriginSubframesAndMalformedPayloads() {
         assumeTrue(androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.WEB_MESSAGE_LISTENER))
         val context = InstrumentationRegistry.getInstrumentation().targetContext

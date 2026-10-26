@@ -60,6 +60,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private lateinit var web: WebView
     private lateinit var browserRoot: FrameLayout
     private var messageBridgeInstalled = false
+    private val disposedWebViews = java.util.WeakHashMap<WebView, Boolean>()
     private val recoveryPolicy = RendererRecoveryPolicy()
     private var rendererRecoveries = 0
     private var lastNavigationUrl = "https://m.facebook.com/"
@@ -147,7 +148,9 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         setContentView(browserRoot)
         // Navigation belongs to this Activity/WebView, never to a restartable
         // Compose effect. Reattaching/recomposing controls must not restore/reload.
+        val initialWeb = web
         web.post {
+            if (isDestroyed || web !== initialWeb) return@post
             val remembered = if (prefs.flag("rememberPosition", true)) sessions.read() else null
             pendingPosition = if (prefs.flag("rememberPosition", true)) savedInstanceState?.getString("fpro.position") ?: remembered?.position else null
             lastPosition = pendingPosition
@@ -898,6 +901,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
 
     private fun disposeWebView(view: WebView, rendererGone: Boolean = false) {
+        if (disposedWebViews.put(view, true) != null) return
         if (messageBridgeInstalled) androidx.webkit.WebViewCompat.removeWebMessageListener(view, "FproPlayback")
         (view.parent as? ViewGroup)?.removeView(view)
         view.setOnTouchListener(null); view.setOnScrollChangeListener(null)
