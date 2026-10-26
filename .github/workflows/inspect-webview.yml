@@ -6,7 +6,7 @@ on:
     inputs:
       run_id:
         description: Completed emulator run to inspect
-        default: '40409352950'
+        default: '40410738983'
         required: true
 jobs:
   inspect:
@@ -21,7 +21,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id="${{ github.event.inputs.run_id || '40409352950' }}"
+          id="${{ github.event.inputs.run_id || '40410738983' }}"
           echo "run=$id" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
@@ -70,7 +70,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
-          required = {'realTapAndHeldReactionSurviveFeedChurn', 'zNativeLongPressSelectsPostsCommentsAndHashtags', 'messageBridgeRejectsSameOriginSubframesAndMalformedPayloads', 'rendererCallbackReplacesBrowserAndBoundsAutomaticReloads'}
+          required = {'realTapAndHeldReactionSurviveFeedChurn', 'zNativeLongPressSelectsPostsCommentsAndHashtags', 'messageBridgeRejectsSameOriginSubframesAndMalformedPayloads', 'rendererCallbackReplacesBrowserAndBoundsAutomaticReloads', 'playbackReportingTracksPageOnEveryProvider'}
           seen = {}
           for path in Path('previous-diagnostics').rglob('*.xml'):
               try: root = ET.parse(path).getroot()
@@ -83,6 +83,10 @@ jobs:
                   print('::notice title=Build44 native evidence::API' + api + ': ' + name + ': ' + status)
                   seen[(api, name)] = status
           expected = {(api, name): 'PASS' for api in ('29', '35') for name in required}
+          # API29's stock provider lacks this optional bridge feature. Its separate
+          # non-skipped playback fallback test must still PASS; never waive Copy/reactions.
+          if seen.get(('29', 'messageBridgeRejectsSameOriginSubframesAndMalformedPayloads')) == 'SKIP':
+              expected[('29', 'messageBridgeRejectsSameOriginSubframesAndMalformedPayloads')] = 'SKIP'
           assert seen == expected, 'Missing/failed core input evidence: ' + repr(seen)
           PY
       - name: Inspect browsing session assertions separately
