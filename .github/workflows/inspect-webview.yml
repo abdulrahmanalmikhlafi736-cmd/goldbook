@@ -118,7 +118,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re, urllib.request, urllib.parse
-          seen = {}
+          seen = set()
           scripts = set()
           for log in Path('previous-diagnostics').rglob('logcat.txt'):
               selected = []
