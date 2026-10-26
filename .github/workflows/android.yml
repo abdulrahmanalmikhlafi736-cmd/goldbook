@@ -29,6 +29,7 @@ jobs:
           node tools/test-injection.cjs
           node tools/test-browsing.cjs
           node tools/test-interaction.cjs
+          node tools/test-pull-refresh.cjs
       - name: Test, lint and build debug APK
         shell: bash
         run: |

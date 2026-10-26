@@ -53,6 +53,10 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if(granted)startAudioOnly() else toast("يلزم السماح بإشعار التحكم للتشغيل الصوتي") }
     private lateinit var prefs: Preferences
     private lateinit var web: WebView
+    private var pullRefresh: NativePullRefresh? = null
+    private val headerQueries = SingleFlightQuery()
+    private val readinessQueries = SingleFlightQuery()
+    private val positionQueries = SingleFlightQuery()
     private lateinit var sessions: BrowsingSessionStore
     private var lastPosition: String? = null
     private var pendingPosition: String? = null
@@ -211,7 +215,9 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                                     failure = "تأخر ظهور محتوى فيسبوك. تحقق من الاتصال ثم اختر إعادة المحاولة؛ لم نعد تحميل الصفحة تلقائيًا."
                                     splash = false; break
                                 }
-                                web.evaluateJavascript(readyScript) { ready ->
+                                val readyTicket = readinessQueries.begin()
+                                if (readyTicket != null) web.evaluateJavascript(readyScript) { ready ->
+                                    if (!readinessQueries.complete(readyTicket)) return@evaluateJavascript
                                     if (ready == "true" && splash && !isDestroyed) {
                                         val sequence = pageSequence
                                         web.postVisualStateCallback(sequence.toLong(), object : WebView.VisualStateCallback() {
@@ -228,7 +234,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                             delay(1200)
                             while (true) {
                                 if (!settings && web.hasWindowFocus() && Navigation.isFacebook(web.url.orEmpty())) {
-                                    web.evaluateJavascript(pageInfoQuery) { updateHomeControls(it) }
+                                    probePageInfo()
                                 } else homeControls = false
                                 // Player routes do not need frequent header-logo queries.
                                 delay(if (homeControls) 650 else 1200)
@@ -273,11 +279,16 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     @SuppressLint("ClickableViewAccessibility")
     private fun createWebView(): WebView = PlaybackWebView().apply {
         layoutDirection = View.LAYOUT_DIRECTION_LTR
+        pullRefresh = NativePullRefresh(this,
+            allowed = { fullView == null && !audioOnly && !pip && !settings && !splash && Navigation.isFacebook(url.orEmpty()) },
+            refresh = { failure = null; reload() })
         // Observe without consuming gestures; a real touch cancels recovery.
         setOnTouchListener { _, event ->
+            pullRefresh?.observe(event)
             if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                val cancellingRestore = resumeRestoreUntil > 0L || pendingPosition != null
                 resumeRestoreUntil = 0L; pendingPosition = null
-                evaluateJavascript("window.__fproPosition && window.__fproPosition.cancel()", null)
+                if (cancellingRestore) evaluateJavascript("window.__fproPosition && window.__fproPosition.cancel()", null)
             }
             false
         }
@@ -305,6 +316,8 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
             @Deprecated("Required for Android 6")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = route(Uri.parse(url), true)
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+                pullRefresh?.onNavigation()
+                headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
                 failure = null
                 if (Navigation.isFacebook(url.orEmpty()) && !BrowsingSessionStore.eligible(url.orEmpty())) {
                     lastPosition = null; pendingPosition = null; sessions.clear()
@@ -340,7 +353,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                 if (Navigation.isFacebook(url.orEmpty()) && engineMajor != null && engineMajor < 80) {
                     failure = "محرك Android System WebView قديم (Chromium $engineMajor) ولا يدعم صياغة JavaScript الحديثة. حدّث WebView أو Chrome من متجر التطبيقات ثم أعد فتح FPRO.\n${diagnostics()}"
                 }
-                web.evaluateJavascript(pageInfoScript) { updateHomeControls(it) }
+                probePageInfo()
                 inject()
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -723,9 +736,17 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         val history = Bundle()
         if (web.saveState(history) != null) sessions.write(history, position, url)
     }
+    private fun probePageInfo() {
+        val ticket = headerQueries.begin() ?: return
+        web.evaluateJavascript(pageInfoQuery) { result ->
+            if (headerQueries.complete(ticket) && !isDestroyed) updateHomeControls(result)
+        }
+    }
     private fun capturePosition(persist: Boolean) {
         if (sessionClosing || !::web.isInitialized || !prefs.flag("rememberPosition", true) || !BrowsingSessionStore.eligible(web.url.orEmpty())) return
+        val ticket = positionQueries.begin() ?: return
         web.evaluateJavascript(positionScript + "\nwindow.__fproPosition.capture()") { encoded ->
+            if (!positionQueries.complete(ticket)) return@evaluateJavascript
             if (!sessionClosing && !isDestroyed && prefs.flag("rememberPosition", true)) try {
                 val position = JSONArray("[$encoded]").optString(0)
                 val data = org.json.JSONObject(position)
@@ -746,6 +767,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         }
     }
     override fun onPause() {
+        pullRefresh?.cancel()
         fullscreenOrientationListener?.disable()
         capturePosition(true)
         super.onPause()
@@ -773,6 +795,8 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         super.onSaveInstanceState(outState)
     }
     override fun onDestroy() {
+        pullRefresh?.cancel(); pullRefresh = null
+        headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
         sessionClosing = true; sessions.close()
         earlyScript?.remove(); earlyScript = null; stopAudioMode(true)
         closeFullscreen(); fileCallback?.onReceiveValue(null); fileCallback = null

@@ -103,4 +103,77 @@ class InteractionRegressionTest {
             assertEquals("Full recoloring must not run during a held reaction gesture", "true",evaluate("window.scansAtDown===window.scansDuringHold"))
         }
     }
+    @Test fun nativePullReloadsOnceDespiteBlockedSiteDownAndKeepsStorage() {
+        val instrumentation=InstrumentationRegistry.getInstrumentation()
+        val automation=instrumentation.getUiAutomation(0)
+        val requests=java.util.concurrent.atomic.AtomicInteger(0)
+        ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName,"com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            Thread.sleep(2300)
+            val ready=CountDownLatch(1)
+            scenario.onActivity { activity ->
+                val web=requireNotNull(findWeb(activity.window.decorView));web.stopLoading()
+                val delegate=web.webViewClient
+                web.webViewClient=object: android.webkit.WebViewClient() {
+                    override fun onPageStarted(view: WebView,url: String?,favicon: android.graphics.Bitmap?) { delegate.onPageStarted(view,url,favicon) }
+                    override fun onPageFinished(view: WebView,url: String?) { delegate.onPageFinished(view,url) }
+                    override fun shouldInterceptRequest(view: WebView,request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? {
+                        if(request.url.path!="/fpro-native-pull-fixture") return delegate.shouldInterceptRequest(view,request)
+                        val count=if(request.isForMainFrame)requests.incrementAndGet() else requests.get()
+                        val html="""<html><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:20px;font:24px sans-serif}p{line-height:48px;user-select:none}</style><body><article role="button"><p id="pull">FPRO native pull text paragraph starts here. Selection remains native while dragging downward deliberately refreshes.</p><div style="height:2000px">Other feed content</div></article><script>window.fixtureNavigation=$count;window.siteDown=0;document.addEventListener('pointerdown',function(){window.siteDown++;},true);</script></body></html>"""
+                        return android.webkit.WebResourceResponse("text/html","UTF-8",html.byteInputStream())
+                    }
+                }
+                web.loadUrl("https://m.facebook.com/fpro-native-pull-fixture?case=42")
+                fun probe(attempt: Int) {
+                    web.evaluateJavascript("!!document.querySelector('#pull') && !!window.__fpro && document.readyState==='complete'") { result ->
+                        if(result=="true") {
+                            // Disable paint/filter work, NOT native selection: isolate the
+                            // swallowed site pointerdown defect from performance changes.
+                            web.evaluateJavascript("window.__fpro.update({enhance:false,textSelection:true});document.cookie='fproPullSentinel=retained;path=/';localStorage.setItem('fproPullSentinel','retained');") {
+                                web.postVisualStateCallback(42,object: WebView.VisualStateCallback(){override fun onComplete(requestId: Long){ready.countDown()}})
+                            }
+                        } else if(attempt<40)web.postDelayed({probe(attempt+1)},200)
+                    }
+                }
+                web.postDelayed({probe(0)},200)
+            }
+            assertTrue("Real host/selection fixture must load",ready.await(15,TimeUnit.SECONDS));Thread.sleep(800)
+            fun evaluate(script: String): String {
+                val latch=CountDownLatch(1);val out=AtomicReference("")
+                scenario.onActivity { activity ->requireNotNull(findWeb(activity.window.decorView)).evaluateJavascript(script){out.set(it);latch.countDown()} }
+                assertTrue(latch.await(5,TimeUnit.SECONDS));return out.get()
+            }
+            val point=FloatArray(3);val measured=CountDownLatch(1)
+            scenario.onActivity { activity ->
+                val web=requireNotNull(findWeb(activity.window.decorView))
+                web.evaluateJavascript("JSON.stringify((function(){var r=document.querySelector('#pull').getBoundingClientRect();return {x:r.left+30,y:r.top+20,w:innerWidth};})())") { result ->
+                    val data=org.json.JSONObject(org.json.JSONArray("[$result]").getString(0));val offset=IntArray(2);web.getLocationOnScreen(offset);val scale=web.width/data.getDouble("w")
+                    point[0]=(offset[0]+data.getDouble("x")*scale).toFloat();point[1]=(offset[1]+data.getDouble("y")*scale).toFloat();point[2]=web.resources.displayMetrics.density;measured.countDown()
+                }
+            }
+            assertTrue(measured.await(5,TimeUnit.SECONDS))
+            fun drag(dp: Float) {
+                val down=android.os.SystemClock.uptimeMillis()
+                fun input(action: Int,dy: Float) {
+                    val event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),action,point[0],point[1]+dy,0);event.source=android.view.InputDevice.SOURCE_TOUCHSCREEN
+                    assertTrue(automation.injectInputEvent(event,true));event.recycle()
+                }
+                input(android.view.MotionEvent.ACTION_DOWN,0f);Thread.sleep(160)
+                for(step in 1..8){input(android.view.MotionEvent.ACTION_MOVE,dp*point[2]*step/8);Thread.sleep(20)}
+                input(android.view.MotionEvent.ACTION_UP,dp*point[2]);Thread.sleep(250)
+            }
+            drag(45f)
+            assertEquals("Short ordinary scroll must not reload",1,requests.get())
+            assertEquals("Selection guard still blocks the site's delegated reading pointerdown","0",evaluate("window.siteDown"))
+            evaluate("getSelection().removeAllRanges()")
+            drag(160f)
+            repeat(25){if(requests.get()<2)Thread.sleep(100)}
+            assertEquals("Deliberate downward pull must cause exactly one real native reload",2,requests.get())
+            Thread.sleep(700)
+            assertEquals("Refreshed document must be the real second response","2",evaluate("window.fixtureNavigation"))
+            assertEquals("No cookie/cache/storage clearing to disguise a freeze","true",evaluate("document.cookie.indexOf('fproPullSentinel=retained')>=0 && localStorage.getItem('fproPullSentinel')==='retained'"))
+            assertEquals("No automatic refresh loop",2,requests.get())
+        }
+    }
+
 }
