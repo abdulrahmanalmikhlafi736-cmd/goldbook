@@ -119,7 +119,10 @@ class InteractionRegressionTest {
         val instrumentation=InstrumentationRegistry.getInstrumentation()
         val automation=instrumentation.getUiAutomation(0)
         val requests=java.util.concurrent.atomic.AtomicInteger(0)
-        val fixtureOrigin=if(realHost)"https://m.facebook.com" else "https://fixture.invalid"
+        // Isolate this intercepted allowlisted origin from the initial live
+        // Facebook bootstrap's cookie/network policies. No network fixture data
+        // is trusted, and all storage assertions remain mandatory before/after.
+        val fixtureOrigin=if(realHost)"https://pull-fixture.messenger.com" else "https://fixture.invalid"
         val component=AtomicReference<NativePullRefresh?>(null)
         ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName,"com.almekhlafi.FPRO.MainActivity")).use { scenario ->
             Thread.sleep(2300)
@@ -131,7 +134,7 @@ class InteractionRegressionTest {
                     override fun onPageStarted(view: WebView,url: String?,favicon: android.graphics.Bitmap?) { component.get()?.onNavigation();delegate.onPageStarted(view,url,favicon) }
                     override fun onPageFinished(view: WebView,url: String?) { delegate.onPageFinished(view,url) }
                     override fun shouldInterceptRequest(view: WebView,request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? {
-                        if(request.url.path!="/fpro-native-pull-fixture") return delegate.shouldInterceptRequest(view,request)
+                        if(request.url.path!="/fpro-native-pull-fixture") return android.webkit.WebResourceResponse("text/plain","UTF-8",java.io.ByteArrayInputStream(byteArrayOf()))
                         val count=if(request.isForMainFrame)requests.incrementAndGet() else requests.get()
                         val html="""<html><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:20px;font:24px sans-serif}p{line-height:48px;user-select:none}</style><body><article role="button"><p id="pull">FPRO native pull text paragraph starts here. Selection remains native while dragging downward deliberately refreshes.</p><div style="height:2000px">Other feed content</div></article><script>window.fixtureNavigation=$count;window.siteDown=0;document.addEventListener('pointerdown',function(){window.siteDown++;},true);</script></body></html>"""
                         return android.webkit.WebResourceResponse("text/html","UTF-8",html.byteInputStream())
