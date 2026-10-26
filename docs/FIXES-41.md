@@ -33,6 +33,9 @@ npm ci --prefix tools --ignore-scripts --no-audit --no-fund
 node tools/measure-interaction.cjs 2053506
 ```
 
+The comparison requires a Git checkout with the baseline commit available; the
+clean source ZIP builds and runs the regression suites without Git history.
+
 | Deterministic fixture metric | Build40 baseline | Build41 |
 |---|---:|---:|
 | Reaction pointerdown reaching delegated site handler | 0 | 1 |
@@ -92,7 +95,28 @@ requires normal Like click, the delegated long-press reaction palette, no extra
 Like on hold, continued mutation callbacks and no full scan during hold. Existing
 native post/comment/hashtag/direct-div selection and Android Copy-action tests
 remain required; no fake native Copy UI was added. Both are controlled fixtures,
-not the owner's account. CI/device results will be recorded after completion.
+not the owner's account. [Explicit XML inspection 40269393801](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40269393801)
+asserts **both native Copy and held reactions PASS on API29 and API35**. Earlier
+[inspection 40269307248](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40269307248)
+also confirms player-overlay35 and browsing-history/recovery/fullscreen-policy
+regressions on both APIs. Fullscreen sensor poses and ten-minute clock are
+injected/simulated by those existing policy tests, not physical-phone/account
+proof.
+
+[Android build/lint/JVM/three DOM suites 40268749851](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40268749851): **PASS**.
+Production/test app source: `b4e6424b4e0a2da9aa5bf9ebb6f14b01a03fbb5d`.
+[Device matrix 40268749771](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40268749771): **2/4**, NOT an all-green run.
+API35/36 compact PASS. API29/35 debug both fail the existing PiP test prerequisite
+`A real tap must start playback while ordinary gesture policy is enabled`.
+The new input test and existing native Copy assertions pass on both despite that
+separate failure; no PiP test was disabled or counted successful.
+
+[Exact compact APK verified on API35](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40268749771/artifacts/12626888913), artifact ZIP 1,014,953 bytes.
+[Clean complete source](../downloads/FPRO-build41-source.zip) and adjacent SHA256
+include the build/test project without dependencies, APKs, keys or old archives;
+SOURCE-COMMIT.txt records the archived snapshot and exact tested app-source SHA.
+[Pull request 3](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/pull/3)
+is separate from already-merged PR2; it has not been merged automatically.
 
 Remaining limitation: the legacy full tint/whole-document pass is still
 synchronous once interaction settles. Connected, very large feeds can therefore
