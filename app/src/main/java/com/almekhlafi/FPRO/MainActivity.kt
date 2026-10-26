@@ -280,7 +280,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private fun createWebView(): WebView = PlaybackWebView().apply {
         layoutDirection = View.LAYOUT_DIRECTION_LTR
         pullRefresh = NativePullRefresh(this,
-            allowed = { fullView == null && !audioOnly && !pip && !settings && !splash && Navigation.isFacebook(url.orEmpty()) },
+            allowed = { fullView == null && !audioOnly && !pip && !this@MainActivity.settings && !splash && Navigation.isFacebook(url.orEmpty()) },
             refresh = { failure = null; reload() })
         // Observe without consuming gestures; a real touch cancels recovery.
         setOnTouchListener { _, event ->
