@@ -104,9 +104,23 @@ class InteractionRegressionTest {
         }
     }
     @Test fun nativePullReloadsOnceDespiteBlockedSiteDownAndKeepsStorage() {
+        // The API29 emulator's obsolete WebView deliberately shows the production
+        // engine warning on real Facebook origins; do not hide that safety UI
+        // or spoof its engine. Test real host binding on the modern device.
+        org.junit.Assume.assumeTrue(android.os.Build.VERSION.SDK_INT >= 35)
+        runPullFixture(true)
+    }
+    @Test fun nativePullComponentWorksWithSelectionGuardAndRetainsStorage() {
+        // Independently exercise the SAME native controller on both engines,
+        // using a non-Facebook controlled origin like the existing Copy fixture.
+        runPullFixture(false)
+    }
+    private fun runPullFixture(realHost: Boolean) {
         val instrumentation=InstrumentationRegistry.getInstrumentation()
         val automation=instrumentation.getUiAutomation(0)
         val requests=java.util.concurrent.atomic.AtomicInteger(0)
+        val fixtureOrigin=if(realHost)"https://m.facebook.com" else "https://fixture.invalid"
+        val component=AtomicReference<NativePullRefresh?>(null)
         ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName,"com.almekhlafi.FPRO.MainActivity")).use { scenario ->
             Thread.sleep(2300)
             val ready=CountDownLatch(1)
@@ -114,7 +128,7 @@ class InteractionRegressionTest {
                 val web=requireNotNull(findWeb(activity.window.decorView));web.stopLoading()
                 val delegate=web.webViewClient
                 web.webViewClient=object: android.webkit.WebViewClient() {
-                    override fun onPageStarted(view: WebView,url: String?,favicon: android.graphics.Bitmap?) { delegate.onPageStarted(view,url,favicon) }
+                    override fun onPageStarted(view: WebView,url: String?,favicon: android.graphics.Bitmap?) { component.get()?.onNavigation();delegate.onPageStarted(view,url,favicon) }
                     override fun onPageFinished(view: WebView,url: String?) { delegate.onPageFinished(view,url) }
                     override fun shouldInterceptRequest(view: WebView,request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? {
                         if(request.url.path!="/fpro-native-pull-fixture") return delegate.shouldInterceptRequest(view,request)
@@ -123,13 +137,19 @@ class InteractionRegressionTest {
                         return android.webkit.WebResourceResponse("text/html","UTF-8",html.byteInputStream())
                     }
                 }
-                web.loadUrl("https://m.facebook.com/fpro-native-pull-fixture?case=42")
+                if(!realHost) {
+                    val controller=NativePullRefresh(web,{ !activity.isDestroyed && web.url.orEmpty().startsWith(fixtureOrigin+"/") },{ web.reload() })
+                    component.set(controller)
+                    web.setOnTouchListener { _, event -> controller.observe(event);false }
+                }
+                web.loadUrl(fixtureOrigin+"/fpro-native-pull-fixture?case=42")
                 fun probe(attempt: Int) {
-                    web.evaluateJavascript("!!document.querySelector('#pull') && !!window.__fpro && document.readyState==='complete'") { result ->
+                    web.evaluateJavascript("!!document.querySelector('#pull') && document.readyState==='complete'") { result ->
                         if(result=="true") {
                             // Disable paint/filter work, NOT native selection: isolate the
                             // swallowed site pointerdown defect from performance changes.
-                            web.evaluateJavascript("window.__fpro.update({enhance:false,textSelection:true});document.cookie='fproPullSentinel=retained;path=/';localStorage.setItem('fproPullSentinel','retained');") {
+                            val source=activity.assets.open("facebook.js").bufferedReader().use { it.readText() }.replace("__CONFIG__", "{\"enhance\":false,\"textSelection\":true}")
+                            web.evaluateJavascript(source+";document.cookie='fproPullSentinel=retained;path=/';localStorage.setItem('fproPullSentinel','retained');") {
                                 web.postVisualStateCallback(42,object: WebView.VisualStateCallback(){override fun onComplete(requestId: Long){ready.countDown()}})
                             }
                         } else if(attempt<40)web.postDelayed({probe(attempt+1)},200)
@@ -176,13 +196,14 @@ class InteractionRegressionTest {
                     val value=(stateField.get(activity) as androidx.compose.runtime.State<*>).value
                     name+"="+(if(name=="failure")value!=null else value)
                 }
-                pullState.set((field.get(activity) as? NativePullRefresh)?.report().orEmpty()+" "+flags)
+                pullState.set((component.get() ?: field.get(activity) as? NativePullRefresh)?.report().orEmpty()+" "+flags)
             }
             assertEquals("Deliberate downward pull must cause exactly one real native reload: ${pullState.get()}",2,requests.get())
             Thread.sleep(700)
             assertEquals("Refreshed document must be the real second response","2",evaluate("window.fixtureNavigation"))
             assertEquals("No cookie/cache/storage clearing to disguise a freeze","true",evaluate("document.cookie.indexOf('fproPullSentinel=retained')>=0 && localStorage.getItem('fproPullSentinel')==='retained'"))
             assertEquals("No automatic refresh loop",2,requests.get())
+            component.get()?.cancel()
         }
     }
 
