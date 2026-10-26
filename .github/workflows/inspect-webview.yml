@@ -6,7 +6,7 @@ on:
     inputs:
       run_id:
         description: Completed emulator run to inspect
-        default: '40274729405'
+        default: '40409352950'
         required: true
 jobs:
   inspect:
@@ -21,7 +21,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id="${{ github.event.inputs.run_id || '40274729405' }}"
+          id="${{ github.event.inputs.run_id || '40409352950' }}"
           echo "run=$id" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
@@ -70,7 +70,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
-          required = {'realTapAndHeldReactionSurviveFeedChurn', 'zNativeLongPressSelectsPostsCommentsAndHashtags'}
+          required = {'realTapAndHeldReactionSurviveFeedChurn', 'zNativeLongPressSelectsPostsCommentsAndHashtags', 'messageBridgeRejectsSameOriginSubframesAndMalformedPayloads', 'rendererCallbackReplacesBrowserAndBoundsAutomaticReloads'}
           seen = {}
           for path in Path('previous-diagnostics').rglob('*.xml'):
               try: root = ET.parse(path).getroot()
@@ -80,7 +80,7 @@ jobs:
                   if name not in required: continue
                   api = '29' if '29-debug' in str(path) else '35' if '35-debug' in str(path) else 'unknown'
                   status = 'FAIL' if case.find('failure') is not None or case.find('error') is not None else 'SKIP' if case.find('skipped') is not None else 'PASS'
-                  print('::notice title=Build43 input evidence::API' + api + ': ' + name + ': ' + status)
+                  print('::notice title=Build44 native evidence::API' + api + ': ' + name + ': ' + status)
                   seen[(api, name)] = status
           expected = {(api, name): 'PASS' for api in ('29', '35') for name in required}
           assert seen == expected, 'Missing/failed core input evidence: ' + repr(seen)
