@@ -1,0 +1,171 @@
+name: Inspect WebView console
+on:
+  push:
+    paths: ['.github/workflows/inspect-webview.yml']
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Completed emulator run to inspect
+        default: '40246487948'
+        required: true
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Locate completed emulator evidence
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id="${{ github.event.inputs.run_id || '40246487948' }}"
+          echo "run=$id" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.source.outputs.run }}
+          pattern: webview-device-diagnostics-*-debug
+          path: previous-diagnostics
+      - name: Summarize baseline comparisons
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import html
+          evidence = {}
+          for path in Path('previous-diagnostics').rglob('*'):
+              if path.suffix not in ('.xml', '.txt'): continue
+              text = html.unescape(path.read_text(errors='replace'))
+              for marker in ('PLAIN_BASELINE:', 'COMPOSE_SITE:', 'BASELINE_ACCESSIBILITY='):
+                  position = text.rfind(marker)
+                  if position >= 0:
+                      evidence[marker] = text[position:position+3000].split('\n')[0]
+          for marker, message in evidence.items():
+              print('::notice title=Native baseline comparison::' + message.replace('%','%25'))
+          if not evidence: print('::notice::No baseline markers found in this completed run.')
+          PY
+      - name: Summarize failed device tests
+        run: |
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          seen=set()
+          for path in Path('previous-diagnostics').rglob('*.xml'):
+              try: root=ET.parse(path).getroot()
+              except ET.ParseError: continue
+              for case in root.iter('testcase'):
+                  if 'VideoOverlayRegressionTest' in case.get('classname','') or 'AudioPlaybackServiceTest' in case.get('classname','') or 'zNativeLongPress' in case.get('name','') or 'zzPictureInPicture' in case.get('name','') or 'yDocumentStart' in case.get('name',''):
+                      status = 'FAIL' if case.find('failure') is not None or case.find('error') is not None else 'SKIP' if case.find('skipped') is not None else 'PASS'
+                      print('::notice title=Native selection, early-frame or media testcase::'+str(path)+': '+case.get('name','')+': '+status)
+              for failure in list(root.iter('failure'))+list(root.iter('error')):
+                  text=(failure.text or failure.get('message',''))[:3000]
+                  if text in seen: continue
+                  seen.add(text)
+                  print('::notice title=Device test stack::'+text.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+          PYCODE
+      - name: Inspect browsing session assertions separately
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          for path in Path('previous-diagnostics').rglob('*.xml'):
+              try: root=ET.parse(path).getroot()
+              except ET.ParseError: continue
+              for case in root.iter('testcase'):
+                  if 'BrowsingSessionRegressionTest' not in case.get('classname',''): continue
+                  failures=list(case.iter('failure'))+list(case.iter('error'))
+                  detail='FAIL '+''.join(f.text or f.get('message','') for f in failures)[:2400] if failures else 'PASS'
+                  message=str(path)+': '+case.get('name','')+': '+detail
+                  print('::notice title=Browsing checkpoint evidence::'+message.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+          PY
+      - name: Inspect Android app launch failures
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for log in Path('previous-diagnostics').rglob('logcat.txt'):
+              lines = log.read_text(errors='replace').splitlines()
+              selected = set()
+              for index, line in enumerate(lines):
+                  if 'FATAL EXCEPTION' in line or ('com.almekhlafi.FPRO' in line and any(word in line for word in ('crash', 'Exception', 'Unable', 'START', 'ActivityTaskManager', 'AndroidRuntime', 'denied'))):
+                      selected.update(range(max(0,index-2), min(len(lines),index+16)))
+              for index in sorted(selected)[-65:]:
+                  print('::notice title=Android launch evidence::'+lines[index][:1800].replace('%','%25').replace('\r','%0D'))
+          PY
+      - name: Summarize Chromium failures
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, urllib.request, urllib.parse
+          seen = set()
+          scripts = set()
+          for log in Path('previous-diagnostics').rglob('logcat.txt'):
+              selected = []
+              for line in log.read_text(errors='replace').splitlines():
+                  if any(word in line.lower() for word in ('console', 'net::', 'chromium', 'webviewfactory', 'fpro_evidence')):
+                      if 'getElementsByTagName' in line:
+                          match = re.search(r'source: (https://[^ ]+)', line)
+                          if match: scripts.add(match.group(1))
+                      message = line[:1500]
+                      if message not in seen:
+                          seen.add(message)
+                          selected.append(message)
+              # Prioritize the completed plain/Compose comparison over warning noise.
+              metadata = [line for line in selected if 'FPRO_EVIDENCE' in line]
+              for line in metadata[-2:]:
+                  print('::notice title=Browser baseline metadata::' + line.replace('%','%25'))
+              useful = [line for line in selected if not any(noise in line.lower() for noise in ('permissions-policy', 'origin trial', 'sharedstorage', 'overlays are enabled'))]
+              errors = [line for line in useful if any(word in line.lower() for word in ('uncaught', 'typeerror', 'referenceerror', 'syntaxerror', 'err_', 'failed', 'errorutils', 'exception'))]
+              evidence = [line for line in errors if 'uncaught' in line.lower()][-2:] or errors[-2:] or useful[-2:]
+              for line in evidence:
+                  print('::notice title=Chromium evidence::' + line.replace('%','%25'))
+          for url in list(scripts)[:1]:
+              host = urllib.parse.urlparse(url).hostname or ''
+              if not host.endswith('.fbcdn.net'): continue
+              try:
+                  request = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
+                  code = urllib.request.urlopen(request, timeout=25).read(4000000).decode('utf-8', errors='replace')
+                  lines = code.splitlines()
+                  source = lines[70] if len(lines) > 70 else code
+                  contexts = ['Failing line 71: ' + source[:2900]]
+                  match = re.search('getElementsByTagName', code)
+                  if match:
+                      start = code.rfind('__d(', 0, match.start())
+                      contexts.append('Caller module: ' + code[max(0,start):max(0,start)+2900])
+                  contexts += [source[max(0,m.start()-500):m.end()+500] for m in re.finditer('getElementsByTagName', source)]
+                  for context in contexts[:6]:
+                      print('::notice title=Public script context::' + context.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+              except Exception as error:
+                  print('::notice::Public source unavailable: ' + str(error))
+          PY
+      - name: Install screenshot reader
+        run: timeout 90 python3 -m pip install --disable-pip-version-check --timeout 20 Pillow
+      - name: Inspect native baseline screenshot
+        run: |
+          file=$(find previous-diagnostics -name plain-baseline.png | head -1)
+          if [ -n "$file" ]; then
+            python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]).convert("RGB"); im.thumbnail((360,640)); im.save("/tmp/baseline.jpg", quality=55)' "$file"
+            python3 -c 'import base64; s=base64.b64encode(open("/tmp/baseline.jpg","rb").read()).decode(); [print("::notice title=BASELINE_JPEG_"+str(i//3000)+"::"+s[i:i+3000]) for i in range(0,len(s),3000)]'
+          fi
+      - name: Inspect Compose screenshot
+        run: |
+          file=$(find previous-diagnostics -name compose-facebook.png | head -1)
+          if [ -n "$file" ]; then
+            python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]).convert("RGB"); im.thumbnail((360,640)); im.save("/tmp/compose.jpg", quality=55)' "$file"
+            python3 -c 'import base64; s=base64.b64encode(open("/tmp/compose.jpg","rb").read()).decode(); [print("::notice title=COMPOSE_JPEG_"+str(i//3000)+"::"+s[i:i+3000]) for i in range(0,len(s),3000)]'
+          fi
+      - name: Inspect verified compact screenshot
+        run: |
+          file=$(find previous-diagnostics -name compact-facebook.png | head -1)
+          if [ -n "$file" ]; then
+            python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]).convert("RGB"); im.thumbnail((360,640)); im.save("/tmp/compact.jpg", quality=55)' "$file"
+            python3 -c 'import base64; s=base64.b64encode(open("/tmp/compact.jpg","rb").read()).decode(); [print("::notice title=COMPACT_JPEG_"+str(i//3000)+"::"+s[i:i+3000]) for i in range(0,len(s),3000)]'
+          fi
+      - name: Inspect page tools settings screenshot
+        run: |
+          file=$(find previous-diagnostics -name compact-tools.png | head -1)
+          if [ -n "$file" ]; then
+            python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]).convert("RGB"); im.thumbnail((360,640)); im.save("/tmp/tools.jpg", quality=55)' "$file"
+            python3 -c 'import base64; s=base64.b64encode(open("/tmp/tools.jpg","rb").read()).decode(); [print("::notice title=TOOLS_JPEG_"+str(i//3000)+"::"+s[i:i+3000]) for i in range(0,len(s),3000)]'
+          fi
