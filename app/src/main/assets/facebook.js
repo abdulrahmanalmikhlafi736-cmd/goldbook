@@ -992,7 +992,10 @@
  function update(c){
   if(JSON.stringify(cfg)===JSON.stringify(c)&&(window.__fpro&&window.__fpro.ready)){updateSelection();scan();return;}
   window.__fpro.ready=true;
-  if(window.FproColor)window.FproColor.off();if(window.FproNoapp)window.FproNoapp.restore();
+  if(window.FproColor)window.FproColor.off();
+  // Preserve reference ownership across ON->ON updates. scan(true) below
+  // performs the immediate hunt AFTER the new configuration/CSS is installed.
+  if(window.FproNoapp){if(c.enhance!==false&&c.referenceEngine&&c.appBanner)window.FproNoapp.set({noOpenApp:true});else window.FproNoapp.restore();}
   deferredColors.clear();workStats.queuedColorRoots=0;
   cfg=c;updateSelection();iconDefs.remove();restoreTintVars();style.textContent='';restoreHidden();painted.forEach(el=>accentAttrs.forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));painted.forEach(el=>el.removeAttribute('data-fpro-surface'));painted.clear();
   if(c.enhance===false){observer.disconnect();observingDocument=false;if(resize)resize.disconnect();videos.forEach(entry=>entry.dispose());videos.clear();storyImages.forEach(tools=>tools.remove());storyImages.clear();style.remove();lastTap=null;touch=null;return;}
@@ -1114,6 +1117,12 @@
   if(!relevant.length)return;
   if(interactionBusy()){deferColorRecords(relevant);fastReferenceColors(relevant,true);}
   else {fastHashtags(relevant);fastReferenceColors(relevant);}
+  // CSS text/node changes use the SAME observer. External LINK completion is
+  // handled by the reference engine's capture listener, without a time cutoff.
+  if(cfg.appBanner&&cfg.referenceEngine&&window.FproNoapp&&window.FproNoapp.stylesChanged&&relevant.some(r=>{
+   const el=r.target.nodeType===1?r.target:r.target.parentElement;
+   return el&&el.matches('style')||r.type==='childList'&&Array.from(r.addedNodes).some(n=>n.nodeType===1&&n.matches('style,link[rel~="stylesheet"]')&&!/^fpro/i.test(n.id));
+  }))window.FproNoapp.stylesChanged();
   requestScan();
  });
  function colorReport(){

@@ -141,7 +141,26 @@ class AppPromptRegressionTest {
                                                   checks.push(!later&&getComputedStyle(tail).display==='none');
                                                   checks.push(getComputedStyle(tail.querySelector('button')).display!=='none'&&getComputedStyle(deep).display!=='none'&&getComputedStyle(nextBody.querySelector('main')).display!=='none');
                                                   window.prompt49Debug=JSON.stringify({prior:window.prompt49Debug,discoveryMs:performance.now()-started,main:window.__fpro.promptTiming(),reference:window.FproNoapp.timing()});
-                                                  window.prompt49Result=JSON.stringify(checks);
+                                                  const finish55=()=>{window.prompt49Result=JSON.stringify(checks);};
+                                                  if($reference){
+                                                    const late=document.createElement('div');late.id='late55';late.innerHTML='<button style="height:40px">فتح التطبيق</button>';document.body.append(late);
+                                                    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+                                                      checks.push(getComputedStyle(late.firstChild).display==='none'&&getComputedStyle(late).display!=='none');
+                                                      const lateCss=document.createElement('style');document.head.append(lateCss);
+                                                      lateCss.sheet.insertRule('#late55{position:fixed;bottom:0;left:0;width:100%;height:65px}');
+                                                      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+                                                        checks.push(getComputedStyle(late).display==='none'&&getComputedStyle(late.firstChild).display!=='none');
+                                                        const mainStyle=document.getElementById('fpro-style');mainStyle.disabled=true;
+                                                        late.style.setProperty('display','block','important');
+                                                        checks.push(getComputedStyle(late).display==='none'&&!!document.getElementById('fpro-noapp-guard'));
+                                                        mainStyle.disabled=false;
+                                                        let restores=0;const restore=window.FproNoapp.restore;window.FproNoapp.restore=()=>{restores++;restore();};
+                                                        window.__fpro.update(Object.assign($config,{dark:true}));
+                                                        checks.push(restores===0&&late.hasAttribute('data-fpro-reference-noapp')&&getComputedStyle(late).display==='none');
+                                                        window.FproNoapp.restore=restore;finish55();
+                                                      }));
+                                                    }));
+                                                  }else finish55();
                                                 }));
                                               });
                                             }));
@@ -174,7 +193,7 @@ class AppPromptRegressionTest {
                 }
                 assertTrue("Real Chromium prompt fixture completed", done.await(15, TimeUnit.SECONDS))
                 val checks = JSONArray(JSONArray("[${result.get()}]").getString(0))
-                assertEquals(26, checks.length())
+                assertEquals(if (reference) 30 else 26, checks.length())
                 for (i in 0 until checks.length()) assertTrue("reference=$reference assertion=$i result=$checks detail=${detail.get()}", checks.getBoolean(i))
             }
         }

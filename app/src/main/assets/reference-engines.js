@@ -1,7 +1,7 @@
 /* Adapted from the FproColor / FproNoapp engines supplied by the owner.
  * Corrections: reversible ownership, palette/recycle updates, alpha=0,
  * shorthand preservation, bounded work, and page/media/navigation boundaries.
- * Driven by facebook.js's observer/scheduler; CTA geometry uses one bounded animation-frame batch, no extra observer/polling.
+ * Driven by facebook.js's observer/scheduler; CTA geometry uses one bounded animation-frame batch, no extra observer. A capped, finite geometry retry shares that frame batch.
  */
 (function () {
  'use strict';
@@ -9,6 +9,36 @@
  var cfg={recolor:false,uiAccent:'#D4AF37'}, noapp={noOpenApp:false};
  var pendingPrompts=new Set(),promptFrame=null,checkpointQueued=false,checkpointUsed=false;
  var urgentUsed=false,urgentSeen=new WeakSet(),urgentTiming={checks:0,hidden:0,maxMs:0},checkpointTiming={batches:0,checks:0,hidden:0,maxMs:0};
+ // At most8 retained cues,45 frame validations each. Exhausted cues wait for
+ // an actual stylesheet event; they never keep a frame loop alive.
+ var geometryWatch=new Map(),geometrySeen=new WeakSet();
+ var retryTiming={checks:0,active:0,retained:0};
+ function ensurePromptCss(){
+  if(!noapp.noOpenApp||!document.documentElement||document.getElementById('fpro-noapp-guard'))return;
+  var css=document.createElement('style');css.id='fpro-noapp-guard';
+  var nonce=document.querySelector('style[nonce],script[nonce]');if(nonce)css.nonce=nonce.nonce;
+  css.textContent='[data-fpro-reference-noapp]{display:none!important}';document.documentElement.appendChild(css);
+ }
+ function watchGeometry(el){
+  if(!geometrySeen.has(el)&&geometryWatch.size<8&&el.matches('a,button,[role="button"],[role="link"]')){geometrySeen.add(el);geometryWatch.set(el,0);}
+ }
+ function pruneGeometry(){geometryWatch.forEach(function(n,el){if(!el.isConnected)geometryWatch.delete(el);});}
+ function hasGeometryWork(){return Array.from(geometryWatch.values()).some(function(n){return n<45;});}
+ function promptTick(){
+  promptFrame=null;urgentUsed=false;checkpointUsed=false;pruneGeometry();
+  if(!noapp.noOpenApp||document.hidden)return;
+  geometryWatch.forEach(function(n,el){if(n<45&&pendingPrompts.size<48){geometryWatch.set(el,n+1);pendingPrompts.add(el);retryTiming.checks++;}});
+  flushPromptCheckpoint();
+  if(hasGeometryWork()&&promptFrame===null)promptFrame=requestAnimationFrame(promptTick);
+ }
+ function stylesChanged(){
+  if(!noapp.noOpenApp||document.hidden)return;
+  ensurePromptCss();pruneGeometry();
+  // No whole-document selector scan on stylesheet arrival. Revisit at most8
+  // retained cues, plus8 owned surfaces, using the existing48-slot checkpoint.
+  Array.from(new Set(Array.from(geometryWatch.keys()).concat(Array.from(hidden.keys()).slice(0,8)))).slice(0,16).forEach(queuePrompt);
+ }
+ document.addEventListener('load',function(e){if(e.target&&e.target.tagName==='LINK'&&e.target.relList.contains('stylesheet'))stylesChanged();},true);
  var paints=new Map(), hidden=new Map(), checkedSheets=new WeakMap(), checkedAttrs=new WeakMap();
  function rgb(hex){var m=/^#([0-9a-f]{6})$/i.exec(hex||'');return m?[0,2,4].map(function(i){return parseInt(m[1].slice(i,i+2),16);}):null;}
  function blue(r,g,b){return b>r+40&&b>g+20&&Math.max(r,g,b)-Math.min(r,g,b)>60&&b>100;}
@@ -237,8 +267,9 @@
   return ariaNavigation&&!realNavigation?null:surface||control;
  }
  function restoreOne(el){var old=hidden.get(el);if(!old)return;if(el.style.getPropertyValue('display')==='none'&&el.style.getPropertyPriority('display')==='important'){if(old.value)el.style.setProperty('display',old.value,old.priority);else el.style.removeProperty('display');}el.removeAttribute('data-fpro-reference-noapp');hidden.delete(el);}
- function restore(){if(promptFrame!==null)cancelAnimationFrame(promptFrame);promptFrame=null;urgentUsed=false;checkpointUsed=false;pendingPrompts.clear();Array.from(hidden.keys()).forEach(restoreOne);}
+ function restore(){if(promptFrame!==null)cancelAnimationFrame(promptFrame);promptFrame=null;urgentUsed=false;checkpointUsed=false;pendingPrompts.clear();geometryWatch.clear();geometrySeen=new WeakSet();var guard=document.getElementById('fpro-noapp-guard');if(guard)guard.remove();Array.from(hidden.keys()).forEach(restoreOne);}
  function hide(el){
+  if(!el.matches('a,button,[role="button"],[role="link"]'))geometryWatch.forEach(function(n,cue){if(el.contains(cue))geometryWatch.delete(cue);});
   // Move display ownership atomically when a recycled inline CTA becomes a
   // dedicated bar (or the bar becomes inline); never leave its child hidden.
   Array.from(hidden.keys()).forEach(function(previous){if(previous!==el&&(previous.contains(el)||el.contains(previous)))restoreOne(previous);});
@@ -252,17 +283,16 @@
   var started=performance.now();checkpointTiming.batches++;var plans=[];
   batch.forEach(function(el){
    if(!el.isConnected)return;
-   checkpointTiming.checks++;plans.push([el,safeAppPromptTarget(el)]);
+   checkpointTiming.checks++;var target=safeAppPromptTarget(el);plans.push([el,target,target?target.matches('a,button,[role="button"],[role="link"]'):!!safeAppPromptTarget(el,true)]);
   });
-  plans.forEach(function(plan){if(plan[1]){hide(plan[1]);checkpointTiming.hidden++;}else if(hidden.has(plan[0]))restoreOne(plan[0]);});
+  plans.forEach(function(plan){if(!plan[2])geometryWatch.delete(plan[0]);if(plan[1]){hide(plan[1]);checkpointTiming.hidden++;}else if(hidden.has(plan[0]))restoreOne(plan[0]);});
   checkpointTiming.maxMs=Math.max(checkpointTiming.maxMs,Math.round((performance.now()-started)*10)/10);
  }
  function queuePrompt(el){
   if(!el||!el.isConnected)return;
+  watchGeometry(el);
   if(pendingPrompts.size<48)pendingPrompts.add(el);
-  if(promptFrame===null)promptFrame=requestAnimationFrame(function(){
-   promptFrame=null;urgentUsed=false;checkpointUsed=false;flushPromptCheckpoint();
-  });
+  if(promptFrame===null)promptFrame=requestAnimationFrame(promptTick);
   if(!checkpointQueued&&!checkpointUsed){
    checkpointQueued=true;Promise.resolve().then(function(){checkpointQueued=false;if(checkpointUsed||!pendingPrompts.size)return;checkpointUsed=true;flushPromptCheckpoint();});
   }
@@ -278,6 +308,7 @@
  }
  function noappScan(root,fast,selfOnly,usePriority=false){
   if(!noapp.noOpenApp||document.hidden)return;
+  ensurePromptCss();pruneGeometry();
   // Revalidate owned controls when a surrounding surface becomes a dialog or
   // the site recycles the control. No ancestor gets ownership of display:none.
   var scopes=Array.isArray(root)?root:root?[root]:[];
@@ -296,5 +327,5 @@
    if(target){if(fast){budget++;queuePrompt(target);}else hide(target);}else restoreOne(el);
   }
  }
- window.FproNoapp={evidence:appPromptEvidence,navigation:appNavigationSurface,timing:function(){return Object.assign({},urgentTiming,{prepaint:Object.assign({},checkpointTiming),priority:Object.assign({},priorityPromptTiming)});},target:safeAppPromptTarget,set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};},boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){pendingPrompts.forEach(function(el){if(!el.isConnected)pendingPrompts.delete(el);});Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};
+ window.FproNoapp={evidence:appPromptEvidence,navigation:appNavigationSurface,timing:function(){return Object.assign({},urgentTiming,{prepaint:Object.assign({},checkpointTiming),priority:Object.assign({},priorityPromptTiming),retry:Object.assign({},retryTiming,{active:Array.from(geometryWatch.values()).filter(function(n){return n<45;}).length,retained:geometryWatch.size})});},target:safeAppPromptTarget,set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};if(noapp.noOpenApp)ensurePromptCss();},stylesChanged:stylesChanged,boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){pruneGeometry();pendingPrompts.forEach(function(el){if(!el.isConnected)pendingPrompts.delete(el);});Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};
 })();
