@@ -114,6 +114,19 @@
   var plain=text.replace(/^(?:facebook|فيسبوك|f)(?:\s+|(?=[\u0600-\u06ff]))/,'').replace(/\s*(?:facebook|فيسبوك|f)$/,'');
   return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(plain)||compactAppPromptLabels.has(text.replace(/\s+/g,''))||compactAppPromptLabels.has(plain.replace(/\s+/g,'')));
  }
+ // One native selector lookup returns only the first exact accessible cue.
+ // Unlike querySelectorAll, no full result NodeList is materialized. Native
+ // traversal time is NOT capped: keep one lookup per existing fast root.
+ const priorityPromptSelector=Array.from(appPromptLabels,function(label){return '[aria-label='+JSON.stringify(label)+' i]:not([data-fpro-app-prompt]):not([data-fpro-reference-noapp])';}).join(',');
+ const priorityPromptTiming={queries:0,hits:0,maxMs:0};
+ function priorityPrompt(root){
+  if(!root||root.nodeType!==1)return null;
+  var started=performance.now(),candidate=null;priorityPromptTiming.queries++;
+  try{candidate=root.matches(priorityPromptSelector)?root:root.querySelector(priorityPromptSelector);}catch(_){}
+  if(candidate)priorityPromptTiming.hits++;
+  priorityPromptTiming.maxMs=Math.max(priorityPromptTiming.maxMs,Math.round((performance.now()-started)*10)/10);
+  return candidate;
+ }
  // Read bounded control text, not SVG accessibility titles or decorative
  // hidden icon captions. Never use rendered innerText (it can force layout).
  function appPromptText(control){
@@ -277,10 +290,11 @@
    var batch=scopes.slice(0,4),share=Math.floor(384/batch.length);
    batch.forEach(function(scope){candidates.push.apply(candidates,nodes([scope],selector,false,share));});
   }else candidates=nodes(scopes.length?scopes:null,selector,selfOnly,fast?384:0);
+  if(fast&&!selfOnly)candidates=Array.from(new Set(scopes.slice(0,4).map(priorityPrompt).filter(Boolean).concat(candidates)));
   for(var el of candidates){if(budget>=(fast?48:800))break;if(!fast)budget++;if(!el.isConnected||own(el))continue;
    var target=safeAppPromptTarget(el,!!fast);
    if(target){if(fast){budget++;queuePrompt(target);}else hide(target);}else restoreOne(el);
   }
  }
- window.FproNoapp={evidence:appPromptEvidence,navigation:appNavigationSurface,timing:function(){return Object.assign({},urgentTiming,{prepaint:Object.assign({},checkpointTiming)});},target:safeAppPromptTarget,set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};},boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){pendingPrompts.forEach(function(el){if(!el.isConnected)pendingPrompts.delete(el);});Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};
+ window.FproNoapp={evidence:appPromptEvidence,navigation:appNavigationSurface,timing:function(){return Object.assign({},urgentTiming,{prepaint:Object.assign({},checkpointTiming),priority:Object.assign({},priorityPromptTiming)});},target:safeAppPromptTarget,set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};},boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){pendingPrompts.forEach(function(el){if(!el.isConnected)pendingPrompts.delete(el);});Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};
 })();

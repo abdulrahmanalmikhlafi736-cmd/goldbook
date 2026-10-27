@@ -215,6 +215,19 @@
   var plain=text.replace(/^(?:facebook|فيسبوك|f)(?:\s+|(?=[\u0600-\u06ff]))/,'').replace(/\s*(?:facebook|فيسبوك|f)$/,'');
   return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(plain)||compactAppPromptLabels.has(text.replace(/\s+/g,''))||compactAppPromptLabels.has(plain.replace(/\s+/g,'')));
  }
+ // One native selector lookup returns only the first exact accessible cue.
+ // Unlike querySelectorAll, no full result NodeList is materialized. Native
+ // traversal time is NOT capped: keep one lookup per existing fast root.
+ const priorityPromptSelector=Array.from(appPromptLabels,function(label){return '[aria-label='+JSON.stringify(label)+' i]:not([data-fpro-app-prompt]):not([data-fpro-reference-noapp])';}).join(',');
+ const priorityPromptTiming={queries:0,hits:0,maxMs:0};
+ function priorityPrompt(root){
+  if(!root||root.nodeType!==1)return null;
+  var started=performance.now(),candidate=null;priorityPromptTiming.queries++;
+  try{candidate=root.matches(priorityPromptSelector)?root:root.querySelector(priorityPromptSelector);}catch(_){}
+  if(candidate)priorityPromptTiming.hits++;
+  priorityPromptTiming.maxMs=Math.max(priorityPromptTiming.maxMs,Math.round((performance.now()-started)*10)/10);
+  return candidate;
+ }
  // Read bounded control text, not SVG accessibility titles or decorative
  // hidden icon captions. Never use rendered innerText (it can force layout).
  function appPromptText(control){
@@ -1075,7 +1088,7 @@
    if(!list.length)return;
    if(cfg.appBanner){
     if(cfg.referenceEngine&&window.FproNoapp)window.FproNoapp.scan(list,true,selfOnly);
-    else {for(const control of appPromptOwned)if(list.some(root=>root.contains(control)||control.contains(root)))queueAppBanner(control);let budget=48;for(const root of list){const nodes=selfOnly?[root]:[root,...boundedElements(root,'a,button,[role="button"],[role="link"]')];for(const el of nodes){if(budget<=0)break;if(queueAppBanner(el))budget--;}}}
+    else {for(const control of appPromptOwned)if(list.some(root=>root.contains(control)||control.contains(root)))queueAppBanner(control);let budget=48;for(const root of list){const nodes=selfOnly?[root]:[priorityPrompt(root),root,...boundedElements(root,'a,button,[role="button"],[role="link"]')];for(const el of nodes){if(budget<=0)break;if(queueAppBanner(el))budget--;}}}
    }
    if(!promptsOnly&&!skipColor&&cfg.referenceEngine&&window.FproColor)window.FproColor.pass(list,true,selfOnly);
   };
@@ -1134,5 +1147,5 @@
   return report;
  }
  document.addEventListener('visibilitychange',()=>{if(document.hidden)restoreSelectionLink();else scan();});
- window.__fpro={update,colorReport,promptState:()=>({enabled:cfg.enhance!==false&&!!cfg.appBanner,enhance:cfg.enhance!==false,filterEnabled:!!cfg.appBanner,reference:!!cfg.referenceEngine,observingDocument,documentHidden:document.hidden,styleConnected:style.isConnected,scans:workStats.scans}),promptTiming:()=>({...promptUrgentTiming,prepaint:{...promptCheckpointTiming}})};update(initial);
+ window.__fpro={update,colorReport,promptState:()=>({enabled:cfg.enhance!==false&&!!cfg.appBanner,enhance:cfg.enhance!==false,filterEnabled:!!cfg.appBanner,reference:!!cfg.referenceEngine,observingDocument,documentHidden:document.hidden,styleConnected:style.isConnected,scans:workStats.scans}),promptTiming:()=>({...promptUrgentTiming,prepaint:{...promptCheckpointTiming},priority:{...priorityPromptTiming}})};update(initial);
 })();

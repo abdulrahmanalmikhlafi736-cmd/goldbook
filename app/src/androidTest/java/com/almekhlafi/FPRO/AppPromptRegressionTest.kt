@@ -131,7 +131,19 @@ class AppPromptRegressionTest {
                                             queueMicrotask(()=>queueMicrotask(()=>{
                                               checks.push(!nextFrame&&Array.from(arrivals.children).every(el=>getComputedStyle(el).display==='none'));
                                               checks.push(getComputedStyle(nextBody.querySelector('main')).display!=='none'&&getComputedStyle(nextBody).display!=='none');
-                                              window.prompt49Result=JSON.stringify(checks);
+                                              requestAnimationFrame(()=>{
+                                                const deep=document.createElement('section');
+                                                deep.innerHTML=Array.from({length:1500},()=>'<div><span>Normal</span></div>').join('')+'<div id="tail54" style="position:fixed;bottom:0;left:0;width:100%;height:65px"><button aria-label="فتح التطبيق" style="height:40px">فتح التطبيق</button></div>';
+                                                let later=false;requestAnimationFrame(()=>{later=true;});
+                                                const started=performance.now();document.body.append(deep);
+                                                queueMicrotask(()=>queueMicrotask(()=>{
+                                                  const tail=document.getElementById('tail54');
+                                                  checks.push(!later&&getComputedStyle(tail).display==='none');
+                                                  checks.push(getComputedStyle(tail.querySelector('button')).display!=='none'&&getComputedStyle(deep).display!=='none'&&getComputedStyle(nextBody.querySelector('main')).display!=='none');
+                                                  window.prompt49Debug=JSON.stringify({prior:window.prompt49Debug,discoveryMs:performance.now()-started,main:window.__fpro.promptTiming(),reference:window.FproNoapp.timing()});
+                                                  window.prompt49Result=JSON.stringify(checks);
+                                                }));
+                                              });
                                             }));
                                           }),900);
 
@@ -162,7 +174,7 @@ class AppPromptRegressionTest {
                 }
                 assertTrue("Real Chromium prompt fixture completed", done.await(15, TimeUnit.SECONDS))
                 val checks = JSONArray(JSONArray("[${result.get()}]").getString(0))
-                assertEquals(24, checks.length())
+                assertEquals(26, checks.length())
                 for (i in 0 until checks.length()) assertTrue("reference=$reference assertion=$i result=$checks detail=${detail.get()}", checks.getBoolean(i))
             }
         }
