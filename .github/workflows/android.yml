@@ -31,6 +31,7 @@ jobs:
           node tools/test-interaction.cjs
           node tools/test-selection43.cjs
           node tools/test-app-prompts45.cjs
+          node tools/test-app-banners46.cjs
       - name: Test, lint and build debug APK
         shell: bash
         run: |

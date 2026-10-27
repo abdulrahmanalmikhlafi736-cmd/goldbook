@@ -47,6 +47,8 @@ class AppPromptRegressionTest {
                         <div role="dialog" aria-modal="true" style="position:fixed;top:0;bottom:0;left:0;right:0;background:black">
                         <button id="modalCTA">Open app</button><button id="close">Close</button></div>
                         <div style="position:fixed;top:0;bottom:0;left:0;right:0;background:black"><button id="sheetCTA">Open app</button></div>
+                        <div id="compactBar" style="position:fixed;bottom:0;left:0;width:100%;min-height:64px;background:black;display:flex!important">
+                        <button id="compactCTA">فتح التطبيق</button><button aria-label="Close">×</button></div>
                         </body></html>
                     """.trimIndent()
                     web.webViewClient = object : WebViewClient() {
@@ -62,14 +64,20 @@ class AppPromptRegressionTest {
                                     ;(()=>{
                                       const shown=id=>{const el=document.getElementById(id);return getComputedStyle(el).display!=='none'&&el.getBoundingClientRect().height>0;};
                                       const cta=document.getElementById('inlineCTA');
-                                      return JSON.stringify([
+                                      const checks=[
                                         getComputedStyle(cta).display==='none',
                                         shown('header')&&getComputedStyle(document.getElementById('slot')).display!=='none'&&shown('search')&&shown('account'),
                                         shown('post')&&shown('video'),shown('modalCTA')&&shown('close'),
                                         shown('sheetCTA'),document.body.style.overflow==='hidden',
                                         !cta.hasAttribute('${if(reference) "data-fpro-hidden" else "data-fpro-reference-noapp"}'),
                                         document.querySelectorAll('body[data-fpro-hidden],main[data-fpro-hidden],header[data-fpro-hidden]').length===0
-                                      ]);
+                                      ];
+                                      const bar=document.getElementById('compactBar');
+                                      checks.push(getComputedStyle(bar).display==='none');
+                                      checks.push(getComputedStyle(document.getElementById('compactCTA')).display!=='none');
+                                      window.__fpro.update(Object.assign($config,{appBanner:false}));
+                                      checks.push(getComputedStyle(bar).display==='flex'&&bar.style.getPropertyPriority('display')==='important'&&shown('compactCTA'));
+                                      return JSON.stringify(checks);
                                     })()
                                 """.trimIndent()) { value -> result.set(value); done.countDown() }
                             }
@@ -79,7 +87,7 @@ class AppPromptRegressionTest {
                 }
                 assertTrue("Real Chromium prompt fixture completed", done.await(15, TimeUnit.SECONDS))
                 val checks = JSONArray(JSONArray("[${result.get()}]").getString(0))
-                assertEquals(8, checks.length())
+                assertEquals(11, checks.length())
                 for (i in 0 until checks.length()) assertTrue("reference=$reference assertion=$i result=$checks", checks.getBoolean(i))
             }
         }

@@ -208,34 +208,57 @@
  }
  const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app'].map(norm));
  function isAppPrompt(text){text=norm(text);return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(text.replace(/\s*(facebook|فيسبوك|f)$/,'')));}
- // Conservative by design: never hide a parent, modal, player or page shell.
+ // Remember only verified compact banner geometry while display:none removes
+ // its box. Weak keys do not retain detached page nodes.
+ const appBannerBoxes=new WeakMap();
+ // A parent is eligible only as a dedicated compact fixed app-prompt surface.
+ // Never infer a banner from its background, position or a URL alone.
  function safeAppPromptTarget(el,structuralOnly=false){
-  var control=el&&el.closest('a,button,[role="button"],[role="link"]');
+  var semantic='a,button,[role="button"],[role="link"]';
+  var ownedSurface=el&&!el.matches(semantic)&&(el.hasAttribute('data-fpro-app-prompt')||el.hasAttribute('data-fpro-reference-noapp'));
+  var control=ownedSurface?el.querySelector(semantic):el&&el.closest(semantic);
   if(!control||control.matches('body,html,main,form,article,header,nav,[role="article"],[role="main"],[role="feed"],[role="navigation"],[role="banner"]'))return null;
   if(control.closest('form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"]'))return null;
   if(control.querySelector('a,button,[role="button"],[role="link"],video,audio,iframe,canvas,input,textarea,select,[contenteditable="true"],article,[role="article"],[role="main"],[role="feed"]'))return null;
   // A matching child span/aria-label must not authorize hiding unrelated prose.
   var text=norm(control.textContent),label=norm(control.getAttribute('aria-label'));
   if(!isAppPrompt(text||label))return null;
-  if(structuralOnly)return control;
+  if(structuralOnly)return ownedSurface?el:control;
   var box=control.getBoundingClientRect();
   if(box.height>96)return null;
-  var node=control,depth=0;
+  var node=control,depth=0,surface=null;
   for(;node&&node!==document.body&&depth<32;node=node.parentElement,depth++){
    var css=getComputedStyle(node);
    if(css.position!=='fixed'&&css.position!=='absolute')continue;
-   var r=node.getBoundingClientRect();
+   var r=node.getBoundingClientRect(),saved=appBannerBoxes.get(node);
+   if(saved&&r.width===0&&r.height===0&&(node.hasAttribute('data-fpro-app-prompt')||node.hasAttribute('data-fpro-reference-noapp')))r=saved;
+   // A small bottom install bar can retain its dark min-height/background
+   // after its child button is hidden. Hide the verified whole bar, not just
+   // that child. Unknown content or actions make it ineligible.
+   var h=Math.max(r.height,parseFloat(css.height)||0,parseFloat(css.minHeight)||0);
+   var compact=r.width>=innerWidth*.65&&h>0&&h<=Math.min(160,innerHeight*.25);
+   var protectedContent=node.matches('header,nav,main,article,form,[role="banner"],[role="navigation"],[role="main"],[role="feed"],[role="article"]')||node.querySelector('header,nav,main,article,form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],video,audio,iframe,canvas,img,input,textarea,select,[contenteditable="true"],[role="main"],[role="feed"],[role="article"]');
+   if(node===control&&!protectedContent)continue;
+   var rest=norm(node.textContent),controls=Array.from(node.querySelectorAll(semantic)),dedicated=compact&&!protectedContent&&controls.length>0&&controls.length<=3;
+   for(var action of controls){
+    var actionText=norm(action.textContent),actionLabel=norm(action.getAttribute('aria-label'));
+    if(!isAppPrompt(actionText||actionLabel)&&!['close','dismiss','not now','اغلاق','إغلاق','ليس الآن','×','✕'].map(norm).includes(actionText||actionLabel)){dedicated=false;break;}
+    if(actionText)rest=rest.replace(actionText,'').trim();
+   }
+   if(rest&&!isAppPrompt(rest))dedicated=false;
+   if(dedicated){surface=node;appBannerBoxes.set(node,{width:r.width,height:h});}
+   else if(compact||!node.querySelector('main,article,[role="article"],[role="main"],[role="feed"]'))return null;
    var inset=/^0(?:px)?(?:\s+0(?:px)?){0,3}$/.test(css.inset||'')||/^0(?:px)?$/.test(css.top)&&/^0(?:px)?$/.test(css.bottom)&&/^0(?:px)?$/.test(css.left)&&/^0(?:px)?$/.test(css.right);
    var large=r.width>=innerWidth*.65&&r.height>=innerHeight*.35;
    // Keep blocking install sheets usable: hiding only their CTA leaves a black
    // backdrop/scroll lock. Do not click Close, remove a scrim or unlock the body.
-   if((inset||large)&&!node.querySelector('main,article,[role="article"],[role="main"],[role="feed"]'))return null;
+   if(!dedicated&&(inset||large)&&!node.querySelector('main,article,[role="article"],[role="main"],[role="feed"]'))return null;
   }
   if(node&&node!==document.body&&depth>=32)return null;
-  return control;
+  return surface||control;
  }
  function appBanner(link) {
-  const control=link&&link.closest('a,button,[role="button"],[role="link"]');
+  const control=appPromptOwned.has(link)?link:link&&link.closest('a,button,[role="button"],[role="link"]');
   const target=window.FproNoapp&&window.FproNoapp.target?window.FproNoapp.target(link):safeAppPromptTarget(link);
   if(target){appPromptOwned.add(target);target.setAttribute('data-fpro-app-prompt','');hide(target);}
   else if(control&&control.hasAttribute('data-fpro-app-prompt')){
