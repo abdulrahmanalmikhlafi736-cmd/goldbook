@@ -46,6 +46,7 @@ function unchanged(doc,...ids){for(const id of ids)assert.notEqual(doc.getElemen
   // CSS-only blocking sheets without ARIA must also remain usable.
   const sheet=doc.createElement('div');sheet.style.cssText='position:fixed;top:0;bottom:0;left:0;right:0;background:black';sheet.innerHTML='<button id="sheetCTA">Open app</button>';
   doc.body.appendChild(sheet);await settle(w);run(cfg);assert.equal(sheet.style.display,'');assert.equal(doc.getElementById('sheetCTA').style.display,'');
+  const promoVideo=doc.createElement('video');sheet.prepend(promoVideo);run(cfg);assert.equal(doc.getElementById('sheetCTA').style.display,'','A promotional video does not make a blocking sheet safe to filter');
   // Moving an already hidden control into a fullscreen surface must restore it.
   const dynamic=doc.createElement('div');dynamic.innerHTML='<button id="movingCTA">Open app</button>';doc.body.appendChild(dynamic);await settle(w);run(cfg);assert.equal(doc.getElementById('movingCTA').style.display,'none');
   dynamic.style.cssText='position:fixed;inset:0';await settle(w);run(cfg);assert.equal(doc.getElementById('movingCTA').style.display,'');

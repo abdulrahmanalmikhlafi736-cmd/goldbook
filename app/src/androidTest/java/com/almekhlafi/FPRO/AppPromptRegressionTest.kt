@@ -47,7 +47,7 @@ class AppPromptRegressionTest {
                                       const cta=document.getElementById('inlineCTA');
                                       return JSON.stringify([
                                         getComputedStyle(cta).display==='none',
-                                        shown('header')&&shown('slot')&&shown('search')&&shown('account'),
+                                        shown('header')&&getComputedStyle(document.getElementById('slot')).display!=='none'&&shown('search')&&shown('account'),
                                         shown('post')&&shown('video'),shown('modalCTA')&&shown('close'),
                                         shown('sheetCTA'),document.body.style.overflow==='hidden',
                                         !cta.hasAttribute('${if(reference) "data-fpro-hidden" else "data-fpro-reference-noapp"}'),

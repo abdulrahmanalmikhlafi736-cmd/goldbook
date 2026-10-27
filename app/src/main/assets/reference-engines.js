@@ -128,7 +128,7 @@
    var large=r.width>=innerWidth*.65&&r.height>=innerHeight*.35;
    // Keep blocking install sheets usable: hiding only their CTA leaves a black
    // backdrop/scroll lock. Do not click Close, remove a scrim or unlock the body.
-   if((inset||large)&&!node.querySelector('video,article,[role="article"],[role="main"],[role="feed"]'))return null;
+   if((inset||large)&&!node.querySelector('main,article,[role="article"],[role="main"],[role="feed"]'))return null;
   }
   if(node&&node!==document.body&&depth>=32)return null;
   return control;
