@@ -115,8 +115,8 @@
   var search=false,accountOrBack=false;
   for(var action of controls){
    var label=norm(action.getAttribute('aria-label')||action.textContent);
-   if(/^(search(?: facebook)?|بحث|البحث(?: في فيسبوك)?)$/.test(label))search=true;
-   if(/^(account|profile|your profile|back|go back|الحساب|حسابك|الملف الشخصي|ملفك الشخصي|رجوع|الرجوع|عودة)$/.test(label))accountOrBack=true;
+   if(/^(search(?: facebook)?|بحث(?: في فيسبوك)?|البحث(?: في فيسبوك)?)$/.test(label))search=true;
+   if(/^(account|profile|your profile|view your profile|back|go back|حساب|الحساب|حسابك|الملف الشخصي|ملفك الشخصي|رجوع|الرجوع|عودة|العودة)$/.test(label))accountOrBack=true;
   }
   return search&&(accountOrBack||node.matches('header,nav,[role="banner"],[role="navigation"],[role="toolbar"]'));
  }
@@ -199,9 +199,9 @@
   Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected){restoreOne(el);return;}if(fast&&!scopes.some(function(scope){return scope.contains(el)||el.contains(scope);}))return;if(safeAppPromptTarget(el,!!fast)!==el)restoreOne(el);else if(fast)queuePrompt(el);});
   var selector='a,button,[role="button"],[role="link"],[data-fpro-reference-noapp]';
   var candidates=nodes(Array.isArray(root)?root:root?[root]:null,selector,selfOnly,fast?384:0),budget=0;
-  for(var el of candidates){if(budget>=(fast?48:800))break;if(own(el))continue;
+  for(var el of candidates){if(budget>=(fast?48:800))break;if(!fast)budget++;if(own(el))continue;
    var target=safeAppPromptTarget(el,!!fast);
-   if(target){budget++;if(fast)queuePrompt(target);else hide(target);}else restoreOne(el);
+   if(target){if(fast){budget++;queuePrompt(target);}else hide(target);}else restoreOne(el);
   }
  }
  window.FproNoapp={target:safeAppPromptTarget,set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};},boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){pendingPrompts.forEach(function(el){if(!el.isConnected)pendingPrompts.delete(el);});Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};

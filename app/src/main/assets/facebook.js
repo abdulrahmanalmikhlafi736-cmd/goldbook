@@ -216,8 +216,8 @@
   var search=false,accountOrBack=false;
   for(var action of controls){
    var label=norm(action.getAttribute('aria-label')||action.textContent);
-   if(/^(search(?: facebook)?|بحث|البحث(?: في فيسبوك)?)$/.test(label))search=true;
-   if(/^(account|profile|your profile|back|go back|الحساب|حسابك|الملف الشخصي|ملفك الشخصي|رجوع|الرجوع|عودة)$/.test(label))accountOrBack=true;
+   if(/^(search(?: facebook)?|بحث(?: في فيسبوك)?|البحث(?: في فيسبوك)?)$/.test(label))search=true;
+   if(/^(account|profile|your profile|view your profile|back|go back|حساب|الحساب|حسابك|الملف الشخصي|ملفك الشخصي|رجوع|الرجوع|عودة|العودة)$/.test(label))accountOrBack=true;
   }
   return search&&(accountOrBack||node.matches('header,nav,[role="banner"],[role="navigation"],[role="toolbar"]'));
  }
