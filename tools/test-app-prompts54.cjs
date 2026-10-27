@@ -27,5 +27,12 @@ const micro=async()=>{await Promise.resolve();await Promise.resolve();};
   for(const el of [root,host,...host.querySelectorAll('video,#nav51,#search51,#profile51,#back51')])assert.notEqual(el.style.display,'none','Do not hide page/navigation/media');
   run({...cfg,appBanner:false});assert.notEqual(host.querySelector('#cta51').style.display,'none');
  }
+ for(const mode of ['standalone','fallback','reference']){
+  const {w}=fixture(mode,''),host=scene(w,'فتح التطبيق'),cta=host.querySelector('#cta51');
+  cta.innerHTML='<svg><text>Logo decoration</text></svg><span>فتح</span><span>التطبيق</span>';
+  cta.style.width='399px';cta.getBoundingClientRect=()=>({width:parseFloat(cta.style.width),height:40});w.document.body.append(host);
+  await micro();await new Promise(r=>w.requestAnimationFrame(r));assert.notEqual(cta.style.display,'none','Unverified oversized caption control must remain protected');
+  cta.style.width='124px';await micro();await micro();assert.equal(cta.style.display,'none','Late observable styling makes caption control eligible without full scan');
+ }
  console.log('Prompts54 PASS: exact accessible CTA after3000 generic wrapper elements discovered at pre-paint checkpoint; page/media/navigation and OFF preserved in three modes.');
 }finally{windows.forEach(w=>w.close());}})().catch(e=>{console.error(e);process.exitCode=1;});
