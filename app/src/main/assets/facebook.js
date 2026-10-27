@@ -613,6 +613,12 @@
   if(cfg.appBanner&&!referencePrompts) Array.from(document.querySelectorAll('a[href],button,[role="button"],[role="link"]')).slice(0,800).forEach(link=>appBanner(link));
   if(cfg.stories) document.querySelectorAll('a[href*="/stories/"]').forEach(link=>hide(section(link,'stories') || link));
   if((cfg.homeStories||cfg.stories)&&homeView())hideHomeStories();
+  // Discovery limits must not revoke a previously verified CTA merely because
+  // feed growth moved it beyond the general candidate window.
+  if(cfg.appBanner&&!referencePrompts)for(const owned of Array.from(appPromptOwned)){
+   if(!owned.isConnected)restoreAppPrompt(owned);
+   else if(!hidingPass.has(owned))appBanner(owned);
+  }
   hidden.forEach((old,el)=>{if(!hidingPass.has(el)){if(old.value)el.style.setProperty('display',old.value,old.priority);else el.style.removeProperty('display');el.removeAttribute('data-fpro-hidden');el.removeAttribute('data-fpro-app-prompt');appPromptOwned.delete(el);hidden.delete(el);}});
   hidingPass=null;
   tint();

@@ -20,6 +20,14 @@ function fixture(mode,html){
   const encoded=w.eval(report),data=JSON.parse(encoded);assert(data.candidates.length>0);assert(!encoded.includes('private-name-secret'));assert(!encoded.includes('private-path-secret'));assert(!encoded.includes('hidden-caption-secret'));assert(!encoded.includes('Account content'));assert(!encoded.includes('Account details'));assert(!encoded.includes('facebook.com'));
   run({...cfg,appBanner:false});assert.notEqual(w.document.getElementById('decorated').style.display,'none');assert(!w.document.querySelector('[data-fpro-app-prompt],[data-fpro-reference-noapp]'));
  }
+ for(const mode of ['standalone','fallback','reference']){
+  const {w,run}=fixture(mode,'<button id="late">فتح التطبيق</button>'),late=w.document.getElementById('late');assert.equal(late.style.display,'none');
+  const noise=w.document.createElement('section');noise.innerHTML=Array.from({length:2500},(_,n)=>'<button>Normal '+n+'</button>').join('');w.document.body.prepend(noise);
+  late.style.setProperty('display','inline-flex','important'); // stronger site rewrite, beyond discovery budget
+  w.document.dispatchEvent(new w.Event('visibilitychange')); // full scan, not configuration reset
+  assert.equal(late.style.display,'none','Known owned controls must be revalidated/reasserted outside candidate budgets');
+  run();assert.equal(late.style.display,'none','Identical configuration reinjection cannot expose a known CTA');
+ }
  const extract=s=>s.match(/ function appPromptText\([\s\S]*?\n }\n/)[0];assert.equal(extract(main),extract(reference));
  console.log('Prompts48 PASS: split/joined/decorated control labels; bounded text refusal; owned-target CSS guard; exact disable; privacy-minimal report in three engine modes. Native Chromium separately verifies guard cascade against inline rewrites.');
 }finally{windows.forEach(w=>w.close());}})().catch(e=>{console.error(e);process.exitCode=1;});

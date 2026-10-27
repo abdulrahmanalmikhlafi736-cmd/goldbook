@@ -210,7 +210,7 @@
   // Revalidate owned controls when a surrounding surface becomes a dialog or
   // the site recycles the control. No ancestor gets ownership of display:none.
   var scopes=Array.isArray(root)?root:root?[root]:[];
-  Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected){restoreOne(el);return;}if(fast&&!scopes.some(function(scope){return scope.contains(el)||el.contains(scope);}))return;if(safeAppPromptTarget(el,!!fast)!==el)restoreOne(el);else if(fast)queuePrompt(el);});
+  Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected){restoreOne(el);return;}if(fast&&!scopes.some(function(scope){return scope.contains(el)||el.contains(scope);}))return;if(safeAppPromptTarget(el,!!fast)!==el)restoreOne(el);else if(fast)queuePrompt(el);else hide(el);});
   var selector='a,button,[role="button"],[role="link"],[data-fpro-reference-noapp]';
   var candidates=nodes(Array.isArray(root)?root:root?[root]:null,selector,selfOnly,fast?384:0),budget=0;
   for(var el of candidates){if(budget>=(fast?48:800))break;if(!fast)budget++;if(own(el))continue;
