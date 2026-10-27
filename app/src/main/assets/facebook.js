@@ -240,6 +240,22 @@
   }
   return search&&(accountOrBack||node.matches('header,nav,[role="banner"],[role="navigation"],[role="toolbar"]'));
  }
+ // An exact accessible action plus a standalone caption can identify a
+ // compact navigation CTA even when its logo contributes extra DOM text.
+ // Never let aria override a prose-only control or a general feed tile.
+ function navigationCaption(control,text,label){
+  if(text===null||!isAppPrompt(label))return false;
+  var pieces=[],walk=document.createTreeWalker(control,4),part,count=0,caption=false;
+  while((part=walk.nextNode())){
+   if(++count>64)return false;
+   if(part.parentElement.closest('svg,[aria-hidden="true"],script,style'))continue;
+   var piece=norm(part.nodeValue);if(!piece)continue;pieces.push(piece);
+   for(var n=1;n<=Math.min(4,pieces.length);n++)if(isAppPrompt(pieces.slice(-n).join(' ')))caption=true;
+  }
+  if(!caption)return false;
+  for(var parent=control.parentElement,depth=0;parent&&parent!==document.body&&depth<8;parent=parent.parentElement,depth++)if(appNavigationSurface(parent))return true;
+  return false;
+ }
  // Remember only verified compact banner geometry while display:none removes
  // its box. Weak keys do not retain detached page nodes.
  const appBannerBoxes=new WeakMap();
@@ -254,10 +270,11 @@
   if(control.querySelector('a,button,[role="button"],[role="link"],video,audio,iframe,canvas,input,textarea,select,[contenteditable="true"],article,[role="article"],[role="main"],[role="feed"]'))return null;
   // A matching child span/aria-label must not authorize hiding unrelated prose.
   var text=appPromptText(control),label=norm(control.getAttribute('aria-label'));
-  if(text===null||!isAppPrompt(text||label))return null;
+  var ariaNavigation=text!==null&&!isAppPrompt(text||label)&&navigationCaption(control,text,label);
+  if(text===null||!isAppPrompt(text||label)&&!ariaNavigation)return null;
   if(structuralOnly)return ownedSurface?el:control;
   var box=control.getBoundingClientRect();
-  if(box.height>96)return null;
+  if(box.height>96||ariaNavigation&&box.width>160)return null;
   var node=control,depth=0,surface=null,realNavigation=false;
   for(;node&&node!==document.body&&depth<32;node=node.parentElement,depth++){
    var css=getComputedStyle(node);
@@ -274,7 +291,7 @@
    // A real compact Reels navigation header can be inside the absolute video
    // viewport, not a semantic <main>. Never hide that host or treat it as an
    // install backdrop. This exception requires ALL evidence, not the URL alone.
-   if(realNavigation&&/^\/reels?(?:\/|$)/.test(location.pathname)&&node.tagName==='DIV'&&css.position==='absolute'&&r.width>=innerWidth*.9&&r.width<=innerWidth*1.1&&r.height>=innerHeight*.9&&r.height<=innerHeight*1.1&&Math.abs(r.top)<=1&&Math.abs(r.left)<=1&&node.querySelector('video')&&!node.querySelector('form,input,textarea,select,audio,iframe,canvas,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],[contenteditable="true"]'))continue;
+   if(realNavigation&&node.tagName==='DIV'&&css.position==='absolute'&&r.width>=innerWidth*.9&&r.width<=innerWidth*1.1&&r.height>=innerHeight*.9&&r.height<=innerHeight*1.1&&Math.abs(r.top)<=1&&Math.abs(r.left)<=1&&node.querySelector('video')&&!node.querySelector('form,input:not([type="range"]),textarea,select,audio,iframe,canvas,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],[contenteditable="true"]'))continue;
    var compact=r.width>=innerWidth*.65&&h>0&&h<=Math.min(160,innerHeight*.25);
    var protectedContent=node.matches('header,nav,main,article,form,[role="banner"],[role="navigation"],[role="main"],[role="feed"],[role="article"]')||node.querySelector('header,nav,main,article,form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],video,audio,iframe,canvas,img,input,textarea,select,[contenteditable="true"],[role="main"],[role="feed"],[role="article"]');
    if(node===control&&!protectedContent)continue;
@@ -296,7 +313,7 @@
    if(!dedicated&&(inset||large)&&!node.querySelector('main,article,[role="article"],[role="main"],[role="feed"]'))return null;
   }
   if(node&&node!==document.body&&depth>=32)return null;
-  return surface||control;
+  return ariaNavigation&&!realNavigation?null:surface||control;
  }
  function restoreAppPrompt(control){
   const old=hidden.get(control);

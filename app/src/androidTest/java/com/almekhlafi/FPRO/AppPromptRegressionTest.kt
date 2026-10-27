@@ -38,7 +38,7 @@ class AppPromptRegressionTest {
                     val config = """{"enhance":true,"appBanner":true,"referenceEngine":$reference,"color":"طبيعي","textSelection":false}"""
                     val source = activity.assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" +
                         activity.assets.open("facebook.js").bufferedReader().use { it.readText() }.replace("__CONFIG__", config)
-                    val fixtureUrl = "https://m.facebook.com/reel/fpro-app-prompt51-test"
+                    val fixtureUrl = "https://m.facebook.com/fpro-app-prompt52-test"
                     // Stock API29 Chromium predates CSS inset; use real fullscreen longhands.
                     val fixtureHtml = """
                         <!doctype html><html><body id="prompt45" style="overflow:hidden">
@@ -57,6 +57,11 @@ class AppPromptRegressionTest {
                         <div id="nav51" style="position:fixed;top:0;left:12px;width:calc(100% - 12px);height:60px">
                         <div style="position:relative"><div role="button" id="cta51" aria-label="f فتح التطبيق" style="width:124px;height:40px">f فتح التطبيق</div>
                         <div role="button" aria-label="Your profile" id="profile51">Account</div><div role="button" aria-label="Search" id="search51">Search</div><div role="button" aria-label="Back" id="back51">Back</div></div></div></div>
+                        <div id="host52" style="position:absolute;top:0;left:0;width:100vw;height:100vh">
+                        <video id="movie52" style="width:240px;height:180px"></video><input id="seek52" type="range">
+                        <div id="nav52" style="position:fixed;top:0;left:12px;width:calc(100% - 12px);height:60px">
+                        <div style="position:relative"><div role="button" id="cta52" aria-label="فتح التطبيق" style="position:relative;width:124px;height:40px"><svg width="16" height="16"><text>Logo decoration</text></svg><span>فتح</span><span>التطبيق</span></div>
+                        <div role="button" aria-label="Your profile" id="profile52">Account</div><div role="button" aria-label="Search" id="search52">Search</div><div role="button" aria-label="Back" id="back52">Back</div></div></div></div>
                         </body></html>
                     """.trimIndent()
                     web.webViewClient = object : WebViewClient() {
@@ -74,6 +79,8 @@ class AppPromptRegressionTest {
                                       const cta=document.getElementById('inlineCTA');
                                       const checks=[
                                         getComputedStyle(cta).display==='none',
+                                        getComputedStyle(document.getElementById('cta52')).display==='none',
+                                        ['host52','movie52','seek52','nav52','profile52','search52','back52'].every(shown),
                                         getComputedStyle(document.getElementById('cta51')).display==='none',
                                         ['host51','movie51','nav51','profile51','search51','back51'].every(shown),
                                         shown('header')&&getComputedStyle(document.getElementById('slot')).display!=='none'&&shown('search')&&shown('account'),
@@ -133,7 +140,7 @@ class AppPromptRegressionTest {
                 }
                 assertTrue("Real Chromium prompt fixture completed", done.await(15, TimeUnit.SECONDS))
                 val checks = JSONArray(JSONArray("[${result.get()}]").getString(0))
-                assertEquals(20, checks.length())
+                assertEquals(22, checks.length())
                 for (i in 0 until checks.length()) assertTrue("reference=$reference assertion=$i result=$checks detail=${detail.get()}", checks.getBoolean(i))
             }
         }

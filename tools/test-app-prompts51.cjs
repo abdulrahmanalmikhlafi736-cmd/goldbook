@@ -35,7 +35,7 @@ const micro=async()=>{await Promise.resolve();await Promise.resolve();};
   if(blocked==='non-reels')w.history.replaceState(null,'','/profile');
   if(blocked==='fixed-sheet')host.style.position='fixed';
   if(blocked==='form-host')host.append(w.document.createElement('input'));
-  w.document.body.append(host);await micro();assert.notEqual(host.querySelector('#cta51').style.display,'none','Media-host exception must not escape its evidence: '+blocked);
+  w.document.body.append(host);await micro();if(blocked==='non-reels')assert.equal(host.querySelector('#cta51').style.display,'none','Build52 uses verified navigation/media, not route name');else assert.notEqual(host.querySelector('#cta51').style.display,'none','Media-host exception must not escape its evidence: '+blocked);
  }
  const {w}=fixture('reference','');w.document.body.append(scene(w,'f فتح التطبيق'));await micro();
  const detail=JSON.parse(w.eval(report));assert.equal(detail.schema,4);assert.equal(detail.candidates[0].evidence.reason,'eligible');assert.equal(detail.candidates[0].evidence.textExact,true);assert(detail.candidates[0].ancestors.some(a=>a.navigation===true));
