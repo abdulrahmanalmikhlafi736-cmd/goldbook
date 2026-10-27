@@ -49,6 +49,15 @@ function bar(w){
   cue.textContent='Search';w.FproNoapp.scan([cue],true,true);await micro();await frame(w);assert.notEqual(cue.style.display,'none','Safety revalidation restores recycled Search');
   root.remove();w.FproNoapp.prune();assert.equal(w.FproNoapp.timing().retry.retained,0);
  }
+ // The existing document observer replays stylesheet DOM arrival even while
+ // pointer interaction keeps whole-page scans deferred.
+ {
+  const {w}=fixture(true),root=bar(w);await micro();await frame(w);
+  root.firstChild.dispatchEvent(new w.Event('pointerdown',{bubbles:true}));
+  assert(w.__fpro.colorReport().work.interactionBusy);
+  const style=w.document.createElement('style');w.document.head.append(style);style.sheet.insertRule('.late55{position:fixed;height:65px;bottom:0}');
+  await micro();await micro();assert.equal(root.style.display,'none','Stylesheet arrival bypasses touch-deferred whole-page scans');
+ }
  // Retention/candidate cap and detach cancellation.
  {
   const {w}=fixture();for(let i=0;i<30;i++){const root=bar(w);w.FproNoapp.scan([root],true,false,true);}
