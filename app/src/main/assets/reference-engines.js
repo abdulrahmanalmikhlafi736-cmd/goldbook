@@ -145,8 +145,9 @@
     if(actionText)rest=rest.replace(actionText,'').trim();
    }
    if(rest&&!isAppPrompt(rest))dedicated=false;
+   var narrow=!protectedContent&&r.width>0&&r.width<innerWidth*.65&&h>0&&h<=96;
    if(dedicated){surface=node;appBannerBoxes.set(node,{width:r.width,height:h});}
-   else if(compact||!node.querySelector('main,article,[role="article"],[role="main"],[role="feed"]'))return null;
+   else if(!narrow&&(compact||!node.querySelector('main,article,[role="article"],[role="main"],[role="feed"]')))return null;
    var inset=/^0(?:px)?(?:\s+0(?:px)?){0,3}$/.test(css.inset||'')||/^0(?:px)?$/.test(css.top)&&/^0(?:px)?$/.test(css.bottom)&&/^0(?:px)?$/.test(css.left)&&/^0(?:px)?$/.test(css.right);
    var large=r.width>=innerWidth*.65&&r.height>=innerHeight*.35;
    // Keep blocking install sheets usable: hiding only their CTA leaves a black

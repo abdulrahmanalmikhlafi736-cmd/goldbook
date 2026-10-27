@@ -32,6 +32,14 @@ async function settle(w){await Promise.resolve();await frame(w);await frame(w);}
   assert.equal(bar.style.display,'none');assert.notEqual(cta.style.display,'none','Ownership must move from child to bar before a later full scan');
   bar.setAttribute('role','dialog');await settle(w);assert.equal(bar.style.display,'flex');assert.notEqual(cta.style.display,'none','A restored dialog cannot inherit a hidden child');
  }
+ for(const mode of ['standalone','fallback','reference']){
+  const {w,bar,cfg,run}=fixture(mode);run({...cfg,appBanner:false});
+  bar.style.minHeight='40px';bar.getBoundingClientRect=()=>({width:180,height:40});
+  bar.insertAdjacentHTML('beforeend','<button id="toolbarSearch">Search</button>');run();
+  assert.equal(bar.style.display,'flex','A narrow toolbar is not a full-width banner');
+  assert.equal(w.document.getElementById('cta').style.display,'none','Retain safe individual CTA filtering in narrow toolbars');
+  assert.notEqual(w.document.getElementById('toolbarSearch').style.display,'none');
+ }
  for(const mode of ['standalone','fallback','reference'])for(const content of ['<video></video>','<img src="/photo">','<input>','<button>Search</button>','<p>A normal post that mentions an app</p>','<article>A post</article>']){
   const {w,bar,run}=fixture(mode);bar.insertAdjacentHTML('beforeend',content);await settle(w);run();assert.equal(bar.style.display,'flex','Unknown/media/account content must restore the fixed surface: '+content);assert.notEqual(w.document.getElementById('cta').style.display,'none','Do not leave a dead strip by hiding only its CTA');
  }
