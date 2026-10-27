@@ -38,7 +38,7 @@ const micro=async()=>{await Promise.resolve();await Promise.resolve();};
   w.document.body.append(host);await micro();assert.notEqual(host.querySelector('#cta51').style.display,'none','Media-host exception must not escape its evidence: '+blocked);
  }
  const {w}=fixture('reference','');w.document.body.append(scene(w,'f فتح التطبيق'));await micro();
- const detail=JSON.parse(w.eval(report));assert.equal(detail.schema,4);assert.equal(detail.candidates[0].evidence.reason,'eligible');assert.equal(detail.candidates[0].evidence.textExact,true);
+ const detail=JSON.parse(w.eval(report));assert.equal(detail.schema,4);assert.equal(detail.candidates[0].evidence.reason,'eligible');assert.equal(detail.candidates[0].evidence.textExact,true);assert(detail.candidates[0].ancestors.some(a=>a.navigation===true));
  assert(!JSON.stringify(detail).includes('private-path-secret'),'Report must remain URL-free');
  console.log('Prompts51 PASS: exact branded and plain CTA in absolute Reels media host; navigation/video retained; modal and unrelated-prose protections in three modes.');
 }finally{windows.forEach(w=>w.close());}})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -25,7 +25,7 @@
   const control=source.closest(semantic),el=control||source;if(seen.has(el))continue;seen.add(el);
   const chain=[];for(let parent=el,depth=0;parent&&depth<8;parent=parent.parentElement,depth++){
    const css=getComputedStyle(parent),role=parent.getAttribute('role');
-   chain.push({tag:tags.has(parent.tagName)?parent.tagName:'OTHER',role:roles.has(role)?role:null,position:positions.has(css.position)?css.position:'other',rect:rect(parent),displayNone:css.display==='none',modal:parent.getAttribute('aria-modal')==='true',media:!!parent.querySelector('video,audio,iframe,canvas'),form:!!parent.querySelector('form,input,textarea,select'),controls:Math.min(25,parent.querySelectorAll(semantic).length)});
+   chain.push({tag:tags.has(parent.tagName)?parent.tagName:'OTHER',role:roles.has(role)?role:null,position:positions.has(css.position)?css.position:'other',rect:rect(parent),displayNone:css.display==='none',navigation:window.FproNoapp&&window.FproNoapp.navigation?window.FproNoapp.navigation(parent):null,modal:parent.getAttribute('aria-modal')==='true',media:!!parent.querySelector('video,audio,iframe,canvas'),form:!!parent.querySelector('form,input,textarea,select'),controls:Math.min(25,parent.querySelectorAll(semantic).length)});
   }
   let eligible=null,targetKind=null;
   if(window.FproNoapp&&control){try{eligible=!!window.FproNoapp.target(control,true);const target=window.FproNoapp.target(control);targetKind=!target?'rejected':target===control?'control':'surface';}catch(_){targetKind='error';}}
