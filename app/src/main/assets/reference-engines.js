@@ -159,6 +159,9 @@
  function restoreOne(el){var old=hidden.get(el);if(!old)return;if(el.style.getPropertyValue('display')==='none'&&el.style.getPropertyPriority('display')==='important'){if(old.value)el.style.setProperty('display',old.value,old.priority);else el.style.removeProperty('display');}el.removeAttribute('data-fpro-reference-noapp');hidden.delete(el);}
  function restore(){if(promptFrame!==null)cancelAnimationFrame(promptFrame);promptFrame=null;pendingPrompts.clear();Array.from(hidden.keys()).forEach(restoreOne);}
  function hide(el){
+  // Move display ownership atomically when a recycled inline CTA becomes a
+  // dedicated bar (or the bar becomes inline); never leave its child hidden.
+  Array.from(hidden.keys()).forEach(function(previous){if(previous!==el&&(previous.contains(el)||el.contains(previous)))restoreOne(previous);});
   if(!hidden.has(el))hidden.set(el,{value:el.style.getPropertyValue('display'),priority:el.style.getPropertyPriority('display')});
   if(el.style.getPropertyValue('display')!=='none'||el.style.getPropertyPriority('display')!=='important')el.style.setProperty('display','none','important');
   if(!el.hasAttribute('data-fpro-reference-noapp'))el.setAttribute('data-fpro-reference-noapp','');

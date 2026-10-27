@@ -257,15 +257,18 @@
   if(node&&node!==document.body&&depth>=32)return null;
   return surface||control;
  }
+ function restoreAppPrompt(control){
+  const old=hidden.get(control);
+  if(old){if(control.style.getPropertyValue('display')==='none'&&control.style.getPropertyPriority('display')==='important'){if(old.value)control.style.setProperty('display',old.value,old.priority);else control.style.removeProperty('display');}hidden.delete(control);}
+  appPromptOwned.delete(control);control.removeAttribute('data-fpro-hidden');control.removeAttribute('data-fpro-app-prompt');
+ }
  function appBanner(link) {
   const control=appPromptOwned.has(link)?link:link&&link.closest('a,button,[role="button"],[role="link"]');
   const target=window.FproNoapp&&window.FproNoapp.target?window.FproNoapp.target(link):safeAppPromptTarget(link);
-  if(target){appPromptOwned.add(target);target.setAttribute('data-fpro-app-prompt','');hide(target);}
-  else if(control&&control.hasAttribute('data-fpro-app-prompt')){
-   const old=hidden.get(control);
-   if(old){if(control.style.getPropertyValue('display')==='none'&&control.style.getPropertyPriority('display')==='important'){if(old.value)control.style.setProperty('display',old.value,old.priority);else control.style.removeProperty('display');}hidden.delete(control);}
-   appPromptOwned.delete(control);control.removeAttribute('data-fpro-hidden');control.removeAttribute('data-fpro-app-prompt');
-  }
+  if(target){
+   for(const previous of Array.from(appPromptOwned))if(previous!==target&&(previous.contains(target)||target.contains(previous)))restoreAppPrompt(previous);
+   appPromptOwned.add(target);target.setAttribute('data-fpro-app-prompt','');hide(target);
+  }else if(control&&control.hasAttribute('data-fpro-app-prompt'))restoreAppPrompt(control);
  }
  // Geometry is intentionally deferred out of MutationObserver microtasks.
  function queueAppBanner(el){
