@@ -1,12 +1,13 @@
 /* Adapted from the FproColor / FproNoapp engines supplied by the owner.
  * Corrections: reversible ownership, palette/recycle updates, alpha=0,
  * shorthand preservation, bounded work, and page/media/navigation boundaries.
- * Driven by facebook.js's existing observer/scheduler; no extra observer/timer.
+ * Driven by facebook.js's observer/scheduler; CTA geometry uses one bounded animation-frame batch, no extra observer/polling.
  */
 (function () {
  'use strict';
  if(window.FproColor && window.FproNoapp)return;
  var cfg={recolor:false,uiAccent:'#D4AF37'}, noapp={noOpenApp:false};
+ var pendingPrompts=new Set(),promptFrame=null;
  var paints=new Map(), hidden=new Map(), checkedSheets=new WeakMap(), checkedAttrs=new WeakMap();
  function rgb(hex){var m=/^#([0-9a-f]{6})$/i.exec(hex||'');return m?[0,2,4].map(function(i){return parseInt(m[1].slice(i,i+2),16);}):null;}
  function blue(r,g,b){return b>r+40&&b>g+20&&Math.max(r,g,b)-Math.min(r,g,b)>60&&b>100;}
@@ -103,33 +104,62 @@
  }
  function colorOff(){restorePaint();['fpro-reference-css','fpro-reference-svg'].forEach(function(id){var el=document.getElementById(id);if(el)el.remove();});cfg.recolor=false;}
  window.FproColor={set:function(next){if(typeof next==='string')next=JSON.parse(next);var valid=!!next.recolor&&!!rgb(next.uiAccent);if(cfg.recolor!==valid||cfg.uiAccent!==next.uiAccent){colorOff();cfg={recolor:valid,uiAccent:next.uiAccent};setup();}},boot:function(){setup();pass();},ownsStyle:function(el){var record=paints.get(el);return !!record&&(record.kind==='sheet'?el.textContent:el.getAttribute('style'))===record.applied;},prune:prunePaint,retained:function(){return paints.size;},pass:pass,hunt:function(){pass();},off:colorOff};
- var phrases=/^(فتح التطبيق|افتح التطبيق|فتح تطبيق فيسبوك|فتح فيسبوك|فتح التطبيق الان|استخدم التطبيق|فيسبوك الاصلي|الفيسبوك الاصلي|تطبيق فيسبوك الاصلي|استخدم تطبيق فيسبوك|open (the )?app|open in (the )?app|use (the )?app|original facebook|open facebook( app)?|open the facebook app|use (the )?facebook app)$/i;
- var cta=/^(فتح\s+التطبيق|افتح\s+التطبيق|فتح\s+تطبيق\s+فيسبوك|استخدم\s+التطبيق|استخدم\s+تطبيق\s+فيسبوك|جرب\s+التطبيق|حمل\s+التطبيق|تحميل\s+التطبيق|ثبت\s+التطبيق|شاهد\s+في\s+التطبيق|open\s+(the\s+)?app|open\s+(it\s+)?in\s+(the\s+)?app|open\s+facebook|use\s+(the\s+)?(facebook\s+)?app|try\s+the\s+app|get\s+the\s+app|install\s+(the\s+)?app|download\s+(the\s+)?app|watch\s+on\s+the\s+app)/i;
  function norm(text){return (text||'').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');}
- function head(el){var text=el.getAttribute('aria-label')||'',walk=[el],i=0;while(i<walk.length&&i<80&&text.length<90){var node=walk[i++];for(var child=node.firstChild;child&&text.length<90;child=child.nextSibling){if(child.nodeType===3)text+=child.nodeValue+' ';else if(child.nodeType===1&&walk.length<80)walk.push(child);}}return norm(text).slice(0,100);}
- function hide(el){if(!el||el.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick]').length>1||el.matches('body,html,main,form,article,[role="article"],[role="main"],[role="feed"],nav,[role="navigation"]')||el.querySelector('video,input,textarea,article,[role="article"]'))return;
-  if(!hidden.has(el))hidden.set(el,{value:el.style.getPropertyValue('display'),priority:el.style.getPropertyPriority('display')});if(el.style.getPropertyValue('display')!=='none'||el.style.getPropertyPriority('display')!=='important')el.style.setProperty('display','none','important');if(!el.hasAttribute('data-fpro-reference-noapp'))el.setAttribute('data-fpro-reference-noapp','');
+ const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app'].map(norm));
+ function isAppPrompt(text){text=norm(text);return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(text.replace(/\s*(facebook|فيسبوك|f)$/,'')));}
+ // Conservative by design: never hide a parent, modal, player or page shell.
+ function safeAppPromptTarget(el,structuralOnly=false){
+  var control=el&&el.closest('a,button,[role="button"],[role="link"]');
+  if(!control||control.matches('body,html,main,form,article,header,nav,[role="article"],[role="main"],[role="feed"],[role="navigation"],[role="banner"]'))return null;
+  if(control.closest('form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"]'))return null;
+  if(control.querySelector('a,button,[role="button"],[role="link"],video,audio,iframe,canvas,input,textarea,select,[contenteditable="true"],article,[role="article"],[role="main"],[role="feed"]'))return null;
+  // A matching child span/aria-label must not authorize hiding unrelated prose.
+  var text=norm(control.textContent),label=norm(control.getAttribute('aria-label'));
+  if(!isAppPrompt(text||label))return null;
+  if(structuralOnly)return control;
+  var box=control.getBoundingClientRect();
+  if(box.height>96)return null;
+  var node=control,depth=0;
+  for(;node&&node!==document.body&&depth<32;node=node.parentElement,depth++){
+   var css=getComputedStyle(node);
+   if(css.position!=='fixed'&&css.position!=='absolute')continue;
+   var r=node.getBoundingClientRect();
+   var inset=/^0(?:px)?(?:\s+0(?:px)?){0,3}$/.test(css.inset||'')||/^0(?:px)?$/.test(css.top)&&/^0(?:px)?$/.test(css.bottom)&&/^0(?:px)?$/.test(css.left)&&/^0(?:px)?$/.test(css.right);
+   var large=r.width>=innerWidth*.65&&r.height>=innerHeight*.35;
+   // Keep blocking install sheets usable: hiding only their CTA leaves a black
+   // backdrop/scroll lock. Do not click Close, remove a scrim or unlock the body.
+   if((inset||large)&&!node.querySelector('video,article,[role="article"],[role="main"],[role="feed"]'))return null;
+  }
+  if(node&&node!==document.body&&depth>=32)return null;
+  return control;
  }
  function restoreOne(el){var old=hidden.get(el);if(!old)return;if(el.style.getPropertyValue('display')==='none'&&el.style.getPropertyPriority('display')==='important'){if(old.value)el.style.setProperty('display',old.value,old.priority);else el.style.removeProperty('display');}el.removeAttribute('data-fpro-reference-noapp');hidden.delete(el);}
- function restore(){Array.from(hidden.keys()).forEach(restoreOne);}
+ function restore(){if(promptFrame!==null)cancelAnimationFrame(promptFrame);promptFrame=null;pendingPrompts.clear();Array.from(hidden.keys()).forEach(restoreOne);}
+ function hide(el){
+  if(!hidden.has(el))hidden.set(el,{value:el.style.getPropertyValue('display'),priority:el.style.getPropertyPriority('display')});
+  if(el.style.getPropertyValue('display')!=='none'||el.style.getPropertyPriority('display')!=='important')el.style.setProperty('display','none','important');
+  if(!el.hasAttribute('data-fpro-reference-noapp'))el.setAttribute('data-fpro-reference-noapp','');
+ }
+ function queuePrompt(el){
+  if(pendingPrompts.size<48)pendingPrompts.add(el);
+  if(promptFrame===null)promptFrame=requestAnimationFrame(function(){
+   promptFrame=null;var batch=Array.from(pendingPrompts);pendingPrompts.clear();
+   if(!noapp.noOpenApp||document.hidden)return;
+   batch.forEach(function(el){if(!el.isConnected)return;var target=safeAppPromptTarget(el);if(target)hide(target);else restoreOne(el);});
+  });
+ }
  function noappScan(root,fast,selfOnly){
   if(!noapp.noOpenApp||document.hidden)return;
-  var selector='a,button,[role="button"],[role="link"],[aria-label],[tabindex],[onclick],[data-fpro-reference-noapp]';
+  // Revalidate owned controls when a surrounding surface becomes a dialog or
+  // the site recycles the control. No ancestor gets ownership of display:none.
+  var scopes=Array.isArray(root)?root:root?[root]:[];
+  Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected){restoreOne(el);return;}if(fast&&!scopes.some(function(scope){return scope.contains(el)||el.contains(scope);}))return;if(safeAppPromptTarget(el,!!fast)!==el)restoreOne(el);else if(fast)queuePrompt(el);});
+  var selector='a,button,[role="button"],[role="link"],[data-fpro-reference-noapp]';
   var candidates=nodes(Array.isArray(root)?root:root?[root]:null,selector,selfOnly,fast?384:0),budget=0;
   for(var el of candidates){if(budget++>=(fast?48:800))break;if(own(el))continue;
-   var text=head(el),href=el.getAttribute('href')||'';if(!text||/^(رجوع|الرجوع|عوده|العوده|اغلاق|اخفاء|back|go\s+back|close|dismiss)/i.test(text)){restoreOne(el);continue;}
-   var exact=phrases.test(text),deep=/^(fb:|fb-messenger:|market:|intent:|android-app:)/i.test(href)||/play\.google\.com\/store\/apps|apps\.apple\.com|onelink\.to\/facebook|marketplace\/app_redirect|\/r\.php\?.*app_id|\/openinapp|\/native_app|\/intent\//i.test(href);
-   // Blue Facebook branding alone is not evidence of an app-install CTA.
-   if(!exact&&!deep&&(!cta.test(text)||!el.matches('a,button,[role="button"],[role="link"]'))){restoreOne(el);continue;}
-   // Never treat a container's combined Open App + Search/Profile labels as a CTA.
-   if(el.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick]').length>1||el.matches('a,button,[role="button"],[role="link"]')&&el.querySelector('a,button,[role="button"],[role="link"],input')){restoreOne(el);continue;}
-   if(el.closest('article,[role="article"],[data-pagelet^="FeedUnit"]')){if((exact||cta.test(text))&&el.matches('a,button,[role="button"],[role="link"]'))hide(el);continue;}
-   if(fast){hide(el);continue;}
-   var r=el.getBoundingClientRect(),near=r.top>=0&&r.top<innerHeight*.3;
-   var best=el,node=best,limit=near?110:Math.max(160,innerHeight*.32);
-   for(var d=0;d<8&&node.parentElement;d++){var parent=node.parentElement;if(parent.matches('body,html,main,form,header,nav,article,[role="article"],[role="main"],[role="feed"],[role="banner"],[role="navigation"]')||parent.querySelector('video,input,textarea,article,[role="article"]'))break;var b=parent.getBoundingClientRect();if(b.height<=0||b.height>limit||near&&b.width>innerWidth*.65)break;if(Array.from(parent.querySelectorAll('a,button,[role="button"],[role="link"],[aria-label],[tabindex],[onclick],svg,img')).some(function(control){return !node.contains(control)&&!control.contains(node);}))break;if(parent.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick],[aria-label]').length>1||norm(parent.textContent)!==norm(el.textContent))break;if(Array.from(parent.childNodes).some(function(c){return c.nodeType===3&&c.textContent.trim();}))break;best=parent;node=parent;}
-   hide(best);
+   var target=safeAppPromptTarget(el,!!fast);
+   if(target){if(fast)queuePrompt(target);else hide(target);}else restoreOne(el);
   }
  }
- window.FproNoapp={set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};},boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};
+ window.FproNoapp={target:safeAppPromptTarget,set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};},boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){pendingPrompts.forEach(function(el){if(!el.isConnected)pendingPrompts.delete(el);});Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};
 })();

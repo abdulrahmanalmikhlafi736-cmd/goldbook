@@ -50,6 +50,7 @@ function fixture(html,config={},captureDownload=false) {
    prompt.doc.getElementById('prompt').textContent=label;
    prompt.window.eval(fs.readFileSync('app/src/main/assets/reference-engines.js','utf8'));
    prompt.window.FproNoapp.set({noOpenApp:true});prompt.window.FproNoapp.scan([prompt.doc.body],true,false);
+   await new Promise(resolve=>prompt.window.requestAnimationFrame(resolve));
    assert.equal(prompt.doc.getElementById('prompt').style.display,'none','Reference engine must normalize RTL marks, case, Arabic diacritics and suffix punctuation');
    assert.equal(prompt.doc.getElementById('safeSearch').style.display,'');assert.equal(prompt.doc.getElementById('safeAccount').style.display,'');
    prompt.window.FproNoapp.restore();assert.equal(prompt.doc.getElementById('prompt').style.display,'');
@@ -233,13 +234,13 @@ function fixture(html,config={},captureDownload=false) {
   const safeFeed=fixture('<section role="feed" id="all"><h2 role="heading">Stories</h2><article>Ordinary post</article></section>',{stories:true});
   assert.equal(safeFeed.doc.querySelector('#all').style.display,'','Never hide an entire feed when filtering a heading');
   const openButton=fixture('<header id="app"><button>فتح التطبيق</button></header><form><input></form>',{appBanner:true});
-  assert.equal(openButton.doc.querySelector('#app').style.display,'none','Also hide JavaScript-driven open-app buttons');
+  assert.equal(openButton.doc.querySelector('#app button').style.display,'none','Hide JavaScript-driven CTA only');assert.equal(openButton.doc.querySelector('#app').style.display,'','Never hide its header');
   const reelHeader=fixture('<article id="reel"><header><button id="open"><span>فتح التطبيق</span><svg><title>Facebook</title></svg></button><button id="search">Search</button><video></video></header></article>',{appBanner:true});
   assert.equal(reelHeader.doc.querySelector('#open').style.display,'none','Hide Reels app CTA even within article');
   assert.equal(reelHeader.doc.querySelector('#reel').style.display,'','Never hide the reel');
   assert.equal(reelHeader.doc.querySelector('#search').style.display,'','Keep search/profile controls');
   const banner=fixture('<header id="install"><a href="intent://facebook/#Intent;package=com.facebook.katana;end">Open app</a></header><form id="login"><input><button>Log in</button></form><a id="postlink" href="/some.post">Facebook post</a>',{appBanner:true});
-  assert.equal(banner.doc.querySelector('#install').style.display,'none');
+  assert.equal(banner.doc.querySelector('#install a').style.display,'none');assert.equal(banner.doc.querySelector('#install').style.display,'');
   assert.equal(banner.doc.querySelector('#login').style.display,'');
   assert.equal(banner.doc.querySelector('#postlink').style.display,'');
   banner.run({appBanner:false});assert.equal(banner.doc.querySelector('#install').style.display,'');
@@ -307,10 +308,10 @@ function fixture(html,config={},captureDownload=false) {
    repair.run(repairConfig);await Promise.resolve();await Promise.resolve();
    const cta=repair.doc.getElementById('reappearing');assert.equal(cta.style.display,'none');
    for(const display of ['display:block!important','display:flex','']){
-    cta.style.cssText=display;await Promise.resolve();await Promise.resolve();await Promise.resolve();
+    cta.style.cssText=display;await new Promise(resolve=>repair.window.requestAnimationFrame(resolve));await new Promise(resolve=>repair.window.requestAnimationFrame(resolve));
     assert.equal(cta.style.display,'none','Reapply hiding after site overwrites styles; referenceEngine='+referenceEngine);assert.equal(cta.style.getPropertyPriority('display'),'important');
    }
-   const replacement=repair.doc.createElement('button');replacement.id='reappearing';replacement.textContent='فتح التطبيق';cta.replaceWith(replacement);await Promise.resolve();await Promise.resolve();await Promise.resolve();
+   const replacement=repair.doc.createElement('button');replacement.id='reappearing';replacement.textContent='فتح التطبيق';cta.replaceWith(replacement);await new Promise(resolve=>repair.window.requestAnimationFrame(resolve));await new Promise(resolve=>repair.window.requestAnimationFrame(resolve));
    assert.equal(replacement.style.display,'none','A replacement CTA node must also be hidden');
    assert.equal(repair.doc.getElementById('keepSearch').style.display,'');assert.equal(repair.doc.getElementById('keepAccount').style.display,'');
    replacement.textContent='Search';await Promise.resolve();await Promise.resolve();repair.run(repairConfig);
@@ -415,7 +416,7 @@ function fixture(html,config={},captureDownload=false) {
   const suppliedPrompts=fixture('<header><button id="back">رجوع</button><button id="cta">Open the Facebook app</button></header><article role="button" id="safeArticle"><span>فتح التطبيق</span><video></video></article><div id="prompt"><button>استخدم تطبيق فيسبوك</button></div><form id="safeForm"><input><button id="formCta">Open the app</button></form>',{appBanner:true});
   assert.equal(suppliedPrompts.doc.querySelector('#cta').style.display,'none');assert.equal(suppliedPrompts.doc.querySelector('#back').style.display,'');assert.equal(suppliedPrompts.doc.querySelector('header').style.display,'');
   assert.equal(suppliedPrompts.doc.querySelector('#safeArticle').style.display,'','A role-button article must never be hidden for mentioning an app CTA');
-  assert.equal(suppliedPrompts.doc.querySelector('#prompt').style.display,'none');assert.equal(suppliedPrompts.doc.querySelector('#safeForm').style.display,'');
+  assert.equal(suppliedPrompts.doc.querySelector('#prompt button').style.display,'none');assert.equal(suppliedPrompts.doc.querySelector('#prompt').style.display,'');assert.equal(suppliedPrompts.doc.querySelector('#safeForm').style.display,'');
   suppliedPrompts.run({appBanner:false});assert.equal(suppliedPrompts.doc.querySelector('#cta').style.display,'');assert.equal(suppliedPrompts.doc.querySelector('#prompt').style.display,'');
   const gesture=fixture('<article><video id="player"></video><div id="cover"></div><button id="like" aria-label="Like">Like</button></article>',{enhance:false,doubleTapFullscreen:true,ads:true,downloads:false,rainbow:false});
   const player=gesture.doc.querySelector('video'),cover=gesture.doc.querySelector('#cover');
@@ -618,7 +619,7 @@ function fixture(html,config={},captureDownload=false) {
    if(referenceEngine)bar.window.eval(fs.readFileSync('app/src/main/assets/reference-engines.js','utf8'));
    bar.run({enhance:true,referenceEngine,appBanner:true});
    for(const id of ['officialBar','searchOfficial','profileOfficial'])assert.equal(bar.doc.getElementById(id).style.display,'','Preserve official reel navigation: '+id);
-   assert.equal(bar.doc.getElementById('installSlot').style.display,'none');
+   assert.equal(bar.doc.querySelector('#installSlot a').style.display,'none');assert.equal(bar.doc.getElementById('installSlot').style.display,'');
   }
   for(const referenceEngine of [false,true]){
    const iconBar=fixture('<header id="iconBar"><button id="onlyCTA">فتح التطبيق</button><svg id="searchGlyph"></svg><img id="accountGlyph"></header><button id="brandOnly" style="background-color:rgb(24,119,242)">Facebook</button>',{enhance:false});
@@ -662,9 +663,11 @@ function fixture(html,config={},captureDownload=false) {
   let geometryReads=0;fragment.querySelectorAll('*').forEach(el=>el.getBoundingClientRect=()=>{geometryReads++;return {width:12,height:12,top:0};});
   fastTools.doc.getElementById('root').appendChild(fragment);
   await new Promise(resolve=>fastTools.window.queueMicrotask(resolve));
-  assert.equal(fragment.querySelector('#instantApp').style.display,'none','Hide explicit app CTA in the mutation microtask, not after 500ms');
+  assert.equal(fragment.querySelector('#instantApp').style.display,'','CTA waits for its guarded frame, never hides a possible sheet in a microtask');
   assert.equal(fragment.querySelector('#instantSearch').style.display,'','Keep adjacent official search');
   assert.equal(geometryReads,0,'Fast color/banner path must not force geometry or badge layout reads');
+  await new Promise(resolve=>fastTools.window.requestAnimationFrame(resolve));
+  assert.equal(fragment.querySelector('#instantApp').style.display,'none','Guarded inline CTA hides in the next frame, not a delayed whole-feed scan');
   let bodyQueries=0;const queryBody=fastTools.doc.body.querySelectorAll.bind(fastTools.doc.body);
   fastTools.doc.body.querySelectorAll=(selector)=>{bodyQueries++;return queryBody(selector);};
   fastTools.doc.body.style.color='rgb(24,119,242)';
@@ -674,7 +677,7 @@ function fixture(html,config={},captureDownload=false) {
   const recycledCTA=fastTools.doc.createElement('button');recycledCTA.innerHTML='<span>Ordinary control</span>';recycledCTA.style.color='rgb(24,119,242)';fastTools.doc.body.appendChild(recycledCTA);
   await new Promise(resolve=>fastTools.window.queueMicrotask(resolve));assert.equal(recycledCTA.style.color,'rgb(23, 131, 62)');
   recycledCTA.querySelector('span').textContent='فتح التطبيق';
-  await new Promise(resolve=>fastTools.window.queueMicrotask(resolve));assert.equal(recycledCTA.style.display,'none','Text changes inside already-recolored controls must still trigger immediate banner hiding');
+  await new Promise(resolve=>fastTools.window.requestAnimationFrame(resolve));await new Promise(resolve=>fastTools.window.requestAnimationFrame(resolve));assert.equal(recycledCTA.style.display,'none','Recycled controls receive guarded frame hiding');
   const media=fixture('<video></video>',{enhance:false});let playingHint=null;
   media.window.FproPlayback={postMessage:value=>{playingHint=JSON.parse(value).playing;}};
   const mediaVideo=media.doc.querySelector('video');Object.defineProperty(mediaVideo,'paused',{value:false,configurable:true});Object.defineProperty(mediaVideo,'readyState',{value:4,configurable:true});

@@ -182,6 +182,7 @@
  const tintVars=new Map(),ownedStyles=new WeakMap();
  const iconDefs=document.createElementNS('http://www.w3.org/2000/svg','svg');iconDefs.id='fpro-icon-filter';iconDefs.setAttribute('aria-hidden','true');iconDefs.style.cssText='position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
  iconDefs.innerHTML='<defs><filter id="fpro-icon-palette" color-interpolation-filters="sRGB"><feColorMatrix type="matrix"/></filter><filter id="fpro-canvas-palette" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 1 0 0.38" result="redTest"/><feComponentTransfer in="redTest" result="redMask"><feFuncA type="discrete" tableValues="0 1"/></feComponentTransfer><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 1 0 0.42" result="greenTest"/><feComponentTransfer in="greenTest" result="greenMask"><feFuncA type="discrete" tableValues="0 1"/></feComponentTransfer><feComposite in="redMask" in2="greenMask" operator="in" result="blueMask"/><feComposite in="SourceAlpha" in2="blueMask" operator="in" result="blueAlpha"/><feFlood result="target"/><feComposite in="target" in2="blueAlpha" operator="in" result="tinted"/><feComposite in="SourceGraphic" in2="blueMask" operator="out" result="unchanged"/><feMerge><feMergeNode in="unchanged"/><feMergeNode in="tinted"/></feMerge></filter></defs>';
+ const pendingAppPrompts=new Set(),appPromptOwned=new Set();let appPromptFrame=null;
  const hidden = new Map(), painted = new Set(), videos = new Map(), identityBaseline = new WeakMap();
  function hide(el) {
   if (!el || /^(BODY|HTML|MAIN)$/.test(el.tagName) || ['main','feed','navigation'].includes(el.getAttribute('role'))) return;
@@ -191,7 +192,8 @@
   if(el.style.getPropertyValue('display')!=='none'||el.style.getPropertyPriority('display')!=='important')el.style.setProperty('display','none','important');
  }
  function restoreHidden() {
-  hidden.forEach((old,el) => { if(old.value) el.style.setProperty('display',old.value,old.priority); else el.style.removeProperty('display'); el.removeAttribute('data-fpro-hidden'); }); hidden.clear();
+  if(appPromptFrame!==null)cancelAnimationFrame(appPromptFrame);appPromptFrame=null;pendingAppPrompts.clear();appPromptOwned.clear();
+  hidden.forEach((old,el) => { if(old.value) el.style.setProperty('display',old.value,old.priority); else el.style.removeProperty('display'); el.removeAttribute('data-fpro-hidden');el.removeAttribute('data-fpro-app-prompt'); }); hidden.clear();
  }
  function section(label, key) {
   const post = postFor(label); if (post) return post;
@@ -204,29 +206,54 @@
   }
   return null;
  }
- const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','تطبيق فيسبوك الأصلي','فيسبوك الأصلي','الفيسبوك الأصلي','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app','original facebook'].map(norm));
- function isAppPrompt(text){return text.length<=90&&appPromptLabels.has(norm(text));}
- function appBanner(link, explicitLabel = false) {
-  const control=link.closest('a,button,[role="button"],[role="link"]');
-  const inPost=link.closest('[role="article"],article,[data-pagelet^="FeedUnit"]');
-  // Reels place the Open App control inside the player/article. Hide that
-  // control only, never the reel or its search/profile/navigation siblings.
-  if(inPost) { if(explicitLabel && control && !control.matches(postSelector) && !control.querySelector('video,article,[role="article"]')) hide(control); return; }
-  const header=control && control.closest('header,nav,[role="banner"],[role="navigation"]');
-  if(explicitLabel && header && header.querySelectorAll('a,button,[role="button"]').length>1) { hide(control); return; }
-  if(explicitLabel && header && !header.querySelector('input,textarea,video,article,[role="article"]') && isAppPrompt(norm(header.textContent)) && Array.from(header.querySelectorAll('a,button,[role="button"],[role="link"],[aria-label],[tabindex],[onclick],svg,img')).every(node=>control.contains(node)||node.contains(control))) {hide(header);return;}
-  const href = link.getAttribute('href') || '';
-  if (!explicitLabel && !/^(intent:|fb:|fb-messenger:|android-app:)/i.test(href) && !/(play\.google\.com\/store\/apps|apps\.apple\.com\/|\/marketplace\/app_redirect|\/r\.php\?.*app_id|\/openinapp|\/native_app|\/intent\/)/i.test(href)) return;
-  let block = link;
-  // Only a compact install prompt, never an article, login form or entire page.
-  for (let i=0; i<3 && block.parentElement; i++) {
-   const p = block.parentElement;
-   if (/^(BODY|HTML|MAIN|FORM)$/.test(p.tagName) || p.matches(postSelector) || p.getAttribute('role') === 'main' || p.matches('header,nav,[role="banner"],[role="navigation"]') || p.querySelector('input,textarea,video,[contenteditable],article,[role="article"]') || (p.textContent || '').length > 400) break;
-   if(Array.from(p.querySelectorAll('a,button,[role="button"],[role="link"],[aria-label],[tabindex],[onclick],svg,img')).some(node=>!block.contains(node)&&!node.contains(block)))break;
-   if (p.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick],[aria-label]').length > 1 || norm(p.textContent)!==norm(link.textContent)) break;
-   block = p;
+ const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app'].map(norm));
+ function isAppPrompt(text){text=norm(text);return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(text.replace(/\s*(facebook|فيسبوك|f)$/,'')));}
+ // Conservative by design: never hide a parent, modal, player or page shell.
+ function safeAppPromptTarget(el,structuralOnly=false){
+  var control=el&&el.closest('a,button,[role="button"],[role="link"]');
+  if(!control||control.matches('body,html,main,form,article,header,nav,[role="article"],[role="main"],[role="feed"],[role="navigation"],[role="banner"]'))return null;
+  if(control.closest('form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"]'))return null;
+  if(control.querySelector('a,button,[role="button"],[role="link"],video,audio,iframe,canvas,input,textarea,select,[contenteditable="true"],article,[role="article"],[role="main"],[role="feed"]'))return null;
+  // A matching child span/aria-label must not authorize hiding unrelated prose.
+  var text=norm(control.textContent),label=norm(control.getAttribute('aria-label'));
+  if(!isAppPrompt(text||label))return null;
+  if(structuralOnly)return control;
+  var box=control.getBoundingClientRect();
+  if(box.height>96)return null;
+  var node=control,depth=0;
+  for(;node&&node!==document.body&&depth<32;node=node.parentElement,depth++){
+   var css=getComputedStyle(node);
+   if(css.position!=='fixed'&&css.position!=='absolute')continue;
+   var r=node.getBoundingClientRect();
+   var inset=/^0(?:px)?(?:\s+0(?:px)?){0,3}$/.test(css.inset||'')||/^0(?:px)?$/.test(css.top)&&/^0(?:px)?$/.test(css.bottom)&&/^0(?:px)?$/.test(css.left)&&/^0(?:px)?$/.test(css.right);
+   var large=r.width>=innerWidth*.65&&r.height>=innerHeight*.35;
+   // Keep blocking install sheets usable: hiding only their CTA leaves a black
+   // backdrop/scroll lock. Do not click Close, remove a scrim or unlock the body.
+   if((inset||large)&&!node.querySelector('video,article,[role="article"],[role="main"],[role="feed"]'))return null;
   }
-  hide(block);
+  if(node&&node!==document.body&&depth>=32)return null;
+  return control;
+ }
+ function appBanner(link) {
+  const control=link&&link.closest('a,button,[role="button"],[role="link"]');
+  const target=window.FproNoapp&&window.FproNoapp.target?window.FproNoapp.target(link):safeAppPromptTarget(link);
+  if(target){appPromptOwned.add(target);target.setAttribute('data-fpro-app-prompt','');hide(target);}
+  else if(control&&control.hasAttribute('data-fpro-app-prompt')){
+   const old=hidden.get(control);
+   if(old){if(control.style.getPropertyValue('display')==='none'&&control.style.getPropertyPriority('display')==='important'){if(old.value)control.style.setProperty('display',old.value,old.priority);else control.style.removeProperty('display');}hidden.delete(control);}
+   appPromptOwned.delete(control);control.removeAttribute('data-fpro-hidden');control.removeAttribute('data-fpro-app-prompt');
+  }
+ }
+ // Geometry is intentionally deferred out of MutationObserver microtasks.
+ function queueAppBanner(el){
+  const target=window.FproNoapp&&window.FproNoapp.target?window.FproNoapp.target(el,true):safeAppPromptTarget(el,true);
+  if(!target){appBanner(el);return;}
+  if(pendingAppPrompts.size<48)pendingAppPrompts.add(target);
+  if(appPromptFrame===null)appPromptFrame=requestAnimationFrame(()=>{
+   appPromptFrame=null;const batch=Array.from(pendingAppPrompts);pendingAppPrompts.clear();
+   if(cfg.enhance===false||!cfg.appBanner||cfg.referenceEngine&&window.FproNoapp||document.hidden)return;
+   for(const control of batch)if(control.isConnected)appBanner(control);
+  });
  }
  function homeView(){return window.__fproPageInfo ? window.__fproPageInfo().home : /^\/(?:home\.php|index\.php)?$/.test(location.pathname)&&!document.fullscreenElement;}
  function rgbColor(value){
@@ -512,28 +539,29 @@
   if(window.FproColor&&window.FproColor.prune)window.FproColor.prune();
   if(window.FproNoapp&&window.FproNoapp.prune)window.FproNoapp.prune();
   hidingPass=new Set();
-  const filtering=cfg.appBanner||Object.keys(words).some(key=>cfg[key]);
+  const referencePrompts=!!(cfg.referenceEngine&&window.FproNoapp);
+  const filtering=(cfg.appBanner&&!referencePrompts)||Object.keys(words).some(key=>cfg[key]);
   const labels = filtering?document.querySelectorAll('a,span,abbr,strong,b,button,[role="button"],[role="link"],div[dir="auto"],[role="heading"],[aria-label]'):[];
   for (let i=0;i<Math.min(labels.length,2400);i++) {
    const label=labels[i]; if(label.closest('.fpro-video-tools')) continue;
    const text=norm(label.getAttribute('aria-label') || label.textContent);
    const appText=text.replace(/^(facebook|فيسبوك|f)\s*/,'').replace(/\s*(facebook|فيسبوك|f)$/,'');
-   if(cfg.appBanner && (isAppPrompt(text)||isAppPrompt(appText))) appBanner(label,true);
+   if(cfg.appBanner && !referencePrompts && (isAppPrompt(text)||isAppPrompt(appText))) appBanner(label,true);
    if(!text || text.length>100) continue;
    for(const key of Object.keys(words)) if((cfg[key]) && words[key].some(w=>text===norm(w))) hide(section(label,key));
   }
   if(cfg.ads) document.querySelectorAll('a[href*="/ads/about/"],[data-ad-rendering-role="sponsored_label"],[data-sponsored="true"]').forEach(el=>hide(postFor(el)));
   if(cfg.stories) document.querySelectorAll('[data-pagelet*="Stories"],[data-sigil~="m-story-tray"],[aria-label="Stories"],[aria-label="القصص"]').forEach(el=>hide(section(el,'stories') || el));
-  if(cfg.appBanner) document.querySelectorAll('a[href]').forEach(link=>appBanner(link));
+  if(cfg.appBanner&&!referencePrompts) document.querySelectorAll('a[href]').forEach(link=>appBanner(link));
   if(cfg.stories) document.querySelectorAll('a[href*="/stories/"]').forEach(link=>hide(section(link,'stories') || link));
   if((cfg.homeStories||cfg.stories)&&homeView())hideHomeStories();
-  hidden.forEach((old,el)=>{if(!hidingPass.has(el)){if(old.value)el.style.setProperty('display',old.value,old.priority);else el.style.removeProperty('display');el.removeAttribute('data-fpro-hidden');hidden.delete(el);}});
+  hidden.forEach((old,el)=>{if(!hidingPass.has(el)){if(old.value)el.style.setProperty('display',old.value,old.priority);else el.style.removeProperty('display');el.removeAttribute('data-fpro-hidden');el.removeAttribute('data-fpro-app-prompt');appPromptOwned.delete(el);hidden.delete(el);}});
   hidingPass=null;
   tint();
-  if(cfg.referenceEngine&&window.FproColor&&window.FproNoapp){
+  if(cfg.referenceEngine&&window.FproColor){
    window.FproColor.set({recolor:!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),uiAccent:colors[cfg.color]||'#D4AF37'});window.FproColor.pass();
-   window.FproNoapp.set({noOpenApp:!!cfg.appBanner});window.FproNoapp.hunt();
   }
+  if(window.FproNoapp){if(referencePrompts){window.FproNoapp.set({noOpenApp:!!cfg.appBanner});window.FproNoapp.hunt();}else window.FproNoapp.restore();}
   videos.forEach((entry,video)=>{if(!video.isConnected || (!cfg.downloads && !cfg.rainbow)) {entry.dispose(); videos.delete(video);}});
   if(cfg.downloads || cfg.rainbow) document.querySelectorAll('video').forEach(attachVideo);
   layoutVideos();
@@ -839,7 +867,7 @@
   if(c.enhance===false){observer.disconnect();if(resize)resize.disconnect();videos.forEach(entry=>entry.dispose());videos.clear();storyImages.forEach(tools=>tools.remove());storyImages.clear();style.remove();lastTap=null;touch=null;return;}
   if(resize)resize.observe(document.body);
   if(!style.isConnected)document.head.appendChild(style);
-  observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','role','tabindex','href','src','data-story-id','data-store','data-video-id','class','style','stroke','fill']});
+  observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','aria-modal','open','role','tabindex','href','src','data-story-id','data-store','data-video-id','class','style','stroke','fill']});
   observer.observe(document.head,{childList:true,subtree:true,characterData:true});
   const accent=c.color==='طبيعي'?null:colors[c.color];
   const foreground=c.dark?accent:(LIGHT_MODE_FG[c.color] || accent);
@@ -924,7 +952,7 @@
    if(!list.length)return;
    if(cfg.appBanner){
     if(cfg.referenceEngine&&window.FproNoapp)window.FproNoapp.scan(list,true,selfOnly);
-    else {let budget=48;for(const root of list){const nodes=selfOnly?[root]:[root,...boundedElements(root,'a,button,[role="button"],[role="link"]')];for(const el of nodes){if(budget--<=0)break;if(isAppPrompt(norm(el.getAttribute('aria-label')||el.textContent)))appBanner(el,true);}}}
+    else {for(const control of appPromptOwned)if(list.some(root=>root.contains(control)||control.contains(root)))queueAppBanner(control);let budget=48;for(const root of list){const nodes=selfOnly?[root]:[root,...boundedElements(root,'a,button,[role="button"],[role="link"]')];for(const el of nodes){if(budget--<=0)break;queueAppBanner(el);}}}
    }
    if(!skipColor&&cfg.referenceEngine&&window.FproColor)window.FproColor.pass(list,true,selfOnly);
   };
