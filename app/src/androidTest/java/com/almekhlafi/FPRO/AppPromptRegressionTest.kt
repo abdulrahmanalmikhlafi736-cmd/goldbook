@@ -48,7 +48,7 @@ class AppPromptRegressionTest {
                         <button id="modalCTA">Open app</button><button id="close">Close</button></div>
                         <div style="position:fixed;top:0;bottom:0;left:0;right:0;background:black"><button id="sheetCTA">Open app</button></div>
                         <header id="reelNav" style="position:fixed;top:0;left:0;width:100%;height:72px;background:black">
-                        <button id="reelCTA"><svg><title>Facebook logo</title></svg><span>فتح</span><span>التطبيق</span></button><button id="reelSearch" aria-label="Search"></button><a id="reelAccount" href="/me" aria-label="Your profile">Account</a><span>ريلز</span></header>
+                        <button id="reelCTA"><svg width="16" height="16"><title>Facebook logo</title></svg><span>فتح</span><span>التطبيق</span></button><button id="reelSearch" aria-label="Search"></button><a id="reelAccount" href="/me" aria-label="Your profile">Account</a><span>ريلز</span></header>
                         <div id="compactBar" style="position:fixed;bottom:0;left:0;width:100%;min-height:64px;background:black;display:flex!important">
                         <button id="compactCTA">فتح التطبيق</button><button aria-label="Close">×</button></div>
                         </body></html>
