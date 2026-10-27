@@ -108,7 +108,12 @@
  function norm(text){return (text||'').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');}
  const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app'].map(norm));
  const compactAppPromptLabels=new Set(Array.from(appPromptLabels,function(label){return label.replace(/\s+/g,'');}));
- function isAppPrompt(text){text=norm(text);var plain=text.replace(/\s*(facebook|فيسبوك|f)$/,'');return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(plain)||compactAppPromptLabels.has(text.replace(/\s+/g,''))||compactAppPromptLabels.has(plain.replace(/\s+/g,'')));}
+ function isAppPrompt(text){
+  text=norm(text).replace(/[\u061C\u202A-\u202E\u2060]/g,'');
+  // Only a known brand at an edge may decorate an otherwise EXACT CTA.
+  var plain=text.replace(/^(?:facebook|فيسبوك|f)\s*/,'').replace(/\s*(?:facebook|فيسبوك|f)$/,'');
+  return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(plain)||compactAppPromptLabels.has(text.replace(/\s+/g,''))||compactAppPromptLabels.has(plain.replace(/\s+/g,'')));
+ }
  // Read bounded control text, not SVG accessibility titles or decorative
  // hidden icon captions. Never use rendered innerText (it can force layout).
  function appPromptText(control){
@@ -139,6 +144,15 @@
  const appBannerBoxes=new WeakMap();
  // A parent is eligible only as a dedicated compact fixed app-prompt surface.
  // Never infer a banner from its background, position or a URL alone.
+ // Manual diagnostics only: bounded reason codes, never actual text/attributes.
+ function appPromptEvidence(control){
+  if(!control)return {reason:'missing-control'};
+  var forbidden=control.matches('body,html,main,form,article,header,nav,[role="article"],[role="main"],[role="feed"],[role="navigation"],[role="banner"]');
+  var ancestor=!!control.closest('form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"]');
+  var descendant=!!control.querySelector('a,button,[role="button"],[role="link"],video,audio,iframe,canvas,input,textarea,select,[contenteditable="true"],article,[role="article"],[role="main"],[role="feed"]');
+  var text=appPromptText(control),label=norm(control.getAttribute('aria-label'));
+  return {reason:forbidden?'forbidden-control':ancestor?'blocking-ancestor':descendant?'protected-descendant':text===null?'text-budget':!isAppPrompt(text||label)?'label-mismatch':'eligible',textPresent:!!text,textExact:text!==null&&isAppPrompt(text),ariaExact:isAppPrompt(label)};
+ }
  function safeAppPromptTarget(el,structuralOnly=false){
   var semantic='a,button,[role="button"],[role="link"]';
   var ownedSurface=el&&!el.matches(semantic)&&(el.hasAttribute('data-fpro-app-prompt')||el.hasAttribute('data-fpro-reference-noapp'));
@@ -152,7 +166,7 @@
   if(structuralOnly)return ownedSurface?el:control;
   var box=control.getBoundingClientRect();
   if(box.height>96)return null;
-  var node=control,depth=0,surface=null;
+  var node=control,depth=0,surface=null,realNavigation=false;
   for(;node&&node!==document.body&&depth<32;node=node.parentElement,depth++){
    var css=getComputedStyle(node);
    if(css.position!=='fixed'&&css.position!=='absolute')continue;
@@ -164,7 +178,11 @@
    var h=Math.max(r.height,parseFloat(css.height)||0,parseFloat(css.minHeight)||0);
    // A Reels header containing real Search/profile/back controls is not an
    // install-only bar. Keep the entire header; only its exact CTA may hide.
-   if(h>0&&h<=160&&appNavigationSurface(node))continue;
+   if(h>0&&h<=160&&appNavigationSurface(node)){realNavigation=true;continue;}
+   // A real compact Reels navigation header can be inside the absolute video
+   // viewport, not a semantic <main>. Never hide that host or treat it as an
+   // install backdrop. This exception requires ALL evidence, not the URL alone.
+   if(realNavigation&&/^\/reels?(?:\/|$)/.test(location.pathname)&&node.tagName==='DIV'&&css.position==='absolute'&&r.width>=innerWidth*.9&&r.width<=innerWidth*1.1&&r.height>=innerHeight*.9&&r.height<=innerHeight*1.1&&Math.abs(r.top)<=1&&Math.abs(r.left)<=1&&node.querySelector('video')&&!node.querySelector('form,input,textarea,select,audio,iframe,canvas,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],[contenteditable="true"]'))continue;
    var compact=r.width>=innerWidth*.65&&h>0&&h<=Math.min(160,innerHeight*.25);
    var protectedContent=node.matches('header,nav,main,article,form,[role="banner"],[role="navigation"],[role="main"],[role="feed"],[role="article"]')||node.querySelector('header,nav,main,article,form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],video,audio,iframe,canvas,img,input,textarea,select,[contenteditable="true"],[role="main"],[role="feed"],[role="article"]');
    if(node===control&&!protectedContent)continue;
@@ -235,5 +253,5 @@
    if(target){if(fast){budget++;queuePrompt(target);}else hide(target);}else restoreOne(el);
   }
  }
- window.FproNoapp={timing:function(){return Object.assign({},urgentTiming);},target:safeAppPromptTarget,set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};},boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){pendingPrompts.forEach(function(el){if(!el.isConnected)pendingPrompts.delete(el);});Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};
+ window.FproNoapp={evidence:appPromptEvidence,navigation:appNavigationSurface,timing:function(){return Object.assign({},urgentTiming);},target:safeAppPromptTarget,set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};},boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){pendingPrompts.forEach(function(el){if(!el.isConnected)pendingPrompts.delete(el);});Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};
 })();

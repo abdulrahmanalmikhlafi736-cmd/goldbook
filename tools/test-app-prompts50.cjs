@@ -36,7 +36,7 @@ function bar(w){const el=w.document.createElement('div');el.style.cssText='posit
  }
  for(const mode of ['standalone','fallback','reference']){
   const {w,cfg,run}=fixture(mode),read=()=>JSON.parse(w.eval(fs.readFileSync('app/src/main/assets/app-prompt-report.js','utf8')));
-  assert.equal(read().schema,3);assert.equal(read().state.enabled,true);assert.equal(read().state.observingDocument,true);
+  assert.equal(read().schema,4);assert.equal(read().state.enabled,true);assert.equal(read().state.observingDocument,true);
   run({...cfg,appBanner:false});assert.equal(read().state.enabled,false);assert.equal(read().state.filterEnabled,false);
   run({...cfg,enhance:false});assert.equal(read().state.observingDocument,false);
   const next=w.document.createElement('body'),el=bar(w);next.append(el);w.document.body.replaceWith(next);await micro();
