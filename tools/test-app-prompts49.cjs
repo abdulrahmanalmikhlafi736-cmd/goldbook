@@ -26,6 +26,13 @@ function bar(w){const el=w.document.createElement('div');el.style.cssText='posit
   run({...cfg,appBanner:false});await frame(w);assert(!w.document.querySelector('[data-fpro-app-prompt],[data-fpro-reference-noapp]'));
  }
  for(const mode of ['standalone','fallback','reference']){
+  const {w,timing}=fixture(mode),noise=w.document.createElement('section');
+  noise.innerHTML=Array.from({length:2500},()=>'<button>Normal</button>').join('');
+  w.document.body.append(noise);const el=bar(w);w.document.body.append(el);await micro();
+  assert.equal(el.style.display,'none',mode+': a large concurrent root must not exhaust discovery before the separate fresh bar');
+  assert.equal(timing().checks,1,'Concurrent ordinary roots do not spend the urgent layout quota');
+ }
+ for(const mode of ['standalone','fallback','reference']){
   const {w,timing}=fixture(mode),fragment=w.document.createElement('section');let reads=0;
   for(let n=0;n<10;n++){const button=w.document.createElement('button');button.textContent='Open app';button.getBoundingClientRect=()=>{reads++;return {width:100,height:32};};fragment.append(button);}
   w.document.body.append(fragment);await micro();assert.equal(reads,1,'At most ONE urgent candidate per rendering batch, not ten forced layouts');assert.equal(timing().checks,1);assert.equal(fragment.querySelectorAll('[data-fpro-app-prompt],[data-fpro-reference-noapp]').length,1);
