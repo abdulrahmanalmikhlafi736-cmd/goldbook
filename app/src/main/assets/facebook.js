@@ -206,7 +206,7 @@
   }
   return null;
  }
- const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app'].map(norm));
+ const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app'].map(norm));
  function isAppPrompt(text){text=norm(text);return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(text.replace(/\s*(facebook|فيسبوك|f)$/,'')));}
  // Conservative by design: never hide a parent, modal, player or page shell.
  function safeAppPromptTarget(el,structuralOnly=false){

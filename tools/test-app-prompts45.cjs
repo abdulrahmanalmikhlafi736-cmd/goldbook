@@ -20,9 +20,9 @@ async function settle(w){await Promise.resolve();await frame(w);await frame(w);}
 function unchanged(doc,...ids){for(const id of ids)assert.notEqual(doc.getElementById(id).style.display,'none','Must preserve '+id);}
 (async()=>{try{
  for(const mode of ['standalone','fallback','reference']){
-  const f=fixture('<main id="page"><section id="shell"><header id="header"><div id="slot"><button id="cta" style="display:inline-flex!important"><span>فتح التطبيق</span><svg><title>Facebook</title></svg></button></div><button id="search">Search</button><a id="account" href="/me">الحساب</a></header><article id="post"><video id="video"></video><button id="reelCTA">Open app</button></article></section></main>',mode);
+  const f=fixture('<main id="page"><section id="shell"><header id="header"><div id="slot"><button id="cta" style="display:inline-flex!important"><span>فتح التطبيق</span><svg><title>Facebook</title></svg></button></div><button id="search">Search</button><a id="account" href="/me">الحساب</a></header><article id="post"><video id="video"></video><button id="reelCTA">Open app</button><a id="androidCTA" href="https://example.invalid/app">Get Facebook for Android</a></article></section></main>',mode);
   const {w,doc,cfg,run}=f,cta=doc.getElementById('cta');
-  assert.equal(cta.style.display,'none');assert.equal(doc.getElementById('reelCTA').style.display,'none');
+  assert.equal(cta.style.display,'none');assert.equal(doc.getElementById('reelCTA').style.display,'none');assert.equal(doc.getElementById('androidCTA').style.display,'none');
   unchanged(doc,'page','shell','header','slot','search','account','post','video');
   const own=cta.hasAttribute('data-fpro-hidden'),ref=cta.hasAttribute('data-fpro-reference-noapp');
   assert.notEqual(own,ref,'Exactly one engine owns hiding; '+mode);

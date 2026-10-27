@@ -155,7 +155,7 @@ class CompactUiTest {
         }
         assertTrue("Accent theme must preserve the original Facebook login button; blue samples=$originalBlueSamples", originalBlueSamples >= 2)
         val text = freshUi { device.findObject(By.clazz("android.webkit.WebView"))?.let { textTree(it) }.orEmpty() }
-        assertFalse("Install/open-app banner must disappear", text.contains("Get Facebook for Android", ignoreCase=true))
+        assertFalse("Explicit install CTA must disappear; actual tree: ${text.take(1600)}", text.contains("Get Facebook for Android", ignoreCase=true))
         assertNotNull("Login inputs remain accessible after hiding banner", device.findObject(By.clazz("android.widget.EditText")))
         device.executeShellCommand("screencap -p /data/local/tmp/fpro-tools.png")
     }

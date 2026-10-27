@@ -58,14 +58,15 @@ class AppPromptRegressionTest {
                             }
                         }
                     }
+                    // Stock API29 Chromium predates CSS inset; use real fullscreen longhands.
                     web.loadDataWithBaseURL("https://m.facebook.com/", """
                         <!doctype html><html><body id="prompt45" style="overflow:hidden">
                         <main><header id="header"><div id="slot"><button id="inlineCTA">فتح التطبيق</button></div>
                         <button id="search">Search</button><a id="account" href="/me">Account</a></header>
                         <article id="post"><video id="video" style="width:240px;height:180px"></video></article></main>
-                        <div role="dialog" aria-modal="true" style="position:fixed;inset:0;background:black">
+                        <div role="dialog" aria-modal="true" style="position:fixed;top:0;bottom:0;left:0;right:0;background:black">
                         <button id="modalCTA">Open app</button><button id="close">Close</button></div>
-                        <div style="position:fixed;inset:0;background:black"><button id="sheetCTA">Open app</button></div>
+                        <div style="position:fixed;top:0;bottom:0;left:0;right:0;background:black"><button id="sheetCTA">Open app</button></div>
                         </body></html>
                     """.trimIndent(), "text/html", "UTF-8", null)
                 }
