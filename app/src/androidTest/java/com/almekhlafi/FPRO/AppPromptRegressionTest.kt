@@ -37,8 +37,25 @@ class AppPromptRegressionTest {
                     val config = """{"enhance":true,"appBanner":true,"referenceEngine":$reference,"color":"طبيعي","textSelection":false}"""
                     val source = activity.assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" +
                         activity.assets.open("facebook.js").bufferedReader().use { it.readText() }.replace("__CONFIG__", config)
+                    val fixtureUrl = "https://m.facebook.com/fpro-app-prompt45-test"
+                    // Stock API29 Chromium predates CSS inset; use real fullscreen longhands.
+                    val fixtureHtml = """
+                        <!doctype html><html><body id="prompt45" style="overflow:hidden">
+                        <main><header id="header"><div id="slot"><button id="inlineCTA">فتح التطبيق</button></div>
+                        <button id="search">Search</button><a id="account" href="/me">Account</a></header>
+                        <article id="post"><video id="video" style="width:240px;height:180px"></video></article></main>
+                        <div role="dialog" aria-modal="true" style="position:fixed;top:0;bottom:0;left:0;right:0;background:black">
+                        <button id="modalCTA">Open app</button><button id="close">Close</button></div>
+                        <div style="position:fixed;top:0;bottom:0;left:0;right:0;background:black"><button id="sheetCTA">Open app</button></div>
+                        </body></html>
+                    """.trimIndent()
                     web.webViewClient = object : WebViewClient() {
+                        override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? {
+                            if (request.url.toString() != fixtureUrl) return null
+                            return android.webkit.WebResourceResponse("text/html", "UTF-8", fixtureHtml.byteInputStream())
+                        }
                         override fun onPageFinished(view: WebView, url: String?) {
+                            if (url != fixtureUrl) return
                             view.evaluateJavascript("!!document.getElementById('prompt45') && !window.prompt45TestStarted") { ready ->
                                 if (ready != "true") return@evaluateJavascript
                                 view.evaluateJavascript("window.prompt45TestStarted=true;" + source + """
@@ -58,17 +75,7 @@ class AppPromptRegressionTest {
                             }
                         }
                     }
-                    // Stock API29 Chromium predates CSS inset; use real fullscreen longhands.
-                    web.loadDataWithBaseURL("https://m.facebook.com/", """
-                        <!doctype html><html><body id="prompt45" style="overflow:hidden">
-                        <main><header id="header"><div id="slot"><button id="inlineCTA">فتح التطبيق</button></div>
-                        <button id="search">Search</button><a id="account" href="/me">Account</a></header>
-                        <article id="post"><video id="video" style="width:240px;height:180px"></video></article></main>
-                        <div role="dialog" aria-modal="true" style="position:fixed;top:0;bottom:0;left:0;right:0;background:black">
-                        <button id="modalCTA">Open app</button><button id="close">Close</button></div>
-                        <div style="position:fixed;top:0;bottom:0;left:0;right:0;background:black"><button id="sheetCTA">Open app</button></div>
-                        </body></html>
-                    """.trimIndent(), "text/html", "UTF-8", null)
+                    web.loadUrl(fixtureUrl)
                 }
                 assertTrue("Real Chromium prompt fixture completed", done.await(15, TimeUnit.SECONDS))
                 val checks = JSONArray(JSONArray("[${result.get()}]").getString(0))
