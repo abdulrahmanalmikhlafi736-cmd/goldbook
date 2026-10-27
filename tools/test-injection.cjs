@@ -663,9 +663,9 @@ function fixture(html,config={},captureDownload=false) {
   let geometryReads=0;fragment.querySelectorAll('*').forEach(el=>el.getBoundingClientRect=()=>{geometryReads++;return {width:12,height:12,top:0};});
   fastTools.doc.getElementById('root').appendChild(fragment);
   await new Promise(resolve=>fastTools.window.queueMicrotask(resolve));
-  assert.equal(fragment.querySelector('#instantApp').style.display,'','CTA waits for its guarded frame, never hides a possible sheet in a microtask');
+  assert.equal(fragment.querySelector('#instantApp').style.display,'none','Build49 validates one exact urgent CTA before paint; sheet protection still runs');
   assert.equal(fragment.querySelector('#instantSearch').style.display,'','Keep adjacent official search');
-  assert.equal(geometryReads,0,'Fast color/banner path must not force geometry or badge layout reads');
+  assert.equal(geometryReads,1,'One urgent CTA validation only; colors/search/badges must not cause geometry reads');
   await new Promise(resolve=>fastTools.window.requestAnimationFrame(resolve));
   assert.equal(fragment.querySelector('#instantApp').style.display,'none','Guarded inline CTA hides in the next frame, not a delayed whole-feed scan');
   let bodyQueries=0;const queryBody=fastTools.doc.body.querySelectorAll.bind(fastTools.doc.body);

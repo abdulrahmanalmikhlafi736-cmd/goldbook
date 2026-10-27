@@ -29,9 +29,9 @@ async function paint(w){await Promise.resolve();await new Promise(r=>w.requestAn
   const {w}=fixture(mode),fragment=w.document.createElement('section');
   for(let n=0;n<100;n++){const b=w.document.createElement('button');b.textContent='Normal '+n;fragment.append(b);}
   const app=w.document.createElement('button');app.id='app47';app.textContent='فتح التطبيق';fragment.append(app);let geometry=0;app.getBoundingClientRect=()=>{geometry++;return {width:110,height:36};};
-  w.document.body.append(fragment);await Promise.resolve();await Promise.resolve();assert.equal(geometry,0,'No layout forced in mutation microtasks');
+  w.document.body.append(fragment);await Promise.resolve();await Promise.resolve();assert.equal(geometry,1,'Build49 gives this exact CTA one bounded pre-paint validation');
   await paint(w);assert.equal(app.style.display,'none','Normal controls must not exhaust the urgent CTA budget and defer it to a full scan');
  }
  const policy=s=>s.match(/ function appNavigationSurface\([\s\S]*?\n }\n/)[0];assert.equal(policy(main),policy(reference));
- console.log('Reels47 PASS: exact CTA hidden; fixed real header/search/account/media preserved; modal/disable restoration; first frame batch after100 unrelated controls; no mutation layout in three engine modes.');
+ console.log('Reels47 PASS: exact CTA hidden; fixed real header/search/account/media preserved; modal/disable restoration; first frame batch after100 unrelated controls; bounded pre-paint validation in three engine modes.');
 }finally{windows.forEach(w=>w.close());}})().catch(e=>{console.error(e);process.exitCode=1;});

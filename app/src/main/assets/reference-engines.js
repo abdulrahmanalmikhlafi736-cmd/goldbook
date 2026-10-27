@@ -8,6 +8,7 @@
  if(window.FproColor && window.FproNoapp)return;
  var cfg={recolor:false,uiAccent:'#D4AF37'}, noapp={noOpenApp:false};
  var pendingPrompts=new Set(),promptFrame=null;
+ var urgentUsed=false,urgentSeen=new WeakSet(),urgentTiming={checks:0,hidden:0,maxMs:0};
  var paints=new Map(), hidden=new Map(), checkedSheets=new WeakMap(), checkedAttrs=new WeakMap();
  function rgb(hex){var m=/^#([0-9a-f]{6})$/i.exec(hex||'');return m?[0,2,4].map(function(i){return parseInt(m[1].slice(i,i+2),16);}):null;}
  function blue(r,g,b){return b>r+40&&b>g+20&&Math.max(r,g,b)-Math.min(r,g,b)>60&&b>100;}
@@ -188,7 +189,7 @@
   return surface||control;
  }
  function restoreOne(el){var old=hidden.get(el);if(!old)return;if(el.style.getPropertyValue('display')==='none'&&el.style.getPropertyPriority('display')==='important'){if(old.value)el.style.setProperty('display',old.value,old.priority);else el.style.removeProperty('display');}el.removeAttribute('data-fpro-reference-noapp');hidden.delete(el);}
- function restore(){if(promptFrame!==null)cancelAnimationFrame(promptFrame);promptFrame=null;pendingPrompts.clear();Array.from(hidden.keys()).forEach(restoreOne);}
+ function restore(){if(promptFrame!==null)cancelAnimationFrame(promptFrame);promptFrame=null;urgentUsed=false;pendingPrompts.clear();Array.from(hidden.keys()).forEach(restoreOne);}
  function hide(el){
   // Move display ownership atomically when a recycled inline CTA becomes a
   // dedicated bar (or the bar becomes inline); never leave its child hidden.
@@ -200,10 +201,19 @@
  function queuePrompt(el){
   if(pendingPrompts.size<48)pendingPrompts.add(el);
   if(promptFrame===null)promptFrame=requestAnimationFrame(function(){
-   promptFrame=null;var batch=Array.from(pendingPrompts);pendingPrompts.clear();
+   promptFrame=null;urgentUsed=false;var batch=Array.from(pendingPrompts);pendingPrompts.clear();
    if(!noapp.noOpenApp||document.hidden)return;
    batch.forEach(function(el){if(!el.isConnected)return;var target=safeAppPromptTarget(el);if(target)hide(target);else restoreOne(el);});
   });
+  // One guarded discovery/reassertion before paint per rendering batch. Known
+  // rejected nodes stay on the normal RAF path, not repeated sync layout.
+  var known=hidden.has(el),rewrite=known&&el.style.getPropertyPriority('display')==='important'&&el.style.getPropertyValue('display')!=='none';
+  if(!urgentUsed&&(rewrite||!known&&!urgentSeen.has(el)&&!el.closest('[data-fpro-reference-noapp],[data-fpro-app-prompt]'))){
+   urgentUsed=true;urgentSeen.add(el);var started=performance.now();urgentTiming.checks++;
+   var immediate=safeAppPromptTarget(el);
+   if(immediate){hide(immediate);urgentTiming.hidden++;}else if(known)restoreOne(el);
+   urgentTiming.maxMs=Math.max(urgentTiming.maxMs,Math.round((performance.now()-started)*10)/10);
+  }
  }
  function noappScan(root,fast,selfOnly){
   if(!noapp.noOpenApp||document.hidden)return;
@@ -218,5 +228,5 @@
    if(target){if(fast){budget++;queuePrompt(target);}else hide(target);}else restoreOne(el);
   }
  }
- window.FproNoapp={target:safeAppPromptTarget,set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};},boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){pendingPrompts.forEach(function(el){if(!el.isConnected)pendingPrompts.delete(el);});Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};
+ window.FproNoapp={timing:function(){return Object.assign({},urgentTiming);},target:safeAppPromptTarget,set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};},boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){pendingPrompts.forEach(function(el){if(!el.isConnected)pendingPrompts.delete(el);});Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};
 })();

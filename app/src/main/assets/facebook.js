@@ -183,6 +183,7 @@
  const iconDefs=document.createElementNS('http://www.w3.org/2000/svg','svg');iconDefs.id='fpro-icon-filter';iconDefs.setAttribute('aria-hidden','true');iconDefs.style.cssText='position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
  iconDefs.innerHTML='<defs><filter id="fpro-icon-palette" color-interpolation-filters="sRGB"><feColorMatrix type="matrix"/></filter><filter id="fpro-canvas-palette" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 1 0 0.38" result="redTest"/><feComponentTransfer in="redTest" result="redMask"><feFuncA type="discrete" tableValues="0 1"/></feComponentTransfer><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 1 0 0.42" result="greenTest"/><feComponentTransfer in="greenTest" result="greenMask"><feFuncA type="discrete" tableValues="0 1"/></feComponentTransfer><feComposite in="redMask" in2="greenMask" operator="in" result="blueMask"/><feComposite in="SourceAlpha" in2="blueMask" operator="in" result="blueAlpha"/><feFlood result="target"/><feComposite in="target" in2="blueAlpha" operator="in" result="tinted"/><feComposite in="SourceGraphic" in2="blueMask" operator="out" result="unchanged"/><feMerge><feMergeNode in="unchanged"/><feMergeNode in="tinted"/></feMerge></filter></defs>';
  const pendingAppPrompts=new Set(),appPromptOwned=new Set();let appPromptFrame=null;
+ let promptUrgentUsed=false;const promptUrgentSeen=new WeakSet(),promptUrgentTiming={checks:0,hidden:0,maxMs:0};
  const hidden = new Map(), painted = new Set(), videos = new Map(), identityBaseline = new WeakMap();
  function hide(el) {
   if (!el || /^(BODY|HTML|MAIN)$/.test(el.tagName) || ['main','feed','navigation'].includes(el.getAttribute('role'))) return;
@@ -192,7 +193,7 @@
   if(el.style.getPropertyValue('display')!=='none'||el.style.getPropertyPriority('display')!=='important')el.style.setProperty('display','none','important');
  }
  function restoreHidden() {
-  if(appPromptFrame!==null)cancelAnimationFrame(appPromptFrame);appPromptFrame=null;pendingAppPrompts.clear();appPromptOwned.clear();
+  if(appPromptFrame!==null)cancelAnimationFrame(appPromptFrame);appPromptFrame=null;promptUrgentUsed=false;pendingAppPrompts.clear();appPromptOwned.clear();
   hidden.forEach((old,el) => { if(old.value) el.style.setProperty('display',old.value,old.priority); else el.style.removeProperty('display'); el.removeAttribute('data-fpro-hidden');el.removeAttribute('data-fpro-app-prompt'); }); hidden.clear();
  }
  function section(label, key) {
@@ -298,8 +299,9 @@
   const target=window.FproNoapp&&window.FproNoapp.target?window.FproNoapp.target(link):safeAppPromptTarget(link);
   if(target){
    for(const previous of Array.from(appPromptOwned))if(previous!==target&&(previous.contains(target)||target.contains(previous)))restoreAppPrompt(previous);
-   appPromptOwned.add(target);target.setAttribute('data-fpro-app-prompt','');hide(target);
+   appPromptOwned.add(target);target.setAttribute('data-fpro-app-prompt','');hide(target);return true;
   }else if(control&&control.hasAttribute('data-fpro-app-prompt'))restoreAppPrompt(control);
+  return false;
  }
  // Geometry is intentionally deferred out of MutationObserver microtasks.
  function queueAppBanner(el){
@@ -307,10 +309,16 @@
   if(!target){if(appPromptOwned.has(el))appBanner(el);return false;}
   if(pendingAppPrompts.size<48)pendingAppPrompts.add(target);
   if(appPromptFrame===null)appPromptFrame=requestAnimationFrame(()=>{
-   appPromptFrame=null;const batch=Array.from(pendingAppPrompts);pendingAppPrompts.clear();
+   appPromptFrame=null;promptUrgentUsed=false;const batch=Array.from(pendingAppPrompts);pendingAppPrompts.clear();
    if(cfg.enhance===false||!cfg.appBanner||cfg.referenceEngine&&window.FproNoapp||document.hidden)return;
    for(const control of batch)if(control.isConnected)appBanner(control);
   });
+  const known=appPromptOwned.has(target),rewrite=known&&target.style.getPropertyPriority('display')==='important'&&target.style.getPropertyValue('display')!=='none';
+  if(!promptUrgentUsed&&(rewrite||!known&&!promptUrgentSeen.has(target)&&!target.closest('[data-fpro-app-prompt],[data-fpro-reference-noapp]'))){
+   promptUrgentUsed=true;promptUrgentSeen.add(target);const started=performance.now();promptUrgentTiming.checks++;
+   if(appBanner(target))promptUrgentTiming.hidden++;
+   promptUrgentTiming.maxMs=Math.max(promptUrgentTiming.maxMs,Math.round((performance.now()-started)*10)/10);
+  }
   return true;
  }
  function homeView(){return window.__fproPageInfo ? window.__fproPageInfo().home : /^\/(?:home\.php|index\.php)?$/.test(location.pathname)&&!document.fullscreenElement;}
@@ -1067,5 +1075,5 @@
   return report;
  }
  document.addEventListener('visibilitychange',()=>{if(document.hidden)restoreSelectionLink();else scan();});
- window.__fpro={update,colorReport};update(initial);
+ window.__fpro={update,colorReport,promptTiming:()=>({...promptUrgentTiming})};update(initial);
 })();
