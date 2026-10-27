@@ -27,6 +27,7 @@ function fixture(mode,html){
   w.document.dispatchEvent(new w.Event('visibilitychange')); // full scan, not configuration reset
   assert.equal(late.style.display,'none','Known owned controls must be revalidated/reasserted outside candidate budgets');
   run();assert.equal(late.style.display,'none','Identical configuration reinjection cannot expose a known CTA');
+  assert(JSON.parse(w.eval(report)).candidates.length>0,'Owned targets beyond report discovery cap remain reportable');
  }
  const extract=s=>s.match(/ function appPromptText\([\s\S]*?\n }\n/)[0];assert.equal(extract(main),extract(reference));
  console.log('Prompts48 PASS: split/joined/decorated control labels; bounded text refusal; owned-target CSS guard; exact disable; privacy-minimal report in three engine modes. Native Chromium separately verifies guard cascade against inline rewrites.');

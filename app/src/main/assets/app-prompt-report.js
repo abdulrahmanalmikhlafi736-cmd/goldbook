@@ -10,7 +10,16 @@
  const rect=el=>{const r=el.getBoundingClientRect();return {x:Math.round(r.left),y:Math.round(r.top),w:Math.round(r.width),h:Math.round(r.height)};};
  const semantic='a,button,[role="button"],[role="link"]',seen=new Set(),candidates=[];
  const decorated=el=>{const walk=document.createTreeWalker(el,4),parts=[];let node,n=0;while((node=walk.nextNode())&&n++<64){if(!node.parentElement.closest('svg title,svg desc,[aria-hidden="true"],script,style'))parts.push(node.nodeValue||'');}return parts.join(' ');};
- for(const source of Array.from(document.querySelectorAll('[data-fpro-app-prompt],[data-fpro-reference-noapp],a,button,span,[role="button"],[role="link"],[aria-label]')).slice(0,2400)){
+ const priority=Array.from(document.querySelectorAll('[data-fpro-app-prompt],[data-fpro-reference-noapp]')).slice(0,64);
+ // Manual viewport hit testing finds a visible header/footer control even when
+ // a long feed has pushed its DOM position beyond the general report budget.
+ if(document.elementsFromPoint)for(const y of [32,64,96,128,innerHeight-32,innerHeight-64])for(const fraction of [.1,.5,.9]){
+  for(const hit of document.elementsFromPoint(innerWidth*fraction,Math.max(0,Math.min(innerHeight-1,y))).slice(0,2)){
+   for(let el=hit,depth=0;el&&depth<4;el=el.parentElement,depth++)if(priority.length<208)priority.push(el);
+  }
+ }
+ const sources=new Set([...priority,...Array.from(document.querySelectorAll('a,button,span,[role="button"],[role="link"],[aria-label]')).slice(0,2400)]);
+ for(const source of sources){
   const text=source.textContent||'',aria=source.getAttribute('aria-label')||'';
   if(text.length>400||!prompt(text)&&!prompt(aria))continue;
   const control=source.closest(semantic),el=control||source;if(seen.has(el))continue;seen.add(el);

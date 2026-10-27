@@ -79,6 +79,11 @@ class AppPromptRegressionTest {
                                       const reel=document.getElementById('reelCTA');
                                       reel.style.setProperty('display','inline-flex','');
                                       checks.push(getComputedStyle(reel).display==='none'); // before observer/RAF: owned CSS wins
+                                      const noise=document.createElement('section');noise.innerHTML=Array.from({length:2500},()=>'<button>Normal</button>').join('');document.body.prepend(noise);
+                                      reel.style.setProperty('display','inline-flex','important');
+                                      document.dispatchEvent(new Event('visibilitychange'));
+                                      checks.push(getComputedStyle(reel).display==='none'); // known target beyond discovery caps
+
                                       const bar=document.getElementById('compactBar');
                                       checks.push(getComputedStyle(bar).display==='none');
                                       checks.push(getComputedStyle(document.getElementById('compactCTA')).display!=='none');
@@ -95,7 +100,7 @@ class AppPromptRegressionTest {
                 }
                 assertTrue("Real Chromium prompt fixture completed", done.await(15, TimeUnit.SECONDS))
                 val checks = JSONArray(JSONArray("[${result.get()}]").getString(0))
-                assertEquals(15, checks.length())
+                assertEquals(16, checks.length())
                 for (i in 0 until checks.length()) assertTrue("reference=$reference assertion=$i result=$checks", checks.getBoolean(i))
             }
         }
