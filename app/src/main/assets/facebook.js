@@ -357,7 +357,7 @@
    appPromptFrame=null;promptUrgentUsed=false;promptCheckpointUsed=false;flushPromptCheckpoint();
   });
   if(!promptCheckpointQueued&&!promptCheckpointUsed){
-   promptCheckpointQueued=true;queueMicrotask(()=>{promptCheckpointQueued=false;if(promptCheckpointUsed||!pendingAppPrompts.size)return;promptCheckpointUsed=true;flushPromptCheckpoint();});
+   promptCheckpointQueued=true;Promise.resolve().then(()=>{promptCheckpointQueued=false;if(promptCheckpointUsed||!pendingAppPrompts.size)return;promptCheckpointUsed=true;flushPromptCheckpoint();});
   }
   const known=appPromptOwned.has(target),rewrite=known&&target.style.getPropertyPriority('display')==='important'&&target.style.getPropertyValue('display')!=='none';
   if(!promptUrgentUsed&&(rewrite||!known&&!promptUrgentSeen.has(target)&&!target.closest('[data-fpro-app-prompt],[data-fpro-reference-noapp]'))){

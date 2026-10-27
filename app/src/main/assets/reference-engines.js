@@ -251,7 +251,7 @@
    promptFrame=null;urgentUsed=false;checkpointUsed=false;flushPromptCheckpoint();
   });
   if(!checkpointQueued&&!checkpointUsed){
-   checkpointQueued=true;queueMicrotask(function(){checkpointQueued=false;if(checkpointUsed||!pendingPrompts.size)return;checkpointUsed=true;flushPromptCheckpoint();});
+   checkpointQueued=true;Promise.resolve().then(function(){checkpointQueued=false;if(checkpointUsed||!pendingPrompts.size)return;checkpointUsed=true;flushPromptCheckpoint();});
   }
   // One guarded discovery/reassertion before paint per rendering batch. Known
   // rejected nodes stay on the normal RAF path, not repeated sync layout.
