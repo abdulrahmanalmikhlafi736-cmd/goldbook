@@ -199,6 +199,7 @@
   if(!el.hasAttribute('data-fpro-reference-noapp'))el.setAttribute('data-fpro-reference-noapp','');
  }
  function queuePrompt(el){
+  if(!el||!el.isConnected)return;
   if(pendingPrompts.size<48)pendingPrompts.add(el);
   if(promptFrame===null)promptFrame=requestAnimationFrame(function(){
    promptFrame=null;urgentUsed=false;var batch=Array.from(pendingPrompts);pendingPrompts.clear();
@@ -229,7 +230,7 @@
    var batch=scopes.slice(0,4),share=Math.floor(384/batch.length);
    batch.forEach(function(scope){candidates.push.apply(candidates,nodes([scope],selector,false,share));});
   }else candidates=nodes(scopes.length?scopes:null,selector,selfOnly,fast?384:0);
-  for(var el of candidates){if(budget>=(fast?48:800))break;if(!fast)budget++;if(own(el))continue;
+  for(var el of candidates){if(budget>=(fast?48:800))break;if(!fast)budget++;if(!el.isConnected||own(el))continue;
    var target=safeAppPromptTarget(el,!!fast);
    if(target){if(fast){budget++;queuePrompt(target);}else hide(target);}else restoreOne(el);
   }

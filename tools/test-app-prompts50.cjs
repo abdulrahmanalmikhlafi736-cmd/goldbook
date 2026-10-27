@@ -21,6 +21,8 @@ function bar(w){const el=w.document.createElement('div');el.style.cssText='posit
   const feed=w.document.createElement('div');feed.style.cssText='position:relative;height:1752px';
   for(let i=0;i<23;i++){const control=w.document.createElement('button');control.textContent='Normal';feed.append(control);}
   const el=bar(w);el.style.height='65px';el.getBoundingClientRect=()=>({width:411,height:65});feed.append(el);body.append(feed);
+  // Removed subtrees can still have queued records at this checkpoint.
+  const stale=w.document.createElement('button');stale.textContent='Open app';old.append(stale);
   old.replaceWith(body);await micro();
   assert.equal(el.style.display,'none',mode+': body replacement must not orphan the filter observer');
   assert.notEqual(el.querySelector('[role="button"]').style.display,'none');

@@ -303,8 +303,9 @@
   }else if(control&&control.hasAttribute('data-fpro-app-prompt'))restoreAppPrompt(control);
   return false;
  }
- // Geometry is intentionally deferred out of MutationObserver microtasks.
+ // Ordinary checks stay in RAF; one exact attached candidate may run urgently.
  function queueAppBanner(el){
+  if(!el||!el.isConnected)return false;
   const target=window.FproNoapp&&window.FproNoapp.target?window.FproNoapp.target(el,true):safeAppPromptTarget(el,true);
   if(!target){if(appPromptOwned.has(el))appBanner(el);return false;}
   if(pendingAppPrompts.size<48)pendingAppPrompts.add(target);
