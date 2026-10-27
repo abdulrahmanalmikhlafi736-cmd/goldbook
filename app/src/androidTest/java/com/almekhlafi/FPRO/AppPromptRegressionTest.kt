@@ -151,7 +151,7 @@ class AppPromptRegressionTest {
                                                       requestAnimationFrame(()=>requestAnimationFrame(()=>{
                                                         checks.push(getComputedStyle(late).display==='none'&&getComputedStyle(late.firstChild).display!=='none');
                                                         const mainStyle=document.getElementById('fpro-style');mainStyle.disabled=true;
-                                                        late.style.setProperty('display','block','important');
+                                                        late.style.setProperty('display','block',''); // ordinary rewrite: engine stylesheet wins before observer
                                                         checks.push(getComputedStyle(late).display==='none'&&!!document.getElementById('fpro-noapp-guard'));
                                                         mainStyle.disabled=false;
                                                         let restores=0;const restore=window.FproNoapp.restore;window.FproNoapp.restore=()=>{restores++;restore();};
