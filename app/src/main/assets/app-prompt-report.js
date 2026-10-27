@@ -1,0 +1,28 @@
+/* Explicit user-triggered report. No raw text, URLs, IDs/classes, attributes,
+ * names, cookies, storage, media bytes or form values are returned. */
+(()=>{
+ 'use strict';
+ const norm=s=>(s||'').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F]/g,'').replace(/\s+/g,'').toLowerCase();
+ const prompt=s=>/فتحالتطبيق|افتحالتطبيق|فتحفيالتطبيق|opentheapp|openapp|openinapp|usetheapp|gettheapp/.test(norm(s));
+ const tags=new Set(['A','BUTTON','DIV','SPAN','HEADER','NAV','MAIN','ARTICLE','BODY','HTML','IFRAME','SVG']);
+ const roles=new Set(['button','link','banner','navigation','toolbar','main','feed','article','dialog','alertdialog']);
+ const positions=new Set(['static','relative','fixed','absolute','sticky']);
+ const rect=el=>{const r=el.getBoundingClientRect();return {x:Math.round(r.left),y:Math.round(r.top),w:Math.round(r.width),h:Math.round(r.height)};};
+ const semantic='a,button,[role="button"],[role="link"]',seen=new Set(),candidates=[];
+ const decorated=el=>{const walk=document.createTreeWalker(el,4),parts=[];let node,n=0;while((node=walk.nextNode())&&n++<64){if(!node.parentElement.closest('svg title,svg desc,[aria-hidden="true"],script,style'))parts.push(node.nodeValue||'');}return parts.join(' ');};
+ for(const source of Array.from(document.querySelectorAll('[data-fpro-app-prompt],[data-fpro-reference-noapp],a,button,span,[role="button"],[role="link"],[aria-label]')).slice(0,2400)){
+  const text=source.textContent||'',aria=source.getAttribute('aria-label')||'';
+  if(text.length>400||!prompt(text)&&!prompt(aria))continue;
+  const control=source.closest(semantic),el=control||source;if(seen.has(el))continue;seen.add(el);
+  const chain=[];for(let parent=el,depth=0;parent&&depth<8;parent=parent.parentElement,depth++){
+   const css=getComputedStyle(parent),role=parent.getAttribute('role');
+   chain.push({tag:tags.has(parent.tagName)?parent.tagName:'OTHER',role:roles.has(role)?role:null,position:positions.has(css.position)?css.position:'other',rect:rect(parent),displayNone:css.display==='none',modal:parent.getAttribute('aria-modal')==='true',media:!!parent.querySelector('video,audio,iframe,canvas'),form:!!parent.querySelector('form,input,textarea,select'),controls:Math.min(25,parent.querySelectorAll(semantic).length)});
+  }
+  let eligible=null,targetKind=null;
+  if(window.FproNoapp&&control){try{eligible=!!window.FproNoapp.target(control,true);const target=window.FproNoapp.target(control);targetKind=!target?'rejected':target===control?'control':'surface';}catch(_){targetKind='error';}}
+  candidates.push({semantic:!!control,rawTextPrompt:prompt(text),decoratedTextPrompt:prompt(decorated(el)),ariaPrompt:prompt(aria),decorativeTitle:!!el.querySelector('svg title,svg desc'),hiddenCaption:!!el.querySelector('[aria-hidden="true"]'),ownedMain:el.hasAttribute('data-fpro-app-prompt'),ownedReference:el.hasAttribute('data-fpro-reference-noapp'),structuralEligible:eligible,targetKind,ancestors:chain});
+  if(candidates.length>=16)break;
+ }
+ let frames=0,accessibleFrames=0;for(const frame of Array.from(document.querySelectorAll('iframe')).slice(0,32)){frames++;try{if(frame.contentDocument&&frame.contentDocument.documentElement)accessibleFrames++;}catch(_){}}
+ return JSON.stringify({schema:1,engineInstalled:!!window.__fpro,referenceAvailable:!!window.FproNoapp,early:window.__fproEarly===true,reels:/^\/reels?(?:\/|$)/.test(location.pathname),viewport:{w:innerWidth,h:innerHeight},frames,accessibleFrames,candidates});
+})()

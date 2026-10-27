@@ -48,7 +48,7 @@ class AppPromptRegressionTest {
                         <button id="modalCTA">Open app</button><button id="close">Close</button></div>
                         <div style="position:fixed;top:0;bottom:0;left:0;right:0;background:black"><button id="sheetCTA">Open app</button></div>
                         <header id="reelNav" style="position:fixed;top:0;left:0;width:100%;height:72px;background:black">
-                        <button id="reelCTA">فتح التطبيق</button><button id="reelSearch" aria-label="Search"></button><a id="reelAccount" href="/me" aria-label="Your profile">Account</a><span>ريلز</span></header>
+                        <button id="reelCTA"><svg><title>Facebook logo</title></svg><span>فتح</span><span>التطبيق</span></button><button id="reelSearch" aria-label="Search"></button><a id="reelAccount" href="/me" aria-label="Your profile">Account</a><span>ريلز</span></header>
                         <div id="compactBar" style="position:fixed;bottom:0;left:0;width:100%;min-height:64px;background:black;display:flex!important">
                         <button id="compactCTA">فتح التطبيق</button><button aria-label="Close">×</button></div>
                         </body></html>
@@ -76,11 +76,15 @@ class AppPromptRegressionTest {
                                       ];
                                       checks.push(getComputedStyle(document.getElementById('reelCTA')).display==='none');
                                       checks.push(shown('reelNav')&&shown('reelSearch')&&shown('reelAccount'));
+                                      const reel=document.getElementById('reelCTA');
+                                      reel.style.setProperty('display','inline-flex','');
+                                      checks.push(getComputedStyle(reel).display==='none'); // before observer/RAF: owned CSS wins
                                       const bar=document.getElementById('compactBar');
                                       checks.push(getComputedStyle(bar).display==='none');
                                       checks.push(getComputedStyle(document.getElementById('compactCTA')).display!=='none');
                                       window.__fpro.update(Object.assign($config,{appBanner:false}));
                                       checks.push(getComputedStyle(bar).display==='flex'&&bar.style.getPropertyPriority('display')==='important'&&shown('compactCTA'));
+                                      checks.push(shown('reelCTA')&&!reel.hasAttribute('data-fpro-app-prompt')&&!reel.hasAttribute('data-fpro-reference-noapp'));
                                       return JSON.stringify(checks);
                                     })()
                                 """.trimIndent()) { value -> result.set(value); done.countDown() }
@@ -91,7 +95,7 @@ class AppPromptRegressionTest {
                 }
                 assertTrue("Real Chromium prompt fixture completed", done.await(15, TimeUnit.SECONDS))
                 val checks = JSONArray(JSONArray("[${result.get()}]").getString(0))
-                assertEquals(13, checks.length())
+                assertEquals(15, checks.length())
                 for (i in 0 until checks.length()) assertTrue("reference=$reference assertion=$i result=$checks", checks.getBoolean(i))
             }
         }

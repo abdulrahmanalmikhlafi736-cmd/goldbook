@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SettingsPanel(prefs: Preferences, audioOnly: () -> Unit, change: () -> Unit, close: () -> Unit, whatsapp: () -> Unit, diagnostics: String, reload: () -> Unit, testDisplay: () -> Unit, copyDiagnostics: () -> Unit, copyColorDiagnostics: () -> Unit) {
+fun SettingsPanel(prefs: Preferences, audioOnly: () -> Unit, change: () -> Unit, close: () -> Unit, whatsapp: () -> Unit, diagnostics: String, reload: () -> Unit, testDisplay: () -> Unit, copyDiagnostics: () -> Unit, copyColorDiagnostics: () -> Unit, copyAppPromptDiagnostics: () -> Unit) {
     var revision by remember { mutableIntStateOf(0) }
     fun update() { revision++; change() }
     Column(Modifier.fillMaxSize()) {
@@ -76,6 +76,7 @@ fun SettingsPanel(prefs: Preferences, audioOnly: () -> Unit, change: () -> Unit,
         TextButton(onClick = reload) { Text("إعادة فتح فيسبوك") }
         TextButton(onClick = testDisplay) { Text("اختبار عرض محلي بلا إنترنت") }
         Toggle("إظهار زر نسخ تشخيص الشريط", "mediaDiagnostics", prefs, revision) { update() }
+        TextButton(onClick = copyAppPromptDiagnostics) { Text("نسخ تشخيص فتح التطبيق — دون بيانات الحساب") }
         TextButton(onClick = copyDiagnostics) { Text("نسخ معلومات التشخيص") }
         Toggle("توافق وكيل المستخدم مع متصفح الهاتف", "browserAgent", prefs, revision) { update() }
         Toggle("كوكيز الجهات المضمّنة لتوافق تسجيل الدخول", "thirdPartyCookies", prefs, revision, default = true) { update() }

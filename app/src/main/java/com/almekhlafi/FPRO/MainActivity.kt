@@ -219,6 +219,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                                 SettingsPanel(prefs, audioOnly = { requestAudioOnly() }, change = { revision++; applySettings(true) }, close = { settings = false }, whatsapp = { external("https://wa.me/967781764759") }, diagnostics = diagnostics(),
                                     reload = { settings = false; web.loadUrl("https://m.facebook.com/") },
                                     testDisplay = { settings = false; showDisplayTest() },
+                                    copyAppPromptDiagnostics = { copyAppPromptReport() },
                                     copyColorDiagnostics = {
                                         web.evaluateJavascript("window.__fpro ? JSON.stringify(window.__fpro.colorReport()) : null") { result ->
                                             try {
@@ -630,6 +631,25 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                 )
                 toast("تم نسخ قياسات الشريط؛ الصقها في المحادثة — دون محتوى الحساب")
             } catch (_: Exception) { toast("تعذر أخذ القياسات؛ انتظر ظهور الفيديو ثم أعد الضغط") }
+        }
+    }
+
+    // Manual, privacy-minimal capture: never exported automatically.
+    private fun copyAppPromptReport() {
+        if (!Navigation.isFacebook(web.url.orEmpty())) { toast("افتح الصفحة التي يظهر فيها الزر أولًا"); return }
+        val query = assets.open("app-prompt-report.js").bufferedReader().use { it.readText() }
+        web.evaluateJavascript(query) { result ->
+            try {
+                val report = org.json.JSONObject(JSONArray("[$result]").getString(0))
+                report.put("appCode", BuildConfig.VERSION_CODE)
+                report.put("filterEnabled", prefs.flag("appBanner", true))
+                report.put("enhancementsEnabled", prefs.flag("pageEnhancements"))
+                report.put("referenceEnabled", prefs.flag("referenceEngine", true))
+                getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(
+                    android.content.ClipData.newPlainText("FPRO app prompt report", report.toString())
+                )
+                toast("تم نسخ تشخيص الزر؛ الصقه في المحادثة — دون نصوص أو روابط الحساب")
+            } catch (_: Exception) { toast("تعذر قراءة تشخيص الزر؛ أعد المحاولة بعد ظهور الصفحة") }
         }
     }
 

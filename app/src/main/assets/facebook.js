@@ -207,7 +207,20 @@
   return null;
  }
  const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app'].map(norm));
- function isAppPrompt(text){text=norm(text);return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(text.replace(/\s*(facebook|فيسبوك|f)$/,'')));}
+ const compactAppPromptLabels=new Set(Array.from(appPromptLabels,function(label){return label.replace(/\s+/g,'');}));
+ function isAppPrompt(text){text=norm(text);var plain=text.replace(/\s*(facebook|فيسبوك|f)$/,'');return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(plain)||compactAppPromptLabels.has(text.replace(/\s+/g,''))||compactAppPromptLabels.has(plain.replace(/\s+/g,'')));}
+ // Read bounded control text, not SVG accessibility titles or decorative
+ // hidden icon captions. Never use rendered innerText (it can force layout).
+ function appPromptText(control){
+  var walk=document.createTreeWalker(control,4),part,count=0,chunks=[];
+  while((part=walk.nextNode())){
+   if(++count>64)return null;
+   if(part.parentElement&&part.parentElement.closest('svg title,svg desc,[aria-hidden="true"],script,style'))continue;
+   chunks.push(part.nodeValue||'');
+   if(chunks.join('').length>180)return null;
+  }
+  return norm(chunks.join(' '));
+ }
  // Structural evidence of real site navigation, never a standalone install sheet.
  function appNavigationSurface(node){
   if(node.querySelector('video,audio,iframe,canvas,form,article,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],[role="article"],[role="feed"],input,textarea,select'))return false;
@@ -234,8 +247,8 @@
   if(control.closest('form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"]'))return null;
   if(control.querySelector('a,button,[role="button"],[role="link"],video,audio,iframe,canvas,input,textarea,select,[contenteditable="true"],article,[role="article"],[role="main"],[role="feed"]'))return null;
   // A matching child span/aria-label must not authorize hiding unrelated prose.
-  var text=norm(control.textContent),label=norm(control.getAttribute('aria-label'));
-  if(!isAppPrompt(text||label))return null;
+  var text=appPromptText(control),label=norm(control.getAttribute('aria-label'));
+  if(text===null||!isAppPrompt(text||label))return null;
   if(structuralOnly)return ownedSurface?el:control;
   var box=control.getBoundingClientRect();
   if(box.height>96)return null;
@@ -255,11 +268,12 @@
    var compact=r.width>=innerWidth*.65&&h>0&&h<=Math.min(160,innerHeight*.25);
    var protectedContent=node.matches('header,nav,main,article,form,[role="banner"],[role="navigation"],[role="main"],[role="feed"],[role="article"]')||node.querySelector('header,nav,main,article,form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],video,audio,iframe,canvas,img,input,textarea,select,[contenteditable="true"],[role="main"],[role="feed"],[role="article"]');
    if(node===control&&!protectedContent)continue;
-   var rest=norm(node.textContent),controls=Array.from(node.querySelectorAll(semantic)),dedicated=compact&&!protectedContent&&controls.length>0&&controls.length<=3;
+   var rest=appPromptText(node),controls=Array.from(node.querySelectorAll(semantic)),dedicated=rest!==null&&compact&&!protectedContent&&controls.length>0&&controls.length<=3;
    for(var action of controls){
-    var actionText=norm(action.textContent),actionLabel=norm(action.getAttribute('aria-label'));
+    var actionText=appPromptText(action),actionLabel=norm(action.getAttribute('aria-label'));
+    if(actionText===null){dedicated=false;break;}
     if(!isAppPrompt(actionText||actionLabel)&&!['close','dismiss','not now','اغلاق','إغلاق','ليس الآن','×','✕'].map(norm).includes(actionText||actionLabel)){dedicated=false;break;}
-    if(actionText)rest=rest.replace(actionText,'').trim();
+    if(actionText&&rest!==null)rest=rest.replace(actionText,'').trim();
    }
    if(rest&&!isAppPrompt(rest))dedicated=false;
    var narrow=!protectedContent&&r.width>0&&r.width<innerWidth*.65&&h>0&&h<=96;
@@ -596,7 +610,7 @@
   }
   if(cfg.ads) document.querySelectorAll('a[href*="/ads/about/"],[data-ad-rendering-role="sponsored_label"],[data-sponsored="true"]').forEach(el=>hide(postFor(el)));
   if(cfg.stories) document.querySelectorAll('[data-pagelet*="Stories"],[data-sigil~="m-story-tray"],[aria-label="Stories"],[aria-label="القصص"]').forEach(el=>hide(section(el,'stories') || el));
-  if(cfg.appBanner&&!referencePrompts) document.querySelectorAll('a[href]').forEach(link=>appBanner(link));
+  if(cfg.appBanner&&!referencePrompts) Array.from(document.querySelectorAll('a[href],button,[role="button"],[role="link"]')).slice(0,800).forEach(link=>appBanner(link));
   if(cfg.stories) document.querySelectorAll('a[href*="/stories/"]').forEach(link=>hide(section(link,'stories') || link));
   if((cfg.homeStories||cfg.stories)&&homeView())hideHomeStories();
   hidden.forEach((old,el)=>{if(!hidingPass.has(el)){if(old.value)el.style.setProperty('display',old.value,old.priority);else el.style.removeProperty('display');el.removeAttribute('data-fpro-hidden');el.removeAttribute('data-fpro-app-prompt');appPromptOwned.delete(el);hidden.delete(el);}});
@@ -925,6 +939,9 @@
   style.textContent=`
    ${rcTokens}
    body{-webkit-user-select:text!important}
+   /* Only policy-verified owned targets. A normal site style rewrite cannot
+      expose them between observer delivery and the guarded frame scan. */
+   [data-fpro-app-prompt],[data-fpro-reference-noapp]{display:none!important}
    ${accent?`[data-fpro-accent-bg]{background-color:${accent}!important;color:${contrast}!important}[data-fpro-accent-bg] *{color:${contrast}!important}[data-fpro-accent-fg]{color:${foreground}!important}[data-fpro-accent-icon]{filter:url("#fpro-icon-palette")!important}[data-fpro-accent-ring]{background-color:${accent}!important}[data-fpro-accent-outline]{outline-color:${accent}!important}[data-fpro-accent-shadow]{box-shadow:var(--fpro-ring-shadow)!important}[data-fpro-accent-gradient]{background-image:var(--fpro-ring-gradient)!important}[data-fpro-accent-canvas-ring]{filter:url("#fpro-canvas-palette")!important}[data-fpro-accent-svg-bg]{background-image:var(--fpro-ring-svg)!important}[data-fpro-accent-before-svg-bg]::before{background-image:var(--fpro-before-svg)!important}[data-fpro-accent-after-svg-bg]::after{background-image:var(--fpro-after-svg)!important}[data-fpro-accent-stop]{stop-color:${accent}!important}[data-fpro-accent-border]{border-color:${foreground}!important}[data-fpro-accent-fill]{fill:${foreground}!important}[data-fpro-accent-stroke]{stroke:${foreground}!important}`:''}
    ${accent?['before','after'].map(p=>`[data-fpro-accent-${p}-border]::${p}{border-color:${accent}!important}[data-fpro-accent-${p}-outline]::${p}{outline-color:${accent}!important}[data-fpro-accent-${p}-shadow]::${p}{box-shadow:var(--fpro-${p}-shadow)!important}[data-fpro-accent-${p}-bg]::${p}{background-color:${accent}!important}[data-fpro-accent-${p}-gradient]::${p}{background-image:var(--fpro-${p}-gradient)!important}`).join(''):''}
    ${c.dark||c.amoled?`:root,html,body,.__fb-light-mode,.__fb-dark-mode{--web-wash:${c.amoled?'#000':'#18191a'}!important;--surface-background:${c.amoled?'#000':'#242526'}!important;--card-background:${c.amoled?'#000':'#242526'}!important;--comment-background:${c.amoled?'#000':'#3a3b3c'}!important;--nav-bar-background:${c.amoled?'#000':'#242526'}!important;--primary-text:#eee!important;--secondary-text:#bbb!important;color-scheme:dark}html,body,[role="main"],[role="feed"],header,nav,[role="banner"],[role="navigation"],article,[role="article"]{background-color:${c.amoled?'#000':'#18191a'}!important;color:#eee!important}`:''}

@@ -106,7 +106,20 @@
  window.FproColor={set:function(next){if(typeof next==='string')next=JSON.parse(next);var valid=!!next.recolor&&!!rgb(next.uiAccent);if(cfg.recolor!==valid||cfg.uiAccent!==next.uiAccent){colorOff();cfg={recolor:valid,uiAccent:next.uiAccent};setup();}},boot:function(){setup();pass();},ownsStyle:function(el){var record=paints.get(el);return !!record&&(record.kind==='sheet'?el.textContent:el.getAttribute('style'))===record.applied;},prune:prunePaint,retained:function(){return paints.size;},pass:pass,hunt:function(){pass();},off:colorOff};
  function norm(text){return (text||'').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');}
  const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app'].map(norm));
- function isAppPrompt(text){text=norm(text);return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(text.replace(/\s*(facebook|فيسبوك|f)$/,'')));}
+ const compactAppPromptLabels=new Set(Array.from(appPromptLabels,function(label){return label.replace(/\s+/g,'');}));
+ function isAppPrompt(text){text=norm(text);var plain=text.replace(/\s*(facebook|فيسبوك|f)$/,'');return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(plain)||compactAppPromptLabels.has(text.replace(/\s+/g,''))||compactAppPromptLabels.has(plain.replace(/\s+/g,'')));}
+ // Read bounded control text, not SVG accessibility titles or decorative
+ // hidden icon captions. Never use rendered innerText (it can force layout).
+ function appPromptText(control){
+  var walk=document.createTreeWalker(control,4),part,count=0,chunks=[];
+  while((part=walk.nextNode())){
+   if(++count>64)return null;
+   if(part.parentElement&&part.parentElement.closest('svg title,svg desc,[aria-hidden="true"],script,style'))continue;
+   chunks.push(part.nodeValue||'');
+   if(chunks.join('').length>180)return null;
+  }
+  return norm(chunks.join(' '));
+ }
  // Structural evidence of real site navigation, never a standalone install sheet.
  function appNavigationSurface(node){
   if(node.querySelector('video,audio,iframe,canvas,form,article,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],[role="article"],[role="feed"],input,textarea,select'))return false;
@@ -133,8 +146,8 @@
   if(control.closest('form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"]'))return null;
   if(control.querySelector('a,button,[role="button"],[role="link"],video,audio,iframe,canvas,input,textarea,select,[contenteditable="true"],article,[role="article"],[role="main"],[role="feed"]'))return null;
   // A matching child span/aria-label must not authorize hiding unrelated prose.
-  var text=norm(control.textContent),label=norm(control.getAttribute('aria-label'));
-  if(!isAppPrompt(text||label))return null;
+  var text=appPromptText(control),label=norm(control.getAttribute('aria-label'));
+  if(text===null||!isAppPrompt(text||label))return null;
   if(structuralOnly)return ownedSurface?el:control;
   var box=control.getBoundingClientRect();
   if(box.height>96)return null;
@@ -154,11 +167,12 @@
    var compact=r.width>=innerWidth*.65&&h>0&&h<=Math.min(160,innerHeight*.25);
    var protectedContent=node.matches('header,nav,main,article,form,[role="banner"],[role="navigation"],[role="main"],[role="feed"],[role="article"]')||node.querySelector('header,nav,main,article,form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],video,audio,iframe,canvas,img,input,textarea,select,[contenteditable="true"],[role="main"],[role="feed"],[role="article"]');
    if(node===control&&!protectedContent)continue;
-   var rest=norm(node.textContent),controls=Array.from(node.querySelectorAll(semantic)),dedicated=compact&&!protectedContent&&controls.length>0&&controls.length<=3;
+   var rest=appPromptText(node),controls=Array.from(node.querySelectorAll(semantic)),dedicated=rest!==null&&compact&&!protectedContent&&controls.length>0&&controls.length<=3;
    for(var action of controls){
-    var actionText=norm(action.textContent),actionLabel=norm(action.getAttribute('aria-label'));
+    var actionText=appPromptText(action),actionLabel=norm(action.getAttribute('aria-label'));
+    if(actionText===null){dedicated=false;break;}
     if(!isAppPrompt(actionText||actionLabel)&&!['close','dismiss','not now','اغلاق','إغلاق','ليس الآن','×','✕'].map(norm).includes(actionText||actionLabel)){dedicated=false;break;}
-    if(actionText)rest=rest.replace(actionText,'').trim();
+    if(actionText&&rest!==null)rest=rest.replace(actionText,'').trim();
    }
    if(rest&&!isAppPrompt(rest))dedicated=false;
    var narrow=!protectedContent&&r.width>0&&r.width<innerWidth*.65&&h>0&&h<=96;
