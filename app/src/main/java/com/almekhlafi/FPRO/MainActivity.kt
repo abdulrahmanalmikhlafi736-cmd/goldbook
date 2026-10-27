@@ -619,7 +619,9 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     // Physical WebView content bounds, not Android screen/status/navigation bars.
     private fun copyMediaLayoutReport() {
         if (!Navigation.isFacebook(web.url.orEmpty())) { toast("افتح الفيديو المطلوب أولًا"); return }
-        val query = assets.open("media-layout-report.js").bufferedReader().use { it.readText() }
+        val mediaQuery = assets.open("media-layout-report.js").bufferedReader().use { it.readText() }
+        val promptQuery = assets.open("app-prompt-report.js").bufferedReader().use { it.readText() }
+        val query = "(()=>{const report=JSON.parse($mediaQuery);report.appPrompts=JSON.parse($promptQuery);return JSON.stringify(report);})()"
         web.evaluateJavascript(query) { result ->
             try {
                 val encoded = JSONArray("[$result]").getString(0)
