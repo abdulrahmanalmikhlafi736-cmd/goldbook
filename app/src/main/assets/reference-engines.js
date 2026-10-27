@@ -107,6 +107,19 @@
  function norm(text){return (text||'').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');}
  const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app'].map(norm));
  function isAppPrompt(text){text=norm(text);return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(text.replace(/\s*(facebook|فيسبوك|f)$/,'')));}
+ // Structural evidence of real site navigation, never a standalone install sheet.
+ function appNavigationSurface(node){
+  if(node.querySelector('video,audio,iframe,canvas,form,article,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],[role="article"],[role="feed"],input,textarea,select'))return false;
+  var controls=Array.from(node.querySelectorAll('a,button,[role="button"],[role="link"]'));
+  if(controls.length<2||controls.length>24)return false;
+  var search=false,accountOrBack=false;
+  for(var action of controls){
+   var label=norm(action.getAttribute('aria-label')||action.textContent);
+   if(/^(search(?: facebook)?|بحث|البحث(?: في فيسبوك)?)$/.test(label))search=true;
+   if(/^(account|profile|your profile|back|go back|الحساب|حسابك|الملف الشخصي|ملفك الشخصي|رجوع|الرجوع|عودة)$/.test(label))accountOrBack=true;
+  }
+  return search&&(accountOrBack||node.matches('header,nav,[role="banner"],[role="navigation"],[role="toolbar"]'));
+ }
  // Remember only verified compact banner geometry while display:none removes
  // its box. Weak keys do not retain detached page nodes.
  const appBannerBoxes=new WeakMap();
@@ -135,6 +148,9 @@
    // after its child button is hidden. Hide the verified whole bar, not just
    // that child. Unknown content or actions make it ineligible.
    var h=Math.max(r.height,parseFloat(css.height)||0,parseFloat(css.minHeight)||0);
+   // A Reels header containing real Search/profile/back controls is not an
+   // install-only bar. Keep the entire header; only its exact CTA may hide.
+   if(h>0&&h<=160&&appNavigationSurface(node))continue;
    var compact=r.width>=innerWidth*.65&&h>0&&h<=Math.min(160,innerHeight*.25);
    var protectedContent=node.matches('header,nav,main,article,form,[role="banner"],[role="navigation"],[role="main"],[role="feed"],[role="article"]')||node.querySelector('header,nav,main,article,form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],video,audio,iframe,canvas,img,input,textarea,select,[contenteditable="true"],[role="main"],[role="feed"],[role="article"]');
    if(node===control&&!protectedContent)continue;
@@ -183,9 +199,9 @@
   Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected){restoreOne(el);return;}if(fast&&!scopes.some(function(scope){return scope.contains(el)||el.contains(scope);}))return;if(safeAppPromptTarget(el,!!fast)!==el)restoreOne(el);else if(fast)queuePrompt(el);});
   var selector='a,button,[role="button"],[role="link"],[data-fpro-reference-noapp]';
   var candidates=nodes(Array.isArray(root)?root:root?[root]:null,selector,selfOnly,fast?384:0),budget=0;
-  for(var el of candidates){if(budget++>=(fast?48:800))break;if(own(el))continue;
+  for(var el of candidates){if(budget>=(fast?48:800))break;if(own(el))continue;
    var target=safeAppPromptTarget(el,!!fast);
-   if(target){if(fast)queuePrompt(target);else hide(target);}else restoreOne(el);
+   if(target){budget++;if(fast)queuePrompt(target);else hide(target);}else restoreOne(el);
   }
  }
  window.FproNoapp={target:safeAppPromptTarget,set:function(next){if(typeof next==='string')next=JSON.parse(next);if(!next.noOpenApp)restore();noapp={noOpenApp:!!next.noOpenApp};},boot:function(){noappScan();},hunt:function(){noappScan();},scan:noappScan,prune:function(){pendingPrompts.forEach(function(el){if(!el.isConnected)pendingPrompts.delete(el);});Array.from(hidden.keys()).forEach(function(el){if(!el.isConnected)restoreOne(el);});},retained:function(){return hidden.size;},restore:function(){noapp.noOpenApp=false;restore();}};

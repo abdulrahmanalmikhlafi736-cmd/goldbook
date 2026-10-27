@@ -208,6 +208,19 @@
  }
  const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app'].map(norm));
  function isAppPrompt(text){text=norm(text);return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(text.replace(/\s*(facebook|فيسبوك|f)$/,'')));}
+ // Structural evidence of real site navigation, never a standalone install sheet.
+ function appNavigationSurface(node){
+  if(node.querySelector('video,audio,iframe,canvas,form,article,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],[role="article"],[role="feed"],input,textarea,select'))return false;
+  var controls=Array.from(node.querySelectorAll('a,button,[role="button"],[role="link"]'));
+  if(controls.length<2||controls.length>24)return false;
+  var search=false,accountOrBack=false;
+  for(var action of controls){
+   var label=norm(action.getAttribute('aria-label')||action.textContent);
+   if(/^(search(?: facebook)?|بحث|البحث(?: في فيسبوك)?)$/.test(label))search=true;
+   if(/^(account|profile|your profile|back|go back|الحساب|حسابك|الملف الشخصي|ملفك الشخصي|رجوع|الرجوع|عودة)$/.test(label))accountOrBack=true;
+  }
+  return search&&(accountOrBack||node.matches('header,nav,[role="banner"],[role="navigation"],[role="toolbar"]'));
+ }
  // Remember only verified compact banner geometry while display:none removes
  // its box. Weak keys do not retain detached page nodes.
  const appBannerBoxes=new WeakMap();
@@ -236,6 +249,9 @@
    // after its child button is hidden. Hide the verified whole bar, not just
    // that child. Unknown content or actions make it ineligible.
    var h=Math.max(r.height,parseFloat(css.height)||0,parseFloat(css.minHeight)||0);
+   // A Reels header containing real Search/profile/back controls is not an
+   // install-only bar. Keep the entire header; only its exact CTA may hide.
+   if(h>0&&h<=160&&appNavigationSurface(node))continue;
    var compact=r.width>=innerWidth*.65&&h>0&&h<=Math.min(160,innerHeight*.25);
    var protectedContent=node.matches('header,nav,main,article,form,[role="banner"],[role="navigation"],[role="main"],[role="feed"],[role="article"]')||node.querySelector('header,nav,main,article,form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],video,audio,iframe,canvas,img,input,textarea,select,[contenteditable="true"],[role="main"],[role="feed"],[role="article"]');
    if(node===control&&!protectedContent)continue;
@@ -274,13 +290,14 @@
  // Geometry is intentionally deferred out of MutationObserver microtasks.
  function queueAppBanner(el){
   const target=window.FproNoapp&&window.FproNoapp.target?window.FproNoapp.target(el,true):safeAppPromptTarget(el,true);
-  if(!target){appBanner(el);return;}
+  if(!target){if(appPromptOwned.has(el))appBanner(el);return false;}
   if(pendingAppPrompts.size<48)pendingAppPrompts.add(target);
   if(appPromptFrame===null)appPromptFrame=requestAnimationFrame(()=>{
    appPromptFrame=null;const batch=Array.from(pendingAppPrompts);pendingAppPrompts.clear();
    if(cfg.enhance===false||!cfg.appBanner||cfg.referenceEngine&&window.FproNoapp||document.hidden)return;
    for(const control of batch)if(control.isConnected)appBanner(control);
   });
+  return true;
  }
  function homeView(){return window.__fproPageInfo ? window.__fproPageInfo().home : /^\/(?:home\.php|index\.php)?$/.test(location.pathname)&&!document.fullscreenElement;}
  function rgbColor(value){
@@ -979,7 +996,7 @@
    if(!list.length)return;
    if(cfg.appBanner){
     if(cfg.referenceEngine&&window.FproNoapp)window.FproNoapp.scan(list,true,selfOnly);
-    else {for(const control of appPromptOwned)if(list.some(root=>root.contains(control)||control.contains(root)))queueAppBanner(control);let budget=48;for(const root of list){const nodes=selfOnly?[root]:[root,...boundedElements(root,'a,button,[role="button"],[role="link"]')];for(const el of nodes){if(budget--<=0)break;queueAppBanner(el);}}}
+    else {for(const control of appPromptOwned)if(list.some(root=>root.contains(control)||control.contains(root)))queueAppBanner(control);let budget=48;for(const root of list){const nodes=selfOnly?[root]:[root,...boundedElements(root,'a,button,[role="button"],[role="link"]')];for(const el of nodes){if(budget<=0)break;if(queueAppBanner(el))budget--;}}}
    }
    if(!skipColor&&cfg.referenceEngine&&window.FproColor)window.FproColor.pass(list,true,selfOnly);
   };
