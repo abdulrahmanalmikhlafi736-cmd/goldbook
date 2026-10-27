@@ -31,6 +31,7 @@ class AppPromptRegressionTest {
                 awaitBrowserReady(scenario)
                 val done = CountDownLatch(1)
                 val result = AtomicReference("null")
+                val detail = AtomicReference("null")
                 scenario.onActivity { activity ->
                     val web = requireNotNull(browser(activity.window.decorView))
                     web.stopLoading()
@@ -87,6 +88,7 @@ class AppPromptRegressionTest {
                                       const bar=document.getElementById('compactBar');
                                       checks.push(getComputedStyle(bar).display==='none');
                                       checks.push(getComputedStyle(document.getElementById('compactCTA')).display!=='none');
+                                      const beforeUrgent=window.FproNoapp.timing();
                                       const fresh=document.createElement('div');
                                       fresh.style.cssText='position:fixed;bottom:0;left:0;width:100%;height:56px;background:black';
                                       fresh.innerHTML='<div style="position:relative"><div style="position:relative"><div role="button" style="position:relative">فتح التطبيق</div></div></div>';
@@ -97,12 +99,16 @@ class AppPromptRegressionTest {
                                         window.__fpro.update(Object.assign($config,{appBanner:false}));
                                         checks.push(getComputedStyle(bar).display==='flex'&&bar.style.getPropertyPriority('display')==='important'&&shown('compactCTA'));
                                         checks.push(shown('reelCTA')&&!reel.hasAttribute('data-fpro-app-prompt')&&!reel.hasAttribute('data-fpro-reference-noapp'));
+                                        window.prompt49Debug=JSON.stringify({painted,display:getComputedStyle(fresh).display,inline:fresh.style.display,owned:fresh.hasAttribute('data-fpro-reference-noapp'),beforeUrgent,afterUrgent:window.FproNoapp.timing(),mainUrgent:window.__fpro.promptTiming(),classified:window.FproNoapp.target(fresh.querySelector('[role=button]'))===fresh});
                                         window.prompt49Result=JSON.stringify(checks);
                                       });
                                       return null;
                                     })()
                                 """.trimIndent()) {
-                                    view.evaluateJavascript("window.prompt49Result||null") { value -> result.set(value); done.countDown() }
+                                    view.evaluateJavascript("window.prompt49Result||null") { value ->
+                                        result.set(value)
+                                        view.evaluateJavascript("window.prompt49Debug||null") { info -> detail.set(info); done.countDown() }
+                                    }
                                 }
                             }
                         }
@@ -112,7 +118,7 @@ class AppPromptRegressionTest {
                 assertTrue("Real Chromium prompt fixture completed", done.await(15, TimeUnit.SECONDS))
                 val checks = JSONArray(JSONArray("[${result.get()}]").getString(0))
                 assertEquals(17, checks.length())
-                for (i in 0 until checks.length()) assertTrue("reference=$reference assertion=$i result=$checks", checks.getBoolean(i))
+                for (i in 0 until checks.length()) assertTrue("reference=$reference assertion=$i result=$checks detail=${detail.get()}", checks.getBoolean(i))
             }
         }
     }
