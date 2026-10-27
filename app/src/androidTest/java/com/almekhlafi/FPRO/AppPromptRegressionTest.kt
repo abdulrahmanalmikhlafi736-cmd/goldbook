@@ -87,10 +87,6 @@ class AppPromptRegressionTest {
                                       const bar=document.getElementById('compactBar');
                                       checks.push(getComputedStyle(bar).display==='none');
                                       checks.push(getComputedStyle(document.getElementById('compactCTA')).display!=='none');
-                                      window.__fpro.update(Object.assign($config,{appBanner:false}));
-                                      checks.push(getComputedStyle(bar).display==='flex'&&bar.style.getPropertyPriority('display')==='important'&&shown('compactCTA'));
-                                      checks.push(shown('reelCTA')&&!reel.hasAttribute('data-fpro-app-prompt')&&!reel.hasAttribute('data-fpro-reference-noapp'));
-                                      window.__fpro.update($config);
                                       const fresh=document.createElement('div');
                                       fresh.style.cssText='position:fixed;bottom:0;left:0;width:100%;height:56px;background:black';
                                       fresh.innerHTML='<div style="position:relative"><div style="position:relative"><div role="button" style="position:relative">فتح التطبيق</div></div></div>';
@@ -98,6 +94,9 @@ class AppPromptRegressionTest {
                                       let painted=false;requestAnimationFrame(()=>{painted=true;});
                                       queueMicrotask(()=>{
                                         checks.push(!painted&&getComputedStyle(fresh).display==='none'&&getComputedStyle(fresh.querySelector('[role="button"]')).display!=='none');
+                                        window.__fpro.update(Object.assign($config,{appBanner:false}));
+                                        checks.push(getComputedStyle(bar).display==='flex'&&bar.style.getPropertyPriority('display')==='important'&&shown('compactCTA'));
+                                        checks.push(shown('reelCTA')&&!reel.hasAttribute('data-fpro-app-prompt')&&!reel.hasAttribute('data-fpro-reference-noapp'));
                                         window.prompt49Result=JSON.stringify(checks);
                                       });
                                       return null;
