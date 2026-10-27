@@ -96,10 +96,10 @@ class AppPromptRegressionTest {
                                       let painted=false;requestAnimationFrame(()=>{painted=true;});
                                       queueMicrotask(()=>{
                                         checks.push(!painted&&getComputedStyle(fresh).display==='none'&&getComputedStyle(fresh.querySelector('[role="button"]')).display!=='none');
+                                        window.prompt49Debug=JSON.stringify({painted,display:getComputedStyle(fresh).display,inline:fresh.style.display,owned:fresh.hasAttribute('data-fpro-reference-noapp'),beforeUrgent,afterUrgent:window.FproNoapp.timing(),mainUrgent:window.__fpro.promptTiming(),classified:window.FproNoapp.target(fresh.querySelector('[role=button]'))===fresh});
                                         window.__fpro.update(Object.assign($config,{appBanner:false}));
                                         checks.push(getComputedStyle(bar).display==='flex'&&bar.style.getPropertyPriority('display')==='important'&&shown('compactCTA'));
                                         checks.push(shown('reelCTA')&&!reel.hasAttribute('data-fpro-app-prompt')&&!reel.hasAttribute('data-fpro-reference-noapp'));
-                                        window.prompt49Debug=JSON.stringify({painted,display:getComputedStyle(fresh).display,inline:fresh.style.display,owned:fresh.hasAttribute('data-fpro-reference-noapp'),beforeUrgent,afterUrgent:window.FproNoapp.timing(),mainUrgent:window.__fpro.promptTiming(),classified:window.FproNoapp.target(fresh.querySelector('[role=button]'))===fresh});
                                         window.prompt49Result=JSON.stringify(checks);
                                       });
                                       return null;
