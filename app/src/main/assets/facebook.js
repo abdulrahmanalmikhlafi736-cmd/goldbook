@@ -212,7 +212,7 @@
  function isAppPrompt(text){
   text=norm(text).replace(/[\u061C\u202A-\u202E\u2060]/g,'');
   // Only a known brand at an edge may decorate an otherwise EXACT CTA.
-  var plain=text.replace(/^(?:facebook|فيسبوك|f)\s*/,'').replace(/\s*(?:facebook|فيسبوك|f)$/,'');
+  var plain=text.replace(/^(?:facebook|فيسبوك|f)(?:\s+|(?=[\u0600-\u06ff]))/,'').replace(/\s*(?:facebook|فيسبوك|f)$/,'');
   return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(plain)||compactAppPromptLabels.has(text.replace(/\s+/g,''))||compactAppPromptLabels.has(plain.replace(/\s+/g,'')));
  }
  // Read bounded control text, not SVG accessibility titles or decorative

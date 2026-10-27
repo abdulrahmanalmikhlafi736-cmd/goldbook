@@ -26,7 +26,7 @@ const micro=async()=>{await Promise.resolve();await Promise.resolve();};
   host.removeAttribute('aria-modal');run();assert.equal(w.document.getElementById('cta51').style.display,'none');
   run({...cfg,appBanner:false});assert.notEqual(w.document.getElementById('cta51').style.display,'none');
  }
- for(const mode of ['standalone','fallback','reference'])for(const label of ['Facebook account details فتح التطبيق','f Search','Open app to read private content']){
+ for(const mode of ['standalone','fallback','reference'])for(const label of ['Facebook account details فتح التطبيق','f Search','fuse app','facebookuse app','Open app to read private content']){
   const {w}=fixture(mode,''),host=scene(w,label);w.document.body.append(host);await micro();assert.notEqual(host.querySelector('#cta51').style.display,'none','Branding/aria cannot authorize unrelated prose');
  }
  for(const mode of ['standalone','fallback','reference'])for(const blocked of ['unknown-header','non-reels','fixed-sheet','form-host']){
