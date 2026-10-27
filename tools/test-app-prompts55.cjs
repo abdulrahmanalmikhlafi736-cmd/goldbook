@@ -52,7 +52,11 @@ function bar(w){
  // Retention/candidate cap and detach cancellation.
  {
   const {w}=fixture();for(let i=0;i<30;i++){const root=bar(w);w.FproNoapp.scan([root],true,false,true);}
-  await micro();assert(w.FproNoapp.timing().retry.retained<=8);w.FproNoapp.restore();const n=w.FproNoapp.timing().retry.checks;await frame(w);assert.equal(w.FproNoapp.timing().retry.checks,n);
+  await micro();assert(w.FproNoapp.timing().retry.retained<=8);
+  const latest=bar(w);w.FproNoapp.scan([latest],true,false,true);await micro();
+  const style=w.document.createElement('style');w.document.head.append(style);style.sheet.insertRule('.late55{position:fixed;height:65px;bottom:0}');
+  await frame(w);await micro();assert.equal(latest.style.display,'none','Recent navigation cue is not starved behind older watched CTAs');
+  w.FproNoapp.restore();const n=w.FproNoapp.timing().retry.checks;await frame(w);assert.equal(w.FproNoapp.timing().retry.checks,n);
  }
  console.log('Prompts55 PASS: ON ownership, immediate enable, master/OFF restore, engine CSS cascade, finite late-CSS promotion,45-check/8-cue limits, late stylesheet event, recycle/detach cancellation.');
 }finally{windows.forEach(w=>w.close());}})().catch(e=>{console.error(e);process.exitCode=1;});

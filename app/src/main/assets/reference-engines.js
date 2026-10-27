@@ -20,7 +20,10 @@
   css.textContent='[data-fpro-reference-noapp]{display:none!important}';document.documentElement.appendChild(css);
  }
  function watchGeometry(el){
-  if(!geometrySeen.has(el)&&geometryWatch.size<8&&el.matches('a,button,[role="button"],[role="link"]')){geometrySeen.add(el);geometryWatch.set(el,0);}
+  if(!geometrySeen.has(el)&&el.matches('a,button,[role="button"],[role="link"]')){
+   pruneGeometry();if(geometryWatch.size>=8)geometryWatch.delete(geometryWatch.keys().next().value);
+   geometrySeen.add(el);geometryWatch.set(el,0);
+  }
  }
  function pruneGeometry(){geometryWatch.forEach(function(n,el){if(!el.isConnected)geometryWatch.delete(el);});}
  function hasGeometryWork(){return Array.from(geometryWatch.values()).some(function(n){return n<45;});}
@@ -36,7 +39,7 @@
   ensurePromptCss();pruneGeometry();
   // No whole-document selector scan on stylesheet arrival. Revisit at most8
   // retained cues, plus8 owned surfaces, using the existing48-slot checkpoint.
-  Array.from(new Set(Array.from(geometryWatch.keys()).concat(Array.from(hidden.keys()).slice(0,8)))).slice(0,16).forEach(queuePrompt);
+  Array.from(new Set(Array.from(geometryWatch.keys()).concat(Array.from(hidden.keys()).slice(-8)))).slice(0,16).forEach(queuePrompt);
  }
  document.addEventListener('load',function(e){if(e.target&&e.target.tagName==='LINK'&&e.target.relList.contains('stylesheet'))stylesChanged();},true);
  var paints=new Map(), hidden=new Map(), checkedSheets=new WeakMap(), checkedAttrs=new WeakMap();
