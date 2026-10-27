@@ -16,6 +16,7 @@ function fixture(mode,html){
   for(const id of ['decorated','joined'])assert.equal(w.document.getElementById(id).style.display,'none','Decorative/split control must match: '+id+' '+mode);
   for(const id of ['normal','long'])assert.notEqual(w.document.getElementById(id).style.display,'none','Never trust a lying aria-label over real prose');
   const style=w.document.getElementById('fpro-style').textContent;assert.match(style,/\[data-fpro-app-prompt\],\[data-fpro-reference-noapp\]\{display:none!important\}/,'A CSS guard must cover only already-verified owned targets');
+  const media=fs.readFileSync('app/src/main/assets/media-layout-report.js','utf8');const combined=w.eval('(()=>{const report=JSON.parse('+media+');report.appPrompts=JSON.parse('+report+');return JSON.stringify(report);})()');assert(JSON.parse(combined).appPrompts.candidates.length>0);assert(!combined.includes('private-path-secret'));assert(!combined.includes('private-name-secret'));
   const encoded=w.eval(report),data=JSON.parse(encoded);assert(data.candidates.length>0);assert(!encoded.includes('private-name-secret'));assert(!encoded.includes('private-path-secret'));assert(!encoded.includes('hidden-caption-secret'));assert(!encoded.includes('Account content'));assert(!encoded.includes('Account details'));assert(!encoded.includes('facebook.com'));
   run({...cfg,appBanner:false});assert.notEqual(w.document.getElementById('decorated').style.display,'none');assert(!w.document.querySelector('[data-fpro-app-prompt],[data-fpro-reference-noapp]'));
  }
