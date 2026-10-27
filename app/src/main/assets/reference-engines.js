@@ -276,7 +276,7 @@
    urgentTiming.maxMs=Math.max(urgentTiming.maxMs,Math.round((performance.now()-started)*10)/10);
   }
  }
- function noappScan(root,fast,selfOnly){
+ function noappScan(root,fast,selfOnly,usePriority=false){
   if(!noapp.noOpenApp||document.hidden)return;
   // Revalidate owned controls when a surrounding surface becomes a dialog or
   // the site recycles the control. No ancestor gets ownership of display:none.
@@ -290,7 +290,7 @@
    var batch=scopes.slice(0,4),share=Math.floor(384/batch.length);
    batch.forEach(function(scope){candidates.push.apply(candidates,nodes([scope],selector,false,share));});
   }else candidates=nodes(scopes.length?scopes:null,selector,selfOnly,fast?384:0);
-  if(fast&&!selfOnly)candidates=Array.from(new Set(scopes.slice(0,4).map(priorityPrompt).filter(Boolean).concat(candidates)));
+  if(fast&&!selfOnly&&usePriority)candidates=Array.from(new Set(scopes.slice(0,4).map(priorityPrompt).filter(Boolean).concat(candidates)));
   for(var el of candidates){if(budget>=(fast?48:800))break;if(!fast)budget++;if(!el.isConnected||own(el))continue;
    var target=safeAppPromptTarget(el,!!fast);
    if(target){if(fast){budget++;queuePrompt(target);}else hide(target);}else restoreOne(el);

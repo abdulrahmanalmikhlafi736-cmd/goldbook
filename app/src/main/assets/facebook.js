@@ -1084,11 +1084,11 @@
    else if(record.type==='characterData'){const el=record.target.parentElement;add(local,el&&(el.closest('a,button,[role="button"],[role="link"]')||el));}
    else if(record.type==='childList'){if(record.target.nodeType===1){if(record.target.matches('style'))add(local,record.target);else add(local,record.target.closest('a,button,[role="button"],[role="link"]'));}for(const node of record.addedNodes){if(node.nodeType===3)add(local,record.target);else add(roots,node);}}
   }
-  const apply=(list,selfOnly,promptsOnly=false)=>{
+  const apply=(list,selfOnly,promptsOnly=false,usePriority=false)=>{
    if(!list.length)return;
    if(cfg.appBanner){
-    if(cfg.referenceEngine&&window.FproNoapp)window.FproNoapp.scan(list,true,selfOnly);
-    else {for(const control of appPromptOwned)if(list.some(root=>root.contains(control)||control.contains(root)))queueAppBanner(control);let budget=48;for(const root of list){const nodes=selfOnly?[root]:[priorityPrompt(root),root,...boundedElements(root,'a,button,[role="button"],[role="link"]')];for(const el of nodes){if(budget<=0)break;if(queueAppBanner(el))budget--;}}}
+    if(cfg.referenceEngine&&window.FproNoapp)window.FproNoapp.scan(list,true,selfOnly,usePriority);
+    else {for(const control of appPromptOwned)if(list.some(root=>root.contains(control)||control.contains(root)))queueAppBanner(control);let budget=48;for(const root of list){const nodes=selfOnly?[root]:[usePriority?priorityPrompt(root):null,root,...boundedElements(root,'a,button,[role="button"],[role="link"]')];for(const el of nodes){if(budget<=0)break;if(queueAppBanner(el))budget--;}}}
    }
    if(!promptsOnly&&!skipColor&&cfg.referenceEngine&&window.FproColor)window.FproColor.pass(list,true,selfOnly);
   };
@@ -1103,7 +1103,7 @@
    for(let parent=control.parentElement,depth=0;parent&&parent!==document.body&&depth<3;parent=parent.parentElement,depth++)if(appNavigationSurface(parent)){if(navigationRoots.size<4)navigationRoots.add(parent);break;}
   }
   if(cfg.appBanner)apply(Array.from(navigationRoots),false,true);
-  apply([...directControls,...local].slice(0,24),true);apply(Array.from(roots).slice(0,4),false);
+  apply([...directControls,...local].slice(0,24),true);apply(Array.from(roots).slice(0,4),false,false,true);
   // A wrapper can become eligible without changing the nested button at all.
   // Reuse the bounded prompt path, not a subtree recoloring pass.
   if(cfg.appBanner)apply(Array.from(wrappers).slice(0,4),false,true);
