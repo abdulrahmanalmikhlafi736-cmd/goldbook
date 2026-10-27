@@ -34,5 +34,14 @@ function bar(w){const el=w.document.createElement('div');el.style.cssText='posit
   el.removeAttribute('aria-modal');await micro();
   assert.equal(el.style.display,'none',mode+': newly eligible ancestor must revalidate its nested CTA before RAF');
  }
+ for(const mode of ['standalone','fallback','reference']){
+  const {w,cfg,run}=fixture(mode),read=()=>JSON.parse(w.eval(fs.readFileSync('app/src/main/assets/app-prompt-report.js','utf8')));
+  assert.equal(read().schema,3);assert.equal(read().state.enabled,true);assert.equal(read().state.observingDocument,true);
+  run({...cfg,appBanner:false});assert.equal(read().state.enabled,false);assert.equal(read().state.filterEnabled,false);
+  run({...cfg,enhance:false});assert.equal(read().state.observingDocument,false);
+  const next=w.document.createElement('body'),el=bar(w);next.append(el);w.document.body.replaceWith(next);await micro();
+  assert.notEqual(el.style.display,'none','Master OFF must disconnect even after root replacement');
+  run();assert.equal(el.style.display,'none','Re-enable must attach and classify the current body');
+ }
  console.log('Prompts50 PASS: body replacement retains prompt observation in all three modes; whole65px fixed bar hidden before RAF; page retained; modal-to-bar wrapper transition.');
 }finally{windows.forEach(w=>w.close());}})().catch(e=>{console.error(e);process.exitCode=1;});
