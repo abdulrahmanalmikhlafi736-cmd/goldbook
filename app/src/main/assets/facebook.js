@@ -3,7 +3,7 @@
  const initial = __CONFIG__;
  if (!document.body) return;
  if (window.__fpro) { window.__fpro.update(initial); return; }
- let cfg = initial, pending = null, hidingPass = null;
+ let cfg = initial, pending = null, hidingPass = null, observingDocument = false;
  const style = document.createElement('style'); style.id = 'fpro-style'; const nonce=document.querySelector('style[nonce],script[nonce]'); if(nonce)style.nonce=nonce.nonce;
  // Keep Android WebView's real selection handles/action mode: no synthetic
  // copy popup, clipboard bridge or touch/scroll interception.
@@ -936,11 +936,13 @@
   if(window.FproColor)window.FproColor.off();if(window.FproNoapp)window.FproNoapp.restore();
   deferredColors.clear();workStats.queuedColorRoots=0;
   cfg=c;updateSelection();iconDefs.remove();restoreTintVars();style.textContent='';restoreHidden();painted.forEach(el=>accentAttrs.forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));painted.forEach(el=>el.removeAttribute('data-fpro-surface'));painted.clear();
-  if(c.enhance===false){observer.disconnect();if(resize)resize.disconnect();videos.forEach(entry=>entry.dispose());videos.clear();storyImages.forEach(tools=>tools.remove());storyImages.clear();style.remove();lastTap=null;touch=null;return;}
+  if(c.enhance===false){observer.disconnect();observingDocument=false;if(resize)resize.disconnect();videos.forEach(entry=>entry.dispose());videos.clear();storyImages.forEach(tools=>tools.remove());storyImages.clear();style.remove();lastTap=null;touch=null;return;}
   if(resize)resize.observe(document.body);
   if(!style.isConnected)document.head.appendChild(style);
-  observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','aria-modal','open','role','tabindex','href','src','data-story-id','data-store','data-video-id','class','style','stroke','fill']});
-  observer.observe(document.head,{childList:true,subtree:true,characterData:true});
+  // The body/head can be replaced during site navigation. Observe the stable
+  // Document with the SAME observer, rather than retaining a detached body.
+  observer.observe(document,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','aria-modal','open','role','tabindex','href','src','data-story-id','data-store','data-video-id','class','style','stroke','fill']});
+  observingDocument=true;
   const accent=c.color==='طبيعي'?null:colors[c.color];
   const foreground=c.dark?accent:(LIGHT_MODE_FG[c.color] || accent);
   const contrast=['ذهبي','فضي','أبيض','برتقالي'].includes(c.color)?'#111':'#fff';
@@ -1016,25 +1018,28 @@
  // browser paint. Keep banners/layout/full feed work on the old scheduler.
  function fastReferenceColors(records,skipColor=false){
   if(document.hidden)return;
-  const roots=new Set(),local=new Set();
+  const roots=new Set(),local=new Set(),wrappers=new Set();
   const add=(set,el)=>{if(el&&el.nodeType===1&&!/^fpro/i.test(el.id)&&!el.closest('#fpro-reference-svg,.fpro-video-tools'))set.add(el);};
   for(const record of records){
-   if(record.type==='attributes')add(local,record.target);
+   if(record.type==='attributes'){add(local,record.target);if(['class','style','aria-modal','open','role'].includes(record.attributeName)&&!record.target.matches('html,head,body,a,button,[role="button"],[role="link"]'))add(wrappers,record.target);}
    else if(record.type==='characterData'){const el=record.target.parentElement;add(local,el&&(el.closest('a,button,[role="button"],[role="link"]')||el));}
    else if(record.type==='childList'){if(record.target.nodeType===1){if(record.target.matches('style'))add(local,record.target);else add(local,record.target.closest('a,button,[role="button"],[role="link"]'));}for(const node of record.addedNodes){if(node.nodeType===3)add(local,record.target);else add(roots,node);}}
   }
-  const apply=(list,selfOnly)=>{
+  const apply=(list,selfOnly,promptsOnly=false)=>{
    if(!list.length)return;
    if(cfg.appBanner){
     if(cfg.referenceEngine&&window.FproNoapp)window.FproNoapp.scan(list,true,selfOnly);
     else {for(const control of appPromptOwned)if(list.some(root=>root.contains(control)||control.contains(root)))queueAppBanner(control);let budget=48;for(const root of list){const nodes=selfOnly?[root]:[root,...boundedElements(root,'a,button,[role="button"],[role="link"]')];for(const el of nodes){if(budget<=0)break;if(queueAppBanner(el))budget--;}}}
    }
-   if(!skipColor&&cfg.referenceEngine&&window.FproColor)window.FproColor.pass(list,true,selfOnly);
+   if(!promptsOnly&&!skipColor&&cfg.referenceEngine&&window.FproColor)window.FproColor.pass(list,true,selfOnly);
   };
   // Newly inserted direct controls must not sit behind a batch of feed text
   // roots: install CTAs remain cheap/urgent even while selection is held.
   const directControls=Array.from(roots).filter(el=>el.matches('a,button,[role="button"],[role="link"]'));
   apply([...directControls,...local].slice(0,24),true);apply(Array.from(roots).slice(0,4),false);
+  // A wrapper can become eligible without changing the nested button at all.
+  // Reuse the bounded prompt path, not a subtree recoloring pass.
+  if(cfg.appBanner)apply(Array.from(wrappers).slice(0,4),false,true);
  }
  const observer=new MutationObserver(records=>{
   if(!document||cfg.enhance===false)return;
@@ -1075,5 +1080,5 @@
   return report;
  }
  document.addEventListener('visibilitychange',()=>{if(document.hidden)restoreSelectionLink();else scan();});
- window.__fpro={update,colorReport,promptTiming:()=>({...promptUrgentTiming})};update(initial);
+ window.__fpro={update,colorReport,promptState:()=>({enabled:cfg.enhance!==false&&!!cfg.appBanner,enhance:cfg.enhance!==false,filterEnabled:!!cfg.appBanner,reference:!!cfg.referenceEngine,observingDocument,documentHidden:document.hidden,styleConnected:style.isConnected,scans:workStats.scans}),promptTiming:()=>({...promptUrgentTiming})};update(initial);
 })();

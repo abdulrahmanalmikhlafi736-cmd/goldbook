@@ -33,5 +33,5 @@
   if(candidates.length>=16)break;
  }
  let frames=0,accessibleFrames=0;for(const frame of Array.from(document.querySelectorAll('iframe')).slice(0,32)){frames++;try{if(frame.contentDocument&&frame.contentDocument.documentElement)accessibleFrames++;}catch(_){}}
- return JSON.stringify({schema:2,timing:{main:window.__fpro&&window.__fpro.promptTiming?window.__fpro.promptTiming():null,reference:window.FproNoapp&&window.FproNoapp.timing?window.FproNoapp.timing():null},engineInstalled:!!window.__fpro,referenceAvailable:!!window.FproNoapp,early:window.__fproEarly===true,reels:/^\/reels?(?:\/|$)/.test(location.pathname),viewport:{w:innerWidth,h:innerHeight},frames,accessibleFrames,candidates});
+ return JSON.stringify({schema:3,state:window.__fpro&&window.__fpro.promptState?window.__fpro.promptState():null,timing:{main:window.__fpro&&window.__fpro.promptTiming?window.__fpro.promptTiming():null,reference:window.FproNoapp&&window.FproNoapp.timing?window.FproNoapp.timing():null},engineInstalled:!!window.__fpro,referenceAvailable:!!window.FproNoapp,early:window.__fproEarly===true,reels:/^\/reels?(?:\/|$)/.test(location.pathname),viewport:{w:innerWidth,h:innerHeight},frames,accessibleFrames,candidates});
 })()
