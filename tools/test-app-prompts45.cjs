@@ -54,7 +54,7 @@ function unchanged(doc,...ids){for(const id of ids)assert.notEqual(doc.getElemen
  for(const mode of ['standalone','fallback','reference']){
   const {w,doc,cfg,run}=fixture('<div id="root"></div>',mode);
   let geometry=0;const node=doc.createElement('button');node.textContent='Open app';node.getBoundingClientRect=()=>{geometry++;return {width:100,height:36};};doc.getElementById('root').appendChild(node);
-  await Promise.resolve();await Promise.resolve();assert.equal(geometry,1,'Build49 permits one guarded urgent candidate before paint, not a feed scan');
+  await Promise.resolve();await Promise.resolve();assert.equal(geometry,2,'Build53: one urgent candidate plus one checkpoint revalidation, not a feed scan');
   run({...cfg,appBanner:false});await settle(w);assert.equal(node.style.display,'','Disable cancels pending hide callbacks');
   assert(!node.hasAttribute('data-fpro-reference-noapp'));assert(!node.hasAttribute('data-fpro-hidden'));
  }

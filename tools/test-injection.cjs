@@ -665,7 +665,7 @@ function fixture(html,config={},captureDownload=false) {
   await new Promise(resolve=>fastTools.window.queueMicrotask(resolve));
   assert.equal(fragment.querySelector('#instantApp').style.display,'none','Build49 validates one exact urgent CTA before paint; sheet protection still runs');
   assert.equal(fragment.querySelector('#instantSearch').style.display,'','Keep adjacent official search');
-  assert.equal(geometryReads,1,'One urgent CTA validation only; colors/search/badges must not cause geometry reads');
+  assert.equal(geometryReads,2,'Urgent plus checkpoint CTA validation; colors/search/badges still cause zero geometry');
   await new Promise(resolve=>fastTools.window.requestAnimationFrame(resolve));
   assert.equal(fragment.querySelector('#instantApp').style.display,'none','Guarded inline CTA hides in the next frame, not a delayed whole-feed scan');
   let bodyQueries=0;const queryBody=fastTools.doc.body.querySelectorAll.bind(fastTools.doc.body);

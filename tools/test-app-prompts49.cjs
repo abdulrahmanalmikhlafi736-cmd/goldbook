@@ -35,8 +35,8 @@ function bar(w){const el=w.document.createElement('div');el.style.cssText='posit
  for(const mode of ['standalone','fallback','reference']){
   const {w,timing}=fixture(mode),fragment=w.document.createElement('section');let reads=0;
   for(let n=0;n<10;n++){const button=w.document.createElement('button');button.textContent='Open app';button.getBoundingClientRect=()=>{reads++;return {width:100,height:32};};fragment.append(button);}
-  w.document.body.append(fragment);await micro();assert.equal(reads,1,'At most ONE urgent candidate per rendering batch, not ten forced layouts');assert.equal(timing().checks,1);assert.equal(fragment.querySelectorAll('[data-fpro-app-prompt],[data-fpro-reference-noapp]').length,1);
-  await frame(w);assert(Array.from(fragment.children).every(el=>el.style.display==='none'),'Remainder stays on the ordinary guarded RAF queue');
+  w.document.body.append(fragment);await micro();assert.equal(reads,11,'Build53: one urgent validation plus ten batched read-phase validations, including ownership revalidation');assert.equal(timing().checks,1);assert.equal(fragment.querySelectorAll('[data-fpro-app-prompt],[data-fpro-reference-noapp]').length,10);
+  await frame(w);assert(Array.from(fragment.children).every(el=>el.style.display==='none'),'Pre-paint hides remain stable at RAF');
   const before=reads;const normal=w.document.createElement('button');normal.textContent='Search';normal.getBoundingClientRect=()=>{reads++;return {width:100,height:32};};w.document.body.append(normal);await micro();assert.equal(reads,before,'Unrelated Search never requests geometry');
  }
  for(const mode of ['standalone','fallback','reference']){

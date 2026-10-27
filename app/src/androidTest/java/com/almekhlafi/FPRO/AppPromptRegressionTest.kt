@@ -122,16 +122,38 @@ class AppPromptRegressionTest {
                                           const nextBar=document.getElementById('nextBar');
                                           checks.push(!painted&&getComputedStyle(nextBar).display==='none'&&getComputedStyle(nextBody.querySelector('main')).display!=='none'&&getComputedStyle(nextBar.querySelector('[role="button"]')).display!=='none');
                                           window.prompt49Debug=JSON.stringify({prior:window.prompt49Debug,state:window.__fpro.promptState(),nextDisplay:getComputedStyle(nextBar).display,timing:window.FproNoapp.timing()});
-                                          window.prompt49Result=JSON.stringify(checks);
+                                          // Delayed DOM delivery, then arrival DURING a site frame callback.
+                                          setTimeout(()=>requestAnimationFrame(()=>{
+                                            const arrivals=document.createElement('section');
+                                            arrivals.innerHTML=Array.from({length:10},()=>'<button>Open app</button>').join('');
+                                            let nextFrame=false;requestAnimationFrame(()=>{nextFrame=true;});
+                                            document.body.append(arrivals);
+                                            queueMicrotask(()=>queueMicrotask(()=>{
+                                              checks.push(!nextFrame&&Array.from(arrivals.children).every(el=>getComputedStyle(el).display==='none'));
+                                              checks.push(getComputedStyle(nextBody.querySelector('main')).display!=='none'&&getComputedStyle(nextBody).display!=='none');
+                                              window.prompt49Result=JSON.stringify(checks);
+                                            }));
+                                          }),900);
+
                                         });
                                       });
                                       return null;
                                     })()
                                 """.trimIndent()) {
-                                    view.evaluateJavascript("window.prompt49Result||null") { value ->
-                                        result.set(value)
-                                        view.evaluateJavascript("window.prompt49Debug||null") { info -> detail.set(info); done.countDown() }
-                                    }
+                                    // evaluateJavascript does not await Promises/timers. Poll only this
+                                    // synthetic test result with a strict deadline, never production DOM.
+                                    val deadline = android.os.SystemClock.uptimeMillis() + 12_000L
+                                    view.post(object : Runnable {
+                                        override fun run() {
+                                            if (done.count == 0L) return
+                                            view.evaluateJavascript("window.prompt49Result||null") { value ->
+                                                if (value != "null") {
+                                                    result.set(value)
+                                                    view.evaluateJavascript("window.prompt49Debug||null") { info -> detail.set(info); done.countDown() }
+                                                } else if (android.os.SystemClock.uptimeMillis() < deadline) view.postDelayed(this, 40L)
+                                            }
+                                        }
+                                    })
                                 }
                             }
                         }
@@ -140,7 +162,7 @@ class AppPromptRegressionTest {
                 }
                 assertTrue("Real Chromium prompt fixture completed", done.await(15, TimeUnit.SECONDS))
                 val checks = JSONArray(JSONArray("[${result.get()}]").getString(0))
-                assertEquals(22, checks.length())
+                assertEquals(24, checks.length())
                 for (i in 0 until checks.length()) assertTrue("reference=$reference assertion=$i result=$checks detail=${detail.get()}", checks.getBoolean(i))
             }
         }
