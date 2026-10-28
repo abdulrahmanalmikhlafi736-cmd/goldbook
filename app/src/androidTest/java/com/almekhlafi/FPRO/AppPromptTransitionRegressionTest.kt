@@ -53,14 +53,21 @@ class AppPromptTransitionRegressionTest {
                             if (request.url.toString() == url) android.webkit.WebResourceResponse("text/html", "UTF-8", html.byteInputStream()) else null
                         override fun onPageFinished(view: WebView, finished: String?) {
                             if (finished != url) return
-                            view.evaluateJavascript("!!window.transition56Started") { started ->
-                                if (started == "true") return@evaluateJavascript
-                                view.evaluateJavascript("window.transition56Started=true;" + source + """
+                            val bootDeadline = SystemClock.uptimeMillis() + 12_000
+                            val boot = object : Runnable {
+                                override fun run() {
+                                    if (ready.count == 0L) return
+                                    view.evaluateJavascript("location.pathname==='/fpro-transition56-fixture' && !!document.getElementById('footer') && document.querySelectorAll('#tools button').length===4 && !window.transition56Started") { exists ->
+                                        if (exists != "true") {
+                                            if (SystemClock.uptimeMillis() < bootDeadline) view.postDelayed(this, 50)
+                                            return@evaluateJavascript
+                                        }
+                                        view.evaluateJavascript("window.transition56Started=true;" + source + """
                                     ;(()=>{
                                       const page=document.getElementById('page'),footer=document.getElementById('footer');
-                                      window.transition56Done=null;
+                                      window.transition56Done=null;window.transition56Clicks=0;
                                       document.querySelectorAll('#tools button').forEach((button,index)=>button.addEventListener('click',e=>{
-                                        window.transition56Done=null;page.style.position='fixed';page.style.top='0';page.style.left='0';page.style.opacity='.65';
+                                        window.transition56Clicks++;window.transition56Done=null;page.style.position='fixed';page.style.top='0';page.style.left='0';page.style.opacity='.65';
                                         let samples=0,exposed=0;
                                         function sample(){
                                           samples++;if(getComputedStyle(footer).display!=='none'&&footer.getBoundingClientRect().height>0)exposed++;
@@ -71,9 +78,13 @@ class AppPromptTransitionRegressionTest {
                                         }
                                         requestAnimationFrame(sample);
                                       }));
-                                    })();
-                                """.trimIndent()) { ready.countDown() }
+                                      window.transition56Armed=true;
+                                    })();true;
+                                """.trimIndent()) { armed -> if (armed == "true") ready.countDown() }
+                                    }
+                                }
                             }
+                            view.post(boot)
                         }
                     }
                     web.loadUrl(url)
@@ -84,8 +95,15 @@ class AppPromptTransitionRegressionTest {
                     val result = AtomicReference("null")
                     scenario.onActivity { activity ->
                         val web = requireNotNull(browser(activity.window.decorView))
-                        web.evaluateJavascript("(()=>{window.transition56Done=null;const r=document.querySelectorAll('#tools button')[$index].getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2,innerWidth]})()") { value ->
-                            val point = JSONArray(value)
+                        web.evaluateJavascript("(()=>{window.transition56Done=null;const button=document.querySelectorAll('#tools button')[$index];if(!button||!window.transition56Armed)return null;const r=button.getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2,innerWidth]})()") { value ->
+                            if (value == "null") {
+                                result.set("""{"error":"missing-fixture-coordinates"}""")
+                                done.countDown(); return@evaluateJavascript
+                            }
+                            val point = try { JSONArray(value) } catch (_: org.json.JSONException) {
+                                result.set("""{"error":"invalid-fixture-coordinates"}""")
+                                done.countDown(); return@evaluateJavascript
+                            }
                             val scale = web.width.toFloat() / point.getDouble(2).toFloat()
                             val x = point.getDouble(0).toFloat() * scale
                             val y = point.getDouble(1).toFloat() * scale
@@ -102,7 +120,10 @@ class AppPromptTransitionRegressionTest {
                                     web.evaluateJavascript("window.transition56Done") { encoded ->
                                         if (encoded != "null") { result.set(encoded); done.countDown() }
                                         else if (SystemClock.uptimeMillis() < deadline) web.postDelayed(this, 50)
-                                        else done.countDown()
+                                        else web.evaluateJavascript("({error:'report-timeout',hidden:document.hidden,armed:!!window.transition56Armed,clicks:window.transition56Clicks||0,buttons:document.querySelectorAll('#tools button').length})") { diagnostic ->
+                                            result.set(if (diagnostic == "null") """{"error":"report-timeout-null-document"}""" else diagnostic)
+                                            done.countDown()
+                                        }
                                     }
                                 }
                             }
@@ -112,6 +133,7 @@ class AppPromptTransitionRegressionTest {
                     assertTrue("Trusted action completed", done.await(6, TimeUnit.SECONDS))
                     assertNotEquals("Trusted click produced a report", "null", result.get())
                     val report = JSONObject(result.get())
+                    assertFalse("Native input/fixture readiness failed: $report", report.has("error"))
                     assertTrue("Must use trusted native input, not synthetic site events", report.getBoolean("trusted"))
                     assertEquals(index, report.getInt("index"))
                     assertEquals("Verified footer exposed during fixed page transition: $report", 0, report.getInt("exposed"))
