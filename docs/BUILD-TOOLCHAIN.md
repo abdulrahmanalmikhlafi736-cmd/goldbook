@@ -30,3 +30,14 @@ that @exodus/bytes is installed and no whatwg-encoding remains in the lockfile.
 CI outcomes must be read from the exact new commit's workflow runs; local pass
 is not proof that either Ubuntu hosted lane, APK build or emulator run passed.
 Existing build55 source ZIP is historical and is not silently overwritten.
+
+## Verified CI for45f446f
+
+Web tools matrix: **PASS on BOTH Ubuntu24.04 and26.04**, all15 suites and
+encoding dependency migration check, explicitly installed Node24.22.1:
+https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/40724999086
+
+Android build / emulator jobs run separately; their completion is not implied
+by this successful JavaScript matrix. Older checkout@v4 still emits a Node20
+metadata deprecation warning despite GitHub forcing its action runtime to24;
+this change does not claim every third-party action warning was eliminated.
