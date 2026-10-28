@@ -305,6 +305,9 @@
    // viewport, not a semantic <main>. Never hide that host or treat it as an
    // install backdrop. This exception requires ALL evidence, not the URL alone.
    if(realNavigation&&node.tagName==='DIV'&&css.position==='absolute'&&r.width>=innerWidth*.9&&r.width<=innerWidth*1.1&&r.height>=innerHeight*.9&&r.height<=innerHeight*1.1&&Math.abs(r.top)<=1&&Math.abs(r.left)<=1&&node.querySelector('video')&&!node.querySelector('form,input:not([type="range"]),textarea,select,audio,iframe,canvas,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],[contenteditable="true"]'))continue;
+   // Scroll locking can fix the page landmark itself during a click.
+   // Count SELF as page content, not only a landmark below it. Never hide it.
+   var pageContent=node.matches('main,article,[role="article"],[role="main"],[role="feed"]')||node.querySelector('main,article,[role="article"],[role="main"],[role="feed"]');
    var compact=r.width>=innerWidth*.65&&h>0&&h<=Math.min(160,innerHeight*.25);
    var protectedContent=node.matches('header,nav,main,article,form,[role="banner"],[role="navigation"],[role="main"],[role="feed"],[role="article"]')||node.querySelector('header,nav,main,article,form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],video,audio,iframe,canvas,img,input,textarea,select,[contenteditable="true"],[role="main"],[role="feed"],[role="article"]');
    if(node===control&&!protectedContent)continue;
@@ -318,12 +321,12 @@
    if(rest&&!isAppPrompt(rest))dedicated=false;
    var narrow=!protectedContent&&r.width>0&&r.width<innerWidth*.65&&h>0&&h<=96;
    if(dedicated){surface=node;appBannerBoxes.set(node,{width:r.width,height:h});}
-   else if(!narrow&&(compact||!node.querySelector('main,article,[role="article"],[role="main"],[role="feed"]')))return null;
+   else if(!narrow&&(compact||!pageContent))return null;
    var inset=/^0(?:px)?(?:\s+0(?:px)?){0,3}$/.test(css.inset||'')||/^0(?:px)?$/.test(css.top)&&/^0(?:px)?$/.test(css.bottom)&&/^0(?:px)?$/.test(css.left)&&/^0(?:px)?$/.test(css.right);
    var large=r.width>=innerWidth*.65&&r.height>=innerHeight*.35;
    // Keep blocking install sheets usable: hiding only their CTA leaves a black
    // backdrop/scroll lock. Do not click Close, remove a scrim or unlock the body.
-   if(!dedicated&&(inset||large)&&!node.querySelector('main,article,[role="article"],[role="main"],[role="feed"]'))return null;
+   if(!dedicated&&(inset||large)&&!pageContent)return null;
   }
   if(node&&node!==document.body&&depth>=32)return null;
   return ariaNavigation&&!realNavigation?null:surface||control;
