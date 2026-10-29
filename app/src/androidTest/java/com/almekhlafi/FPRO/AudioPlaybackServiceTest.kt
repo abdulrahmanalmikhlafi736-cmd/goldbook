@@ -46,6 +46,7 @@ class AudioPlaybackServiceTest {
             assertTrue(description, predicate())
         }
         ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java)).use { scenario ->
+            awaitBrowserReady(scenario)
             scenario.onActivity {
                 AudioPlaybackService.controls = owner
                 ContextCompat.startForegroundService(context, Intent(context, AudioPlaybackService::class.java).putExtra("playing", true))

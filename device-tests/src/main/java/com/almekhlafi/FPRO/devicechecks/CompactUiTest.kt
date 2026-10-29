@@ -119,7 +119,7 @@ class CompactUiTest {
         throw AssertionError("Setting not found: $text; visible: " + visible.take(2200))
     }
 
-    @Test fun selectedPageToolsAffectRealFacebook() {
+    @Test fun selectedPageToolsPreserveRealFacebookControls() {
         launch()
         assertNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 40_000))
         requireNotNull(waitObject(By.desc("الإعدادات"), 30_000)) { "Home gear must appear after the page is recognized" }.click()
@@ -154,9 +154,16 @@ class CompactUiTest {
             Color.blue(pixel) > 180 && Color.red(pixel) < 100 && Color.green(pixel) > 50
         }
         assertTrue("Accent theme must preserve the original Facebook login button; blue samples=$originalBlueSamples", originalBlueSamples >= 2)
-        val text = freshUi { device.findObject(By.clazz("android.webkit.WebView"))?.let { textTree(it) }.orEmpty() }
-        assertFalse("Install/open-app banner must disappear", text.contains("Get Facebook for Android", ignoreCase=true))
-        assertNotNull("Login inputs remain accessible after hiding banner", device.findObject(By.clazz("android.widget.EditText")))
+        // Build45 intentionally preserves prompts in protected forms/sheets and
+        // prose outside a semantic CTA. Absence of every marketing phrase is no
+        // longer the contract. AppPromptRegressionTest independently requires
+        // safe inline CTAs to hide with both engines; this black-box check must
+        // protect real login/navigation controls without broadening the filter.
+        assertNotNull("Account navigation remains available with filtering ON", device.findObject(By.text("Create new account")))
+        val input = requireNotNull(device.findObject(By.clazz("android.widget.EditText"))) { "Login inputs remain accessible with filtering ON" }
+        input.click()
+        assertTrue("Filtering must not leave a blocking layer over login",
+            device.wait(Until.hasObject(By.clazz("android.widget.EditText").focused(true)), 5000))
         device.executeShellCommand("screencap -p /data/local/tmp/fpro-tools.png")
     }
 

@@ -42,6 +42,11 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.delay
 import org.json.JSONArray
 
@@ -53,6 +58,18 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if(granted)startAudioOnly() else toast("يلزم السماح بإشعار التحكم للتشغيل الصوتي") }
     private lateinit var prefs: Preferences
     private lateinit var web: WebView
+    private lateinit var browserRoot: FrameLayout
+    private var messageBridgeInstalled = false
+    private val disposedWebViews = java.util.WeakHashMap<WebView, Boolean>()
+    private val recoveryPolicy = RendererRecoveryPolicy()
+    private var rendererRecoveries = 0
+    private var lastNavigationUrl = "https://m.facebook.com/"
+    private var lastGeometryAt = 0L
+    private var pipRect: android.graphics.Rect? = null
+    private var pipRatio = Rational(16, 9)
+    private val headerQueries = SingleFlightQuery()
+    private val readinessQueries = SingleFlightQuery()
+    private val positionQueries = SingleFlightQuery()
     private lateinit var sessions: BrowsingSessionStore
     private var lastPosition: String? = null
     private var pendingPosition: String? = null
@@ -99,6 +116,24 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         super.onCreate(savedInstanceState)
         prefs = Preferences(this)
         sessions = BrowsingSessionStore(this)
+        // Draw a native first frame while async startup runs. No WebView API here.
+        val waiting = android.widget.TextView(this).apply {
+            text = "تهيئة محرك التصفح…"; gravity = android.view.Gravity.CENTER
+            setTextColor(android.graphics.Color.WHITE); setBackgroundColor(android.graphics.Color.BLACK)
+        }
+        setContentView(waiting)
+        lifecycleScope.launch {
+            val outcome = withTimeoutOrNull(20_000) {
+                (application as FproApplication).webViewStartup.filterNotNull().first()
+            }
+            if (outcome == "") initializeBrowser(savedInstanceState)
+            else waiting.text = "تعذرت تهيئة محرك التصفح. حدّث Android System WebView ثم أعد فتح التطبيق."
+        }
+    }
+
+    private fun initializeBrowser(savedInstanceState: Bundle?) {
+        if (isDestroyed || isFinishing) return
+        WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
         web = createWebView()
         WindowCompat.setDecorFitsSystemWindows(window, true)
         applySettings(false)
@@ -106,13 +141,16 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         // browser baseline. Compose draws only transparent controls above it;
         // no AndroidView render-node interop is involved in website painting.
         val controls = ComposeView(this)
-        setContentView(FrameLayout(this).apply {
+        browserRoot = FrameLayout(this).apply {
             addView(web, FrameLayout.LayoutParams(-1, -1))
             addView(controls, FrameLayout.LayoutParams(-1, -1))
-        })
+        }
+        setContentView(browserRoot)
         // Navigation belongs to this Activity/WebView, never to a restartable
         // Compose effect. Reattaching/recomposing controls must not restore/reload.
+        val initialWeb = web
         web.post {
+            if (isDestroyed || web !== initialWeb) return@post
             val remembered = if (prefs.flag("rememberPosition", true)) sessions.read() else null
             pendingPosition = if (prefs.flag("rememberPosition", true)) savedInstanceState?.getString("fpro.position") ?: remembered?.position else null
             lastPosition = pendingPosition
@@ -181,6 +219,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                                 SettingsPanel(prefs, audioOnly = { requestAudioOnly() }, change = { revision++; applySettings(true) }, close = { settings = false }, whatsapp = { external("https://wa.me/967781764759") }, diagnostics = diagnostics(),
                                     reload = { settings = false; web.loadUrl("https://m.facebook.com/") },
                                     testDisplay = { settings = false; showDisplayTest() },
+                                    copyAppPromptDiagnostics = { copyAppPromptReport() },
                                     copyColorDiagnostics = {
                                         web.evaluateJavascript("window.__fpro ? JSON.stringify(window.__fpro.colorReport()) : null") { result ->
                                             try {
@@ -202,7 +241,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                             if (splash && !pip) Splash()
                         }
                         BackHandler { smartBack() }
-                        LaunchedEffect(Unit) {
+                        LaunchedEffect(pageSequence) {
                             // Do not expose an empty Chromium surface after a fixed 600ms.
                             val started = android.os.SystemClock.elapsedRealtime()
                             while (splash) {
@@ -211,12 +250,14 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                                     failure = "تأخر ظهور محتوى فيسبوك. تحقق من الاتصال ثم اختر إعادة المحاولة؛ لم نعد تحميل الصفحة تلقائيًا."
                                     splash = false; break
                                 }
-                                web.evaluateJavascript(readyScript) { ready ->
+                                val readyTicket = readinessQueries.begin()
+                                if (readyTicket != null) web.evaluateJavascript(readyScript) { ready ->
+                                    if (!readinessQueries.complete(readyTicket)) return@evaluateJavascript
                                     if (ready == "true" && splash && !isDestroyed) {
                                         val sequence = pageSequence
                                         web.postVisualStateCallback(sequence.toLong(), object : WebView.VisualStateCallback() {
                                             override fun onComplete(requestId: Long) {
-                                                if (sequence == pageSequence) { pageConfirmed = true; splash = false }
+                                                if (!isDestroyed && sequence == pageSequence) { pageConfirmed = true; splash = false }
                                             }
                                         })
                                     }
@@ -228,7 +269,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                             delay(1200)
                             while (true) {
                                 if (!settings && web.hasWindowFocus() && Navigation.isFacebook(web.url.orEmpty())) {
-                                    web.evaluateJavascript(pageInfoQuery) { updateHomeControls(it) }
+                                    probePageInfo()
                                 } else homeControls = false
                                 // Player routes do not need frequent header-logo queries.
                                 delay(if (homeControls) 650 else 1200)
@@ -276,21 +317,24 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         // Observe without consuming gestures; a real touch cancels recovery.
         setOnTouchListener { _, event ->
             if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                val cancellingRestore = resumeRestoreUntil > 0L || pendingPosition != null
                 resumeRestoreUntil = 0L; pendingPosition = null
-                evaluateJavascript("window.__fproPosition && window.__fproPosition.cancel()", null)
+                if (cancellingRestore) evaluateJavascript("window.__fproPosition && window.__fproPosition.cancel()", null)
             }
             false
         }
         setOnScrollChangeListener { _, _, y, _, _ -> if (y >= 4) homeControls = false }
         isLongClickable = true // Preserve WebView native text-selection ActionMode.
-        // Boolean-only playback hint; never exposes files, text, cookies or intents.
-        addJavascriptInterface(object {
-            @JavascriptInterface fun playing(value: Boolean) {
-                runOnUiThread {
-                    if (!isDestroyed && Navigation.isFacebook(this@apply.url.orEmpty())) updatePlaybackState(value)
-                }
+        // No legacy interface fallback: unsupported providers use bounded page-info pulls.
+        messageBridgeInstalled = androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.WEB_MESSAGE_LISTENER)
+        if (messageBridgeInstalled) androidx.webkit.WebViewCompat.addWebMessageListener(
+            this, "FproPlayback", setOf("https://facebook.com", "https://*.facebook.com", "https://messenger.com", "https://*.messenger.com")
+        ) { sender, message, origin, mainFrame, _ ->
+            if (mainFrame && origin.scheme == "https" && Navigation.isFacebook(origin.toString()) &&
+                Navigation.isFacebook(sender.url.orEmpty()) && !isDestroyed && sender === web) {
+                if (message.type == androidx.webkit.WebMessageCompat.TYPE_STRING) acceptPlaybackReport(message.data)
             }
-        }, "FproPlayback")
+        }
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
@@ -301,11 +345,19 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         settings.setSupportMultipleWindows(false)
         CookieManager.getInstance().setAcceptCookie(true)
         webViewClient = object : WebViewClient() {
+            @androidx.annotation.RequiresApi(26)
+            override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                recoverRenderer(view, detail.didCrash())
+                return true
+            }
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = route(request.url, request.isForMainFrame)
             @Deprecated("Required for Android 6")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = route(Uri.parse(url), true)
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+                headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
                 failure = null
+                if (url != null && url.length <= 8192 && BrowsingSessionStore.eligible(url)) lastNavigationUrl = url
+                pipRect = null; pipRatio = Rational(16, 9)
                 if (Navigation.isFacebook(url.orEmpty()) && !BrowsingSessionStore.eligible(url.orEmpty())) {
                     lastPosition = null; pendingPosition = null; sessions.clear()
                 } else if (resumeRestoreUntil > android.os.SystemClock.elapsedRealtime() && positionUrl(lastPosition) == url) {
@@ -340,7 +392,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                 if (Navigation.isFacebook(url.orEmpty()) && engineMajor != null && engineMajor < 80) {
                     failure = "محرك Android System WebView قديم (Chromium $engineMajor) ولا يدعم صياغة JavaScript الحديثة. حدّث WebView أو Chrome من متجر التطبيقات ثم أعد فتح FPRO.\n${diagnostics()}"
                 }
-                web.evaluateJavascript(pageInfoScript) { updateHomeControls(it) }
+                probePageInfo()
                 inject()
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -533,6 +585,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     override fun stopAudio() { stopAudioMode(true); if(!web.hasWindowFocus())web.onPause() }
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent); setIntent(intent)
+        if (!::web.isInitialized) return
         when(intent.action) { AUDIO_MODE -> requestAudioOnly(); VIDEO_MODE, Intent.ACTION_MAIN -> if(audioOnly)stopAudioMode(false) }
     }
     @androidx.annotation.RequiresApi(26)
@@ -543,7 +596,9 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
 
     private fun diagnostics(): String {
         val provider = if (Build.VERSION.SDK_INT >= 26) WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" } else null
-        return "FPRO code ${BuildConfig.VERSION_CODE} / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff / Audio: $audioOnly / Early: ${earlyScript != null} / Gesture required: ${web.settings.mediaPlaybackRequiresUserGesture} / Fullscreen: ${fullView != null} / Orientation request: $requestedOrientation / Sensor available: $fullscreenSensorAvailable / Last angle: $fullscreenLastAngle / Turn gate: ${fullscreenRotation != null} / Music active: ${getSystemService(android.media.AudioManager::class.java).isMusicActive}"
+        val memory = android.os.Debug.MemoryInfo().also { android.os.Debug.getMemoryInfo(it) }
+        val health = "Startup: ${(application as FproApplication).startupMillis}ms / Bridge: $messageBridgeInstalled / Renderer recoveries: $rendererRecoveries / App PSS: ${memory.totalPss} KiB (renderer excluded)"
+        return "$health\nFPRO code ${BuildConfig.VERSION_CODE} / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff / Audio: $audioOnly / Early: ${earlyScript != null} / Gesture required: ${web.settings.mediaPlaybackRequiresUserGesture} / Fullscreen: ${fullView != null} / Orientation request: $requestedOrientation / Sensor available: $fullscreenSensorAvailable / Last angle: $fullscreenLastAngle / Turn gate: ${fullscreenRotation != null} / Music active: ${getSystemService(android.media.AudioManager::class.java).isMusicActive}"
     }
 
     private fun showDisplayTest() {
@@ -564,7 +619,9 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     // Physical WebView content bounds, not Android screen/status/navigation bars.
     private fun copyMediaLayoutReport() {
         if (!Navigation.isFacebook(web.url.orEmpty())) { toast("افتح الفيديو المطلوب أولًا"); return }
-        val query = assets.open("media-layout-report.js").bufferedReader().use { it.readText() }
+        val mediaQuery = assets.open("media-layout-report.js").bufferedReader().use { it.readText() }
+        val promptQuery = assets.open("app-prompt-report.js").bufferedReader().use { it.readText() }
+        val query = "(()=>{const report=JSON.parse($mediaQuery);report.appPrompts=JSON.parse($promptQuery);return JSON.stringify(report);})()"
         web.evaluateJavascript(query) { result ->
             try {
                 val encoded = JSONArray("[$result]").getString(0)
@@ -576,6 +633,25 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                 )
                 toast("تم نسخ قياسات الشريط؛ الصقها في المحادثة — دون محتوى الحساب")
             } catch (_: Exception) { toast("تعذر أخذ القياسات؛ انتظر ظهور الفيديو ثم أعد الضغط") }
+        }
+    }
+
+    // Manual, privacy-minimal capture: never exported automatically.
+    private fun copyAppPromptReport() {
+        if (!Navigation.isFacebook(web.url.orEmpty())) { toast("افتح الصفحة التي يظهر فيها الزر أولًا"); return }
+        val query = assets.open("app-prompt-report.js").bufferedReader().use { it.readText() }
+        web.evaluateJavascript(query) { result ->
+            try {
+                val report = org.json.JSONObject(JSONArray("[$result]").getString(0))
+                report.put("appCode", BuildConfig.VERSION_CODE)
+                report.put("filterEnabled", prefs.flag("appBanner", true))
+                report.put("enhancementsEnabled", prefs.flag("pageEnhancements"))
+                report.put("referenceEnabled", prefs.flag("referenceEngine", true))
+                getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(
+                    android.content.ClipData.newPlainText("FPRO app prompt report", report.toString())
+                )
+                toast("تم نسخ تشخيص الزر؛ الصقه في المحادثة — دون نصوص أو روابط الحساب")
+            } catch (_: Exception) { toast("تعذر قراءة تشخيص الزر؛ أعد المحاولة بعد ظهور الصفحة") }
         }
     }
 
@@ -681,10 +757,24 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
         prefs.flag("pip") && !audioOnly && mediaPlaying && !settings && !externalHandoff && !isFinishing && !isDestroyed
 
+    @androidx.annotation.RequiresApi(26)
+    private fun pipParameters(): PictureInPictureParams.Builder {
+        val params = PictureInPictureParams.Builder().setAspectRatio(pipRatio).setActions(audioActions())
+        val fullscreen = fullView
+        if (fullscreen != null) {
+            val location = IntArray(2); fullscreen.getLocationOnScreen(location)
+            if (fullscreen.width > 0 && fullscreen.height > 0)
+                params.setSourceRectHint(android.graphics.Rect(location[0], location[1], location[0] + fullscreen.width, location[1] + fullscreen.height))
+        } else pipRect?.let { params.setSourceRectHint(it) }
+        if (Build.VERSION.SDK_INT >= 31) params.setSeamlessResizeEnabled(true)
+        return params
+    }
+
     private fun configurePictureInPicture() {
+        if (!::web.isInitialized) return
         if (Build.VERSION.SDK_INT < 26 || !packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
         try {
-            val params = PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9)).setActions(audioActions())
+            val params = pipParameters()
             if (Build.VERSION.SDK_INT >= 31) params.setAutoEnterEnabled(canEnterPip())
             setPictureInPictureParams(params.build())
         } catch (_: IllegalStateException) { /* Unsupported window state; normal playback remains. */ }
@@ -698,7 +788,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         // Android12+ auto-entry is armed BEFORE Home. Older versions need a
         // synchronous request; querying JavaScript here races onStop/web.onPause.
         if (Build.VERSION.SDK_INT in 26..30 && canEnterPip()) try {
-            pipRequested = enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(Rational(16,9)).setActions(audioActions()).build())
+            pipRequested = enterPictureInPictureMode(pipParameters().build())
         } catch (_: IllegalStateException) { pipRequested = false; toast("الصورة داخل صورة غير متاحة") }
     }
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
@@ -717,15 +807,29 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
     private fun positionUrl(value: String?): String? = try { value?.let { org.json.JSONObject(it).optString("url") } } catch (_: Exception) { null }
     private fun persistPosition() {
+        if (!::web.isInitialized) return
         val position = lastPosition ?: return
         val url = web.url.orEmpty()
         if (!prefs.flag("rememberPosition", true) || positionUrl(position) != url || !BrowsingSessionStore.eligible(url)) return
         val history = Bundle()
         if (web.saveState(history) != null) sessions.write(history, position, url)
     }
+    private fun probePageInfo() {
+        val ticket = headerQueries.begin() ?: return
+        web.evaluateJavascript(pageInfoQuery) { result ->
+            if (headerQueries.complete(ticket) && !isDestroyed) {
+                updateHomeControls(result)
+                if (!messageBridgeInstalled) try {
+                    acceptPlaybackReport(JSONArray("[$result]").getString(0))
+                } catch (_: Exception) { /* Old provider: no unsafe bridge fallback. */ }
+            }
+        }
+    }
     private fun capturePosition(persist: Boolean) {
         if (sessionClosing || !::web.isInitialized || !prefs.flag("rememberPosition", true) || !BrowsingSessionStore.eligible(web.url.orEmpty())) return
+        val ticket = positionQueries.begin() ?: return
         web.evaluateJavascript(positionScript + "\nwindow.__fproPosition.capture()") { encoded ->
+            if (!positionQueries.complete(ticket)) return@evaluateJavascript
             if (!sessionClosing && !isDestroyed && prefs.flag("rememberPosition", true)) try {
                 val position = JSONArray("[$encoded]").optString(0)
                 val data = org.json.JSONObject(position)
@@ -764,21 +868,104 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
     override fun onStop() {
         persistPosition()
-        if (!audioOnly && !pip && !pipRequested && !(Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode)) web.onPause()
+        if (::web.isInitialized && !audioOnly && !pip && !pipRequested && !(Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode)) web.onPause()
         super.onStop()
     }
     override fun onSaveInstanceState(outState: Bundle) {
-        web.saveState(outState)
+        if (::web.isInitialized) web.saveState(outState)
         if (prefs.flag("rememberPosition", true)) outState.putString("fpro.position", lastPosition)
         super.onSaveInstanceState(outState)
     }
     override fun onDestroy() {
+        headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
         sessionClosing = true; sessions.close()
-        earlyScript?.remove(); earlyScript = null; stopAudioMode(true)
+        earlyScript?.remove(); earlyScript = null
+        if (!::web.isInitialized) { super.onDestroy(); return }
+        stopAudioMode(true)
         closeFullscreen(); fileCallback?.onReceiveValue(null); fileCallback = null
-        web.removeJavascriptInterface("FproPlayback")
-        (web.parent as? ViewGroup)?.removeView(web); web.stopLoading(); web.destroy(); super.onDestroy()
+        disposeWebView(web)
+        super.onDestroy()
     }
+    private fun acceptPlaybackReport(text: String?) {
+        if (text == null || text.length > 2048) return
+        try {
+            val data = org.json.JSONObject(text)
+            if (data.opt("playing") !is Boolean) return
+            val playing = data.getBoolean("playing")
+            val now = android.os.SystemClock.elapsedRealtime()
+            // Bound geometry/layout work; never drop a changed playback state.
+            if (playing == mediaPlaying && now - lastGeometryAt < 120) return
+            lastGeometryAt = now
+            pipRect = null
+            val box = data.optJSONObject("video")
+            if (playing && box != null && ::web.isInitialized) {
+                val vw = box.optDouble("viewportWidth"); val vh = box.optDouble("viewportHeight")
+                val x = box.optDouble("x"); val y = box.optDouble("y")
+                val w = box.optDouble("w"); val h = box.optDouble("h")
+                val iw = box.optDouble("mediaWidth"); val ih = box.optDouble("mediaHeight")
+                if (listOf(vw, vh, x, y, w, h, iw, ih).all { it.isFinite() && kotlin.math.abs(it) <= 1_000_000 } &&
+                    vw > 0 && vh > 0 && w > 0 && h > 0 && iw > 0 && ih > 0) {
+                    val location = IntArray(2); web.getLocationOnScreen(location)
+                    val scale = web.width / vw
+                    val rect = android.graphics.Rect((location[0] + x * scale).toInt(), (location[1] + y * scale).toInt(),
+                        (location[0] + (x + w) * scale).toInt(), (location[1] + (y + h) * scale).toInt())
+                    val visible = android.graphics.Rect()
+                    if (web.getLocalVisibleRect(visible)) {
+                        visible.offset(location[0], location[1])
+                        if (rect.intersect(visible) && !rect.isEmpty) pipRect = rect
+                    }
+                    pipRatio = Rational(((iw / ih).coerceIn(1.0 / 2.38, 2.38) * 10000).toInt(), 10000)
+                }
+            }
+            updatePlaybackState(playing)
+            configurePictureInPicture()
+        } catch (_: Exception) { /* Malformed or stale webpage message has no native authority. */ }
+    }
+
+    private fun disposeWebView(view: WebView, rendererGone: Boolean = false) {
+        if (disposedWebViews.put(view, true) != null) return
+        if (messageBridgeInstalled) androidx.webkit.WebViewCompat.removeWebMessageListener(view, "FproPlayback")
+        (view.parent as? ViewGroup)?.removeView(view)
+        view.setOnTouchListener(null); view.setOnScrollChangeListener(null)
+        if (!rendererGone) { view.stopLoading(); view.clearHistory() }
+        view.webChromeClient = null; view.webViewClient = WebViewClient()
+        view.destroy()
+    }
+
+    private fun recoverRenderer(dead: WebView, crashed: Boolean) {
+        if (!::web.isInitialized || dead !== web || isDestroyed) { disposeWebView(dead); return }
+        // Never ask the dead renderer for URL/state/JS. Use only the last native checkpoint.
+        val destination = positionUrl(lastPosition)?.takeIf { BrowsingSessionStore.eligible(it) } ?: lastNavigationUrl
+        headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
+        pageSequence++; pageConfirmed = false; homeControls = false; splash = true
+        earlyScript?.remove(); earlyScript = null
+        stopFullscreenRotation()
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        fullView?.let { (it.parent as? ViewGroup)?.removeView(it) }; fullView = null
+        fullCallback = null
+        fileCallback?.onReceiveValue(null); fileCallback = null
+        if (AudioPlaybackService.controls === this) AudioPlaybackService.controls = null
+        stopService(Intent(this, AudioPlaybackService::class.java))
+        audioOnly = false; audioRequested = false; mediaPlaying = false; pipRequested = false
+        pipRect = null; pipRatio = Rational(16, 9)
+        configurePictureInPicture()
+        systemBars(false)
+        disposeWebView(dead, rendererGone = true)
+        web = createWebView()
+        browserRoot.addView(web, 0, FrameLayout.LayoutParams(-1, -1))
+        applySettings(false)
+        rendererRecoveries++
+        loadingProgress = 0; enhancementsInstalled = false
+        pendingPosition = lastPosition?.takeIf { positionUrl(it) == destination }
+        if (recoveryPolicy.allowAutomaticRecovery()) {
+            failure = null; web.loadUrl(destination)
+        } else {
+            failure = "توقف محرك عرض الصفحة مرة أخرى. أوقفنا الاستعادة التلقائية لمنع حلقة أعطال. اختر الصفحة الرئيسية لإعادة المحاولة."
+            splash = false
+        }
+        loadState = if (crashed) "تعافٍ من تعطل العارض" else "تعافٍ من إنهاء العارض بواسطة النظام"
+    }
+
     private fun toast(message: String) { Toast.makeText(this, message, Toast.LENGTH_LONG).show() }
 
 

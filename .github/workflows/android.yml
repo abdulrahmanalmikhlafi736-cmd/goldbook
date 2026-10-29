@@ -1,33 +1,37 @@
 name: Android APK
 on:
   push:
-    paths: ['app/**', 'device-tests/**', 'tools/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew*', '.github/workflows/android.yml']
+    paths: ['app/**', 'device-tests/**', 'tools/**', '.node-version', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew*', '.github/workflows/android.yml']
   pull_request:
-    paths: ['app/**', 'device-tests/**', 'tools/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew*', '.github/workflows/android.yml']
+    paths: ['app/**', 'device-tests/**', 'tools/**', '.node-version', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew*', '.github/workflows/android.yml']
   workflow_dispatch:
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
       - name: Set up Android SDK (without obsolete tools package)
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          packages: 'platform-tools platforms;android-36 build-tools;35.0.0'
           log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: tools/package-lock.json
       - name: Test injected page tools
         run: |
+          node --version
           npm ci --prefix tools --ignore-scripts --no-audit --no-fund
-          node --check app/src/main/assets/facebook.js
-          node tools/test-injection.cjs
-          node tools/test-browsing.cjs
+          npm test --prefix tools
       - name: Test, lint and build debug APK
         shell: bash
         run: |

@@ -3,7 +3,7 @@
  const initial = __CONFIG__;
  if (!document.body) return;
  if (window.__fpro) { window.__fpro.update(initial); return; }
- let cfg = initial, pending = null, hidingPass = null;
+ let cfg = initial, pending = null, hidingPass = null, observingDocument = false;
  const style = document.createElement('style'); style.id = 'fpro-style'; const nonce=document.querySelector('style[nonce],script[nonce]'); if(nonce)style.nonce=nonce.nonce;
  // Keep Android WebView's real selection handles/action mode: no synthetic
  // copy popup, clipboard bridge or touch/scroll interception.
@@ -27,7 +27,7 @@
  }
  function readingTarget(target){
   const el=target&&target.nodeType===1?target:target&&target.parentElement;
-  if(!el||el.closest('button,input,textarea,select,[contenteditable]:not([contenteditable="false"]),.fpro-video-tools,header,nav,[role="banner"],[role="navigation"],svg,img,video,canvas'))return null;
+  if(!el||selectionActionTarget(el)||el.closest('button,input,textarea,select,[contenteditable]:not([contenteditable="false"]),.fpro-video-tools,header,nav,[role="banner"],[role="navigation"],svg,img,video,canvas'))return null;
   const root=el.closest('p,[dir="auto"],[data-ad-preview="message"],[data-ad-comet-preview="message"],span,div');
   if(!root||!(root.textContent||'').trim())return null;
   const control=el.closest('[role="button"]');
@@ -112,6 +112,63 @@
  const LIGHT_MODE_FG = {'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'};
  const norm = s => (s || '').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');
  const selectionControlLabels=new Set(['like','love','reply','replies','share','follow','comment','comments','send','save','copy','cancel','more','see more','see less','play','pause','إعجاب','أعجبني','رد','ردود','مشاركة','متابعة','تعليق','تعليقات','التعليقات','إرسال','حفظ','نسخ','إلغاء','المزيد','عرض المزيد','عرض أقل','تشغيل','إيقاف'].map(norm));
+ // Build43: only positive action evidence excludes reading. Generic role,
+ // pressed/popup metadata and prose-prefixed aria labels are not action proof.
+ function selectionActionTarget(el){
+  const ui=el.closest('[role="toolbar"],[role="menu"],[role="menubar"],[role="listbox"],[role="menuitem"],[role="menuitemradio"]');
+  const article=el.closest('article,[role="article"],[role="comment"],[data-commentid]');
+  if(ui&&(!article||article.contains(ui)))return true;
+  let node=el;
+  for(let depth=0;node&&depth<7;depth++,node=node.parentElement){
+   if(node.matches('article,[role="article"],[role="comment"],[data-commentid],body,html'))break;
+   if(node.matches('[role="button"],[role="link"],a,[onclick],[tabindex],[aria-pressed],[aria-haspopup]')){
+    const href=node.getAttribute('href')||'',sigil=node.getAttribute('data-sigil')||'',test=node.getAttribute('data-testid')||'';
+    if(/\/(?:a\/)?(?:like|reaction|reactions|ufi)(?:\.php|\/|\?|$)/i.test(href)||/(?:^|\s)(?:like|reaction)(?:-|\s|$)/i.test(sigil)||/reaction|ufi.*like/i.test(test))return true;
+    const visible=node.textContent||'';
+    if(visible.length<=90){const text=norm(visible),counter=/^(?:like|liked|unlike|react|reactions?|love|reply|share|comment|(?:ال)?اعجاب|اعجبني|اعجبنى|تفاعل|تفاعلات|رد|مشاركة|تعليق)[\s\d٠-٩۰-۹.,،:·•()👍❤️❤😆😮😢😡🥰]*$/i;if(selectionControlLabels.has(text)||counter.test(text))return true;}
+    // Icon-only controls need explicit action evidence. Never infer an action
+    // from an unknown role-button containing a real post/comment sentence.
+    if(/^[\s\d٠-٩۰-۹.,،:·•()👍❤️❤😆😮😢😡🥰]*$/.test(visible)){
+     if(node.hasAttribute('aria-pressed')||node.hasAttribute('aria-haspopup'))return true;
+     for(const name of ['aria-label','title'])if(/^(?:like|unlike|react|reaction|اعجاب|تفاعل)(?:$|\s)/i.test(norm(node.getAttribute(name))))return true;
+    }
+   }
+  }
+  return false;
+ }
+ const workStats={scans:0,deferred:0,lastScanMs:0,maxScanMs:0,queuedColorRoots:0};
+ let lastScanFinished=-Infinity,activePointers=new Set(),touchHeld=false,quietUntil=0;
+ const deferredColors=new Set();
+ function interactionBusy(){
+  if(activePointers.size||touchHeld||performance.now()<quietUntil)return true;
+  const selection=window.getSelection&&window.getSelection();
+  return !!(selection&&!selection.isCollapsed&&selection.rangeCount);
+ }
+ function beginInteraction(e){if(e.type==='pointerdown')activePointers.add(e.pointerId==null?'primary':e.pointerId);else touchHeld=true;}
+ function endInteraction(e){if(e.type.indexOf('pointer')===0)activePointers.delete(e.pointerId==null?'primary':e.pointerId);else touchHeld=!!(e.touches&&e.touches.length);quietUntil=performance.now()+250;requestScan(300);}
+ window.addEventListener('pointerdown',beginInteraction,true);
+ window.addEventListener('touchstart',beginInteraction,{capture:true,passive:true});
+ for(const name of ['pointerup','pointercancel','touchend','touchcancel'])window.addEventListener(name,endInteraction,{capture:true,passive:true});
+ window.addEventListener('blur',()=>{activePointers.clear();touchHeld=false;quietUntil=0;});
+ document.addEventListener('selectionchange',()=>{if(!interactionBusy())requestScan(300);});
+ function boundedElements(root,selector,limit=384,budget=null){
+  const result=[],walk=document.createTreeWalker(root,1);let node,visited=0;
+  while(visited++<limit&&(!budget||budget.remaining>0)&&(node=walk.nextNode())){if(budget)budget.remaining--;if(node.matches(selector))result.push(node);}
+  return result;
+ }
+ function deferColorRecords(records){
+  for(const record of records){
+   const elements=record.type==='childList'?Array.from(record.addedNodes).slice(0,32):[record.target.nodeType===1?record.target:record.target.parentElement];
+   for(const el of elements)if(el&&el.nodeType===1&&deferredColors.size<32)deferredColors.add(el);
+  }
+  workStats.queuedColorRoots=deferredColors.size;
+ }
+ function requestScan(delay=500,settle=false){
+  if(cfg.enhance===false||document.hidden)return;
+  if(pending!==null){if(!settle)return;clearTimeout(pending);}
+  const wait=Math.max(delay,1500-(performance.now()-lastScanFinished));
+  pending=setTimeout(()=>{pending=null;scan();},wait);
+ }
  const words = {
   ads:['sponsored','ممول','إعلان','اعلان','إعلان ممول','publicité','gesponsert','patrocinado','sponsorizzato'],
   suggested:['suggested for you','مقترح لك','مقترحة لك','مقترحات لك'],
@@ -125,6 +182,8 @@
  const tintVars=new Map(),ownedStyles=new WeakMap();
  const iconDefs=document.createElementNS('http://www.w3.org/2000/svg','svg');iconDefs.id='fpro-icon-filter';iconDefs.setAttribute('aria-hidden','true');iconDefs.style.cssText='position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
  iconDefs.innerHTML='<defs><filter id="fpro-icon-palette" color-interpolation-filters="sRGB"><feColorMatrix type="matrix"/></filter><filter id="fpro-canvas-palette" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 1 0 0.38" result="redTest"/><feComponentTransfer in="redTest" result="redMask"><feFuncA type="discrete" tableValues="0 1"/></feComponentTransfer><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 1 0 0.42" result="greenTest"/><feComponentTransfer in="greenTest" result="greenMask"><feFuncA type="discrete" tableValues="0 1"/></feComponentTransfer><feComposite in="redMask" in2="greenMask" operator="in" result="blueMask"/><feComposite in="SourceAlpha" in2="blueMask" operator="in" result="blueAlpha"/><feFlood result="target"/><feComposite in="target" in2="blueAlpha" operator="in" result="tinted"/><feComposite in="SourceGraphic" in2="blueMask" operator="out" result="unchanged"/><feMerge><feMergeNode in="unchanged"/><feMergeNode in="tinted"/></feMerge></filter></defs>';
+ const pendingAppPrompts=new Set(),appPromptOwned=new Set();let appPromptFrame=null,promptCheckpointQueued=false,promptCheckpointUsed=false;
+ let promptUrgentUsed=false;const promptUrgentSeen=new WeakSet(),promptUrgentTiming={checks:0,hidden:0,maxMs:0},promptCheckpointTiming={batches:0,checks:0,hidden:0,maxMs:0};
  const hidden = new Map(), painted = new Set(), videos = new Map(), identityBaseline = new WeakMap();
  function hide(el) {
   if (!el || /^(BODY|HTML|MAIN)$/.test(el.tagName) || ['main','feed','navigation'].includes(el.getAttribute('role'))) return;
@@ -134,7 +193,8 @@
   if(el.style.getPropertyValue('display')!=='none'||el.style.getPropertyPriority('display')!=='important')el.style.setProperty('display','none','important');
  }
  function restoreHidden() {
-  hidden.forEach((old,el) => { if(old.value) el.style.setProperty('display',old.value,old.priority); else el.style.removeProperty('display'); el.removeAttribute('data-fpro-hidden'); }); hidden.clear();
+  if(appPromptFrame!==null)cancelAnimationFrame(appPromptFrame);appPromptFrame=null;promptUrgentUsed=false;promptCheckpointUsed=false;pendingAppPrompts.clear();appPromptOwned.clear();
+  hidden.forEach((old,el) => { if(old.value) el.style.setProperty('display',old.value,old.priority); else el.style.removeProperty('display'); el.removeAttribute('data-fpro-hidden');el.removeAttribute('data-fpro-app-prompt'); }); hidden.clear();
  }
  function section(label, key) {
   const post = postFor(label); if (post) return post;
@@ -147,29 +207,181 @@
   }
   return null;
  }
- const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','تطبيق فيسبوك الأصلي','فيسبوك الأصلي','الفيسبوك الأصلي','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app','original facebook'].map(norm));
- function isAppPrompt(text){return text.length<=90&&appPromptLabels.has(norm(text));}
- function appBanner(link, explicitLabel = false) {
-  const control=link.closest('a,button,[role="button"],[role="link"]');
-  const inPost=link.closest('[role="article"],article,[data-pagelet^="FeedUnit"]');
-  // Reels place the Open App control inside the player/article. Hide that
-  // control only, never the reel or its search/profile/navigation siblings.
-  if(inPost) { if(explicitLabel && control && !control.matches(postSelector) && !control.querySelector('video,article,[role="article"]')) hide(control); return; }
-  const header=control && control.closest('header,nav,[role="banner"],[role="navigation"]');
-  if(explicitLabel && header && header.querySelectorAll('a,button,[role="button"]').length>1) { hide(control); return; }
-  if(explicitLabel && header && !header.querySelector('input,textarea,video,article,[role="article"]') && isAppPrompt(norm(header.textContent)) && Array.from(header.querySelectorAll('a,button,[role="button"],[role="link"],[aria-label],[tabindex],[onclick],svg,img')).every(node=>control.contains(node)||node.contains(control))) {hide(header);return;}
-  const href = link.getAttribute('href') || '';
-  if (!explicitLabel && !/^(intent:|fb:|fb-messenger:|android-app:)/i.test(href) && !/(play\.google\.com\/store\/apps|apps\.apple\.com\/|\/marketplace\/app_redirect|\/r\.php\?.*app_id|\/openinapp|\/native_app|\/intent\/)/i.test(href)) return;
-  let block = link;
-  // Only a compact install prompt, never an article, login form or entire page.
-  for (let i=0; i<3 && block.parentElement; i++) {
-   const p = block.parentElement;
-   if (/^(BODY|HTML|MAIN|FORM)$/.test(p.tagName) || p.matches(postSelector) || p.getAttribute('role') === 'main' || p.matches('header,nav,[role="banner"],[role="navigation"]') || p.querySelector('input,textarea,video,[contenteditable],article,[role="article"]') || (p.textContent || '').length > 400) break;
-   if(Array.from(p.querySelectorAll('a,button,[role="button"],[role="link"],[aria-label],[tabindex],[onclick],svg,img')).some(node=>!block.contains(node)&&!node.contains(block)))break;
-   if (p.querySelectorAll('a,button,[role="button"],[role="link"],input,[tabindex],[onclick],[aria-label]').length > 1 || norm(p.textContent)!==norm(link.textContent)) break;
-   block = p;
+ const appPromptLabels=new Set(['فتح التطبيق','افتح التطبيق','فتح تطبيق فيسبوك','فتح التطبيق الآن','استخدم التطبيق','استخدم تطبيق فيسبوك','فتح في التطبيق','استخدام التطبيق','تثبيت التطبيق','الحصول على التطبيق','حمل تطبيق فيسبوك','open app','open the app','open in app','open in the app','use app','use the app','get the app','get facebook for android','get facebook for android and browse faster','open facebook app','open the facebook app','use facebook app','use the facebook app'].map(norm));
+ const compactAppPromptLabels=new Set(Array.from(appPromptLabels,function(label){return label.replace(/\s+/g,'');}));
+ function isAppPrompt(text){
+  text=norm(text).replace(/[\u061C\u202A-\u202E\u2060]/g,'');
+  // Only a known brand at an edge may decorate an otherwise EXACT CTA.
+  var plain=text.replace(/^(?:facebook|فيسبوك|f)(?:\s+|(?=[\u0600-\u06ff]))/,'').replace(/\s*(?:facebook|فيسبوك|f)$/,'');
+  return text.length<=90&&(appPromptLabels.has(text)||appPromptLabels.has(plain)||compactAppPromptLabels.has(text.replace(/\s+/g,''))||compactAppPromptLabels.has(plain.replace(/\s+/g,'')));
+ }
+ // One native selector lookup returns only the first exact accessible cue.
+ // Unlike querySelectorAll, no full result NodeList is materialized. Native
+ // traversal time is NOT capped: keep one lookup per existing fast root.
+ const priorityPromptSelector=Array.from(appPromptLabels,function(label){return '[aria-label='+JSON.stringify(label)+' i]:not([data-fpro-app-prompt]):not([data-fpro-reference-noapp])';}).join(',');
+ const priorityPromptTiming={queries:0,hits:0,maxMs:0};
+ function priorityPrompt(root){
+  if(!root||root.nodeType!==1)return null;
+  var started=performance.now(),candidate=null;priorityPromptTiming.queries++;
+  try{candidate=root.matches(priorityPromptSelector)?root:root.querySelector(priorityPromptSelector);}catch(_){}
+  if(candidate)priorityPromptTiming.hits++;
+  priorityPromptTiming.maxMs=Math.max(priorityPromptTiming.maxMs,Math.round((performance.now()-started)*10)/10);
+  return candidate;
+ }
+ // Read bounded control text, not SVG accessibility titles or decorative
+ // hidden icon captions. Never use rendered innerText (it can force layout).
+ function appPromptText(control){
+  var walk=document.createTreeWalker(control,4),part,count=0,chunks=[];
+  while((part=walk.nextNode())){
+   if(++count>64)return null;
+   if(part.parentElement&&part.parentElement.closest('svg title,svg desc,[aria-hidden="true"],script,style'))continue;
+   chunks.push(part.nodeValue||'');
+   if(chunks.join('').length>180)return null;
   }
-  hide(block);
+  return norm(chunks.join(' '));
+ }
+ // Structural evidence of real site navigation, never a standalone install sheet.
+ function appNavigationSurface(node){
+  if(node.querySelector('video,audio,iframe,canvas,form,article,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],[role="article"],[role="feed"],input,textarea,select'))return false;
+  var controls=Array.from(node.querySelectorAll('a,button,[role="button"],[role="link"]'));
+  if(controls.length<2||controls.length>24)return false;
+  var search=false,accountOrBack=false;
+  for(var action of controls){
+   var label=norm(action.getAttribute('aria-label')||action.textContent);
+   if(/^(search(?: facebook)?|بحث(?: في فيسبوك)?|البحث(?: في فيسبوك)?)$/.test(label))search=true;
+   if(/^(account|profile|your profile|view your profile|back|go back|حساب|الحساب|حسابك|الملف الشخصي|ملفك الشخصي|رجوع|الرجوع|عودة|العودة)$/.test(label))accountOrBack=true;
+  }
+  return search&&(accountOrBack||node.matches('header,nav,[role="banner"],[role="navigation"],[role="toolbar"]'));
+ }
+ // An exact accessible action plus a standalone caption can identify a
+ // compact navigation CTA even when its logo contributes extra DOM text.
+ // Never let aria override a prose-only control or a general feed tile.
+ function navigationCaption(control,text,label){
+  if(text===null||!isAppPrompt(label))return false;
+  var pieces=[],walk=document.createTreeWalker(control,4),part,count=0,caption=false;
+  while((part=walk.nextNode())){
+   if(++count>64)return false;
+   if(part.parentElement.closest('svg,[aria-hidden="true"],script,style'))continue;
+   var piece=norm(part.nodeValue);if(!piece)continue;pieces.push(piece);
+   for(var n=1;n<=Math.min(4,pieces.length);n++)if(isAppPrompt(pieces.slice(-n).join(' ')))caption=true;
+  }
+  if(!caption)return false;
+  for(var parent=control.parentElement,depth=0;parent&&parent!==document.body&&depth<8;parent=parent.parentElement,depth++)if(appNavigationSurface(parent))return true;
+  return false;
+ }
+ // Remember only verified compact banner geometry while display:none removes
+ // its box. Weak keys do not retain detached page nodes.
+ const appBannerBoxes=new WeakMap();
+ // A parent is eligible only as a dedicated compact fixed app-prompt surface.
+ // Never infer a banner from its background, position or a URL alone.
+ function safeAppPromptTarget(el,structuralOnly=false){
+  var semantic='a,button,[role="button"],[role="link"]';
+  var ownedSurface=el&&!el.matches(semantic)&&(el.hasAttribute('data-fpro-app-prompt')||el.hasAttribute('data-fpro-reference-noapp'));
+  var control=ownedSurface?el.querySelector(semantic):el&&el.closest(semantic);
+  if(!control||control.matches('body,html,main,form,article,header,nav,[role="article"],[role="main"],[role="feed"],[role="navigation"],[role="banner"]'))return null;
+  if(control.closest('form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"]'))return null;
+  if(control.querySelector('a,button,[role="button"],[role="link"],video,audio,iframe,canvas,input,textarea,select,[contenteditable="true"],article,[role="article"],[role="main"],[role="feed"]'))return null;
+  // A matching child span/aria-label must not authorize hiding unrelated prose.
+  var text=appPromptText(control),label=norm(control.getAttribute('aria-label'));
+  var ariaNavigation=text!==null&&!isAppPrompt(text||label)&&navigationCaption(control,text,label);
+  if(text===null||!isAppPrompt(text||label)&&!ariaNavigation)return null;
+  if(structuralOnly)return ownedSurface?el:control;
+  var box=control.getBoundingClientRect();
+  if(box.height>96||ariaNavigation&&box.width>160)return null;
+  var node=control,depth=0,surface=null,realNavigation=false;
+  for(;node&&node!==document.body&&depth<32;node=node.parentElement,depth++){
+   var css=getComputedStyle(node);
+   if(css.position!=='fixed'&&css.position!=='absolute')continue;
+   var r=node.getBoundingClientRect(),saved=appBannerBoxes.get(node);
+   if(saved&&r.width===0&&r.height===0&&(node.hasAttribute('data-fpro-app-prompt')||node.hasAttribute('data-fpro-reference-noapp')))r=saved;
+   // A small bottom install bar can retain its dark min-height/background
+   // after its child button is hidden. Hide the verified whole bar, not just
+   // that child. Unknown content or actions make it ineligible.
+   var h=Math.max(r.height,parseFloat(css.height)||0,parseFloat(css.minHeight)||0);
+   // A Reels header containing real Search/profile/back controls is not an
+   // install-only bar. Keep the entire header; only its exact CTA may hide.
+   if(h>0&&h<=160&&appNavigationSurface(node)){realNavigation=true;continue;}
+   // A real compact Reels navigation header can be inside the absolute video
+   // viewport, not a semantic <main>. Never hide that host or treat it as an
+   // install backdrop. This exception requires ALL evidence, not the URL alone.
+   if(realNavigation&&node.tagName==='DIV'&&css.position==='absolute'&&r.width>=innerWidth*.9&&r.width<=innerWidth*1.1&&r.height>=innerHeight*.9&&r.height<=innerHeight*1.1&&Math.abs(r.top)<=1&&Math.abs(r.left)<=1&&node.querySelector('video')&&!node.querySelector('form,input:not([type="range"]),textarea,select,audio,iframe,canvas,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],[contenteditable="true"]'))continue;
+   // Scroll locking can fix the page landmark itself during a click.
+   // Count SELF as page content, not only a landmark below it. Never hide it.
+   var pageContent=node.matches('main,article,[role="article"],[role="main"],[role="feed"]')||node.querySelector('main,article,[role="article"],[role="main"],[role="feed"]');
+   var compact=r.width>=innerWidth*.65&&h>0&&h<=Math.min(160,innerHeight*.25);
+   var protectedContent=node.matches('header,nav,main,article,form,[role="banner"],[role="navigation"],[role="main"],[role="feed"],[role="article"]')||node.querySelector('header,nav,main,article,form,dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],video,audio,iframe,canvas,img,input,textarea,select,[contenteditable="true"],[role="main"],[role="feed"],[role="article"]');
+   if(node===control&&!protectedContent)continue;
+   var rest=appPromptText(node),controls=Array.from(node.querySelectorAll(semantic)),dedicated=rest!==null&&compact&&!protectedContent&&controls.length>0&&controls.length<=3;
+   for(var action of controls){
+    var actionText=appPromptText(action),actionLabel=norm(action.getAttribute('aria-label'));
+    if(actionText===null){dedicated=false;break;}
+    if(!isAppPrompt(actionText||actionLabel)&&!['close','dismiss','not now','اغلاق','إغلاق','ليس الآن','×','✕'].map(norm).includes(actionText||actionLabel)){dedicated=false;break;}
+    if(actionText&&rest!==null)rest=rest.replace(actionText,'').trim();
+   }
+   if(rest&&!isAppPrompt(rest))dedicated=false;
+   var narrow=!protectedContent&&r.width>0&&r.width<innerWidth*.65&&h>0&&h<=96;
+   if(dedicated){surface=node;appBannerBoxes.set(node,{width:r.width,height:h});}
+   else if(!narrow&&(compact||!pageContent))return null;
+   var inset=/^0(?:px)?(?:\s+0(?:px)?){0,3}$/.test(css.inset||'')||/^0(?:px)?$/.test(css.top)&&/^0(?:px)?$/.test(css.bottom)&&/^0(?:px)?$/.test(css.left)&&/^0(?:px)?$/.test(css.right);
+   var large=r.width>=innerWidth*.65&&r.height>=innerHeight*.35;
+   // Keep blocking install sheets usable: hiding only their CTA leaves a black
+   // backdrop/scroll lock. Do not click Close, remove a scrim or unlock the body.
+   if(!dedicated&&(inset||large)&&!pageContent)return null;
+  }
+  if(node&&node!==document.body&&depth>=32)return null;
+  return ariaNavigation&&!realNavigation?null:surface||control;
+ }
+ function restoreAppPrompt(control){
+  const old=hidden.get(control);
+  if(old){if(control.style.getPropertyValue('display')==='none'&&control.style.getPropertyPriority('display')==='important'){if(old.value)control.style.setProperty('display',old.value,old.priority);else control.style.removeProperty('display');}hidden.delete(control);}
+  appPromptOwned.delete(control);control.removeAttribute('data-fpro-hidden');control.removeAttribute('data-fpro-app-prompt');
+ }
+ function applyPromptTarget(target){
+  for(const previous of Array.from(appPromptOwned))if(previous!==target&&(previous.contains(target)||target.contains(previous)))restoreAppPrompt(previous);
+  appPromptOwned.add(target);target.setAttribute('data-fpro-app-prompt','');hide(target);
+ }
+ function flushPromptCheckpoint(){
+  const batch=Array.from(pendingAppPrompts);pendingAppPrompts.clear();
+  if(cfg.enhance===false||!cfg.appBanner||cfg.referenceEngine&&window.FproNoapp||document.hidden)return;
+  const started=performance.now();promptCheckpointTiming.batches++;
+  // Read every candidate before writing any hide: no read/write layout loop.
+  const plans=[];
+  for(const control of batch){
+   if(!control.isConnected)continue;
+   promptCheckpointTiming.checks++;
+   const target=window.FproNoapp&&window.FproNoapp.target?window.FproNoapp.target(control):safeAppPromptTarget(control);
+   plans.push([control,target]);
+  }
+  for(const [control,target] of plans){if(target){applyPromptTarget(target);promptCheckpointTiming.hidden++;}else if(appPromptOwned.has(control))restoreAppPrompt(control);}
+  promptCheckpointTiming.maxMs=Math.max(promptCheckpointTiming.maxMs,Math.round((performance.now()-started)*10)/10);
+ }
+ function appBanner(link) {
+  const control=appPromptOwned.has(link)?link:link&&link.closest('a,button,[role="button"],[role="link"]');
+  const target=window.FproNoapp&&window.FproNoapp.target?window.FproNoapp.target(link):safeAppPromptTarget(link);
+  if(target){
+   applyPromptTarget(target);return true;
+  }else if(control&&control.hasAttribute('data-fpro-app-prompt'))restoreAppPrompt(control);
+  return false;
+ }
+ // One urgent check, then one coalesced read/write checkpoint before paint.
+ function queueAppBanner(el){
+  if(!el||!el.isConnected)return false;
+  const target=window.FproNoapp&&window.FproNoapp.target?window.FproNoapp.target(el,true):safeAppPromptTarget(el,true);
+  if(!target){if(appPromptOwned.has(el))appBanner(el);return false;}
+  if(pendingAppPrompts.size<48)pendingAppPrompts.add(target);
+  if(appPromptFrame===null)appPromptFrame=requestAnimationFrame(()=>{
+   appPromptFrame=null;promptUrgentUsed=false;promptCheckpointUsed=false;flushPromptCheckpoint();
+  });
+  if(!promptCheckpointQueued&&!promptCheckpointUsed){
+   promptCheckpointQueued=true;Promise.resolve().then(()=>{promptCheckpointQueued=false;if(promptCheckpointUsed||!pendingAppPrompts.size)return;promptCheckpointUsed=true;flushPromptCheckpoint();});
+  }
+  const known=appPromptOwned.has(target),rewrite=known&&target.style.getPropertyPriority('display')==='important'&&target.style.getPropertyValue('display')!=='none';
+  if(!promptUrgentUsed&&(rewrite||!known&&!promptUrgentSeen.has(target)&&!target.closest('[data-fpro-app-prompt],[data-fpro-reference-noapp]'))){
+   promptUrgentUsed=true;promptUrgentSeen.add(target);const started=performance.now();promptUrgentTiming.checks++;
+   if(appBanner(target))promptUrgentTiming.hidden++;
+   promptUrgentTiming.maxMs=Math.max(promptUrgentTiming.maxMs,Math.round((performance.now()-started)*10)/10);
+  }
+  return true;
  }
  function homeView(){return window.__fproPageInfo ? window.__fproPageInfo().home : /^\/(?:home\.php|index\.php)?$/.test(location.pathname)&&!document.fullscreenElement;}
  function rgbColor(value){
@@ -446,35 +658,49 @@
    hideStoryBlock(best);
   }
  }
- function scan() {
-  if(cfg.enhance===false)return;
+ function scan(force=false) {
+  if(cfg.enhance===false||document.hidden)return;
+  if(!force&&interactionBusy()){workStats.deferred++;requestScan(300);return;}
+  const started=performance.now();
+  if(deferredColors.size){const roots=Array.from(deferredColors).filter(el=>el.isConnected);deferredColors.clear();workStats.queuedColorRoots=0;const records=roots.map(el=>({type:'childList',target:el,addedNodes:[el]}));fastHashtags(records);fastReferenceColors(records);}
+  if(Array.from(selectionOverrides.keys()).some(el=>!el.isConnected))restoreSelectionOverrides();
+  if(window.FproColor&&window.FproColor.prune)window.FproColor.prune();
+  if(window.FproNoapp&&window.FproNoapp.prune)window.FproNoapp.prune();
   hidingPass=new Set();
-  const filtering=cfg.appBanner||Object.keys(words).some(key=>cfg[key]);
+  const referencePrompts=!!(cfg.referenceEngine&&window.FproNoapp);
+  const filtering=(cfg.appBanner&&!referencePrompts)||Object.keys(words).some(key=>cfg[key]);
   const labels = filtering?document.querySelectorAll('a,span,abbr,strong,b,button,[role="button"],[role="link"],div[dir="auto"],[role="heading"],[aria-label]'):[];
   for (let i=0;i<Math.min(labels.length,2400);i++) {
    const label=labels[i]; if(label.closest('.fpro-video-tools')) continue;
    const text=norm(label.getAttribute('aria-label') || label.textContent);
    const appText=text.replace(/^(facebook|فيسبوك|f)\s*/,'').replace(/\s*(facebook|فيسبوك|f)$/,'');
-   if(cfg.appBanner && (isAppPrompt(text)||isAppPrompt(appText))) appBanner(label,true);
+   if(cfg.appBanner && !referencePrompts && (isAppPrompt(text)||isAppPrompt(appText))) appBanner(label,true);
    if(!text || text.length>100) continue;
    for(const key of Object.keys(words)) if((cfg[key]) && words[key].some(w=>text===norm(w))) hide(section(label,key));
   }
   if(cfg.ads) document.querySelectorAll('a[href*="/ads/about/"],[data-ad-rendering-role="sponsored_label"],[data-sponsored="true"]').forEach(el=>hide(postFor(el)));
   if(cfg.stories) document.querySelectorAll('[data-pagelet*="Stories"],[data-sigil~="m-story-tray"],[aria-label="Stories"],[aria-label="القصص"]').forEach(el=>hide(section(el,'stories') || el));
-  if(cfg.appBanner) document.querySelectorAll('a[href]').forEach(link=>appBanner(link));
+  if(cfg.appBanner&&!referencePrompts) Array.from(document.querySelectorAll('a[href],button,[role="button"],[role="link"]')).slice(0,800).forEach(link=>appBanner(link));
   if(cfg.stories) document.querySelectorAll('a[href*="/stories/"]').forEach(link=>hide(section(link,'stories') || link));
   if((cfg.homeStories||cfg.stories)&&homeView())hideHomeStories();
-  hidden.forEach((old,el)=>{if(!hidingPass.has(el)){if(old.value)el.style.setProperty('display',old.value,old.priority);else el.style.removeProperty('display');el.removeAttribute('data-fpro-hidden');hidden.delete(el);}});
+  // Discovery limits must not revoke a previously verified CTA merely because
+  // feed growth moved it beyond the general candidate window.
+  if(cfg.appBanner&&!referencePrompts)for(const owned of Array.from(appPromptOwned)){
+   if(!owned.isConnected)restoreAppPrompt(owned);
+   else if(!hidingPass.has(owned))appBanner(owned);
+  }
+  hidden.forEach((old,el)=>{if(!hidingPass.has(el)){if(old.value)el.style.setProperty('display',old.value,old.priority);else el.style.removeProperty('display');el.removeAttribute('data-fpro-hidden');el.removeAttribute('data-fpro-app-prompt');appPromptOwned.delete(el);hidden.delete(el);}});
   hidingPass=null;
   tint();
-  if(cfg.referenceEngine&&window.FproColor&&window.FproNoapp){
+  if(cfg.referenceEngine&&window.FproColor){
    window.FproColor.set({recolor:!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),uiAccent:colors[cfg.color]||'#D4AF37'});window.FproColor.pass();
-   window.FproNoapp.set({noOpenApp:!!cfg.appBanner});window.FproNoapp.hunt();
   }
+  if(window.FproNoapp){if(referencePrompts){window.FproNoapp.set({noOpenApp:!!cfg.appBanner});window.FproNoapp.hunt();}else window.FproNoapp.restore();}
   videos.forEach((entry,video)=>{if(!video.isConnected || (!cfg.downloads && !cfg.rainbow)) {entry.dispose(); videos.delete(video);}});
   if(cfg.downloads || cfg.rainbow) document.querySelectorAll('video').forEach(attachVideo);
   layoutVideos();
   syncStoryImages();
+  lastScanFinished=performance.now();workStats.scans++;workStats.lastScanMs=Math.round(lastScanFinished-started);workStats.maxScanMs=Math.max(workStats.maxScanMs,workStats.lastScanMs);
  }
  function signature(video){return [video.src,video.currentSrc].join('|');}
  function videoIdentity(video){
@@ -761,7 +987,7 @@
  function scheduleLayout(){
   // Keep controls attached during a fling, but defer expensive whole-page work
   // until scrolling settles. Fast hashtag mutation handling remains independent.
-  if(cfg.enhance!==false){if(pending!==null)clearTimeout(pending);pending=setTimeout(()=>{pending=null;scan();},350);}
+  requestScan(350,true);
   if(frame===null)frame=requestAnimationFrame(()=>{frame=null;layoutVideos();syncStoryImages();});
  }
  window.addEventListener('scroll',scheduleLayout,true);window.addEventListener('resize',scheduleLayout);window.addEventListener('fproviewportchange',scheduleLayout);window.addEventListener('popstate',scheduleLayout);window.addEventListener('hashchange',scheduleLayout);
@@ -769,13 +995,19 @@
  function update(c){
   if(JSON.stringify(cfg)===JSON.stringify(c)&&(window.__fpro&&window.__fpro.ready)){updateSelection();scan();return;}
   window.__fpro.ready=true;
-  if(window.FproColor)window.FproColor.off();if(window.FproNoapp)window.FproNoapp.restore();
+  if(window.FproColor)window.FproColor.off();
+  // Preserve reference ownership across ON->ON updates. scan(true) below
+  // performs the immediate hunt AFTER the new configuration/CSS is installed.
+  if(window.FproNoapp){if(c.enhance!==false&&c.referenceEngine&&c.appBanner)window.FproNoapp.set({noOpenApp:true});else window.FproNoapp.restore();}
+  deferredColors.clear();workStats.queuedColorRoots=0;
   cfg=c;updateSelection();iconDefs.remove();restoreTintVars();style.textContent='';restoreHidden();painted.forEach(el=>accentAttrs.forEach(k=>el.removeAttribute('data-fpro-accent-'+k)));painted.forEach(el=>el.removeAttribute('data-fpro-surface'));painted.clear();
-  if(c.enhance===false){observer.disconnect();if(resize)resize.disconnect();videos.forEach(entry=>entry.dispose());videos.clear();storyImages.forEach(tools=>tools.remove());storyImages.clear();style.remove();lastTap=null;touch=null;return;}
+  if(c.enhance===false){observer.disconnect();observingDocument=false;if(resize)resize.disconnect();videos.forEach(entry=>entry.dispose());videos.clear();storyImages.forEach(tools=>tools.remove());storyImages.clear();style.remove();lastTap=null;touch=null;return;}
   if(resize)resize.observe(document.body);
   if(!style.isConnected)document.head.appendChild(style);
-  observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','role','tabindex','href','src','data-story-id','data-store','data-video-id','class','style','stroke','fill']});
-  observer.observe(document.head,{childList:true,subtree:true,characterData:true});
+  // The body/head can be replaced during site navigation. Observe the stable
+  // Document with the SAME observer, rather than retaining a detached body.
+  observer.observe(document,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','aria-modal','open','role','tabindex','href','src','data-story-id','data-store','data-video-id','class','style','stroke','fill']});
+  observingDocument=true;
   const accent=c.color==='طبيعي'?null:colors[c.color];
   const foreground=c.dark?accent:(LIGHT_MODE_FG[c.color] || accent);
   const contrast=['ذهبي','فضي','أبيض','برتقالي'].includes(c.color)?'#111':'#fff';
@@ -788,6 +1020,9 @@
   style.textContent=`
    ${rcTokens}
    body{-webkit-user-select:text!important}
+   /* Only policy-verified owned targets. A normal site style rewrite cannot
+      expose them between observer delivery and the guarded frame scan. */
+   [data-fpro-app-prompt],[data-fpro-reference-noapp]{display:none!important}
    ${accent?`[data-fpro-accent-bg]{background-color:${accent}!important;color:${contrast}!important}[data-fpro-accent-bg] *{color:${contrast}!important}[data-fpro-accent-fg]{color:${foreground}!important}[data-fpro-accent-icon]{filter:url("#fpro-icon-palette")!important}[data-fpro-accent-ring]{background-color:${accent}!important}[data-fpro-accent-outline]{outline-color:${accent}!important}[data-fpro-accent-shadow]{box-shadow:var(--fpro-ring-shadow)!important}[data-fpro-accent-gradient]{background-image:var(--fpro-ring-gradient)!important}[data-fpro-accent-canvas-ring]{filter:url("#fpro-canvas-palette")!important}[data-fpro-accent-svg-bg]{background-image:var(--fpro-ring-svg)!important}[data-fpro-accent-before-svg-bg]::before{background-image:var(--fpro-before-svg)!important}[data-fpro-accent-after-svg-bg]::after{background-image:var(--fpro-after-svg)!important}[data-fpro-accent-stop]{stop-color:${accent}!important}[data-fpro-accent-border]{border-color:${foreground}!important}[data-fpro-accent-fill]{fill:${foreground}!important}[data-fpro-accent-stroke]{stroke:${foreground}!important}`:''}
    ${accent?['before','after'].map(p=>`[data-fpro-accent-${p}-border]::${p}{border-color:${accent}!important}[data-fpro-accent-${p}-outline]::${p}{outline-color:${accent}!important}[data-fpro-accent-${p}-shadow]::${p}{box-shadow:var(--fpro-${p}-shadow)!important}[data-fpro-accent-${p}-bg]::${p}{background-color:${accent}!important}[data-fpro-accent-${p}-gradient]::${p}{background-image:var(--fpro-${p}-gradient)!important}`).join(''):''}
    ${c.dark||c.amoled?`:root,html,body,.__fb-light-mode,.__fb-dark-mode{--web-wash:${c.amoled?'#000':'#18191a'}!important;--surface-background:${c.amoled?'#000':'#242526'}!important;--card-background:${c.amoled?'#000':'#242526'}!important;--comment-background:${c.amoled?'#000':'#3a3b3c'}!important;--nav-bar-background:${c.amoled?'#000':'#242526'}!important;--primary-text:#eee!important;--secondary-text:#bbb!important;color-scheme:dark}html,body,[role="main"],[role="feed"],header,nav,[role="banner"],[role="navigation"],article,[role="article"]{background-color:${c.amoled?'#000':'#18191a'}!important;color:#eee!important}`:''}
@@ -807,7 +1042,7 @@
    video[data-fpro-rainbow]::-webkit-media-controls-timeline{display:none!important}
    .fpro-seek{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;margin:0;opacity:0;pointer-events:auto;touch-action:pan-y}
   `;
-  scan();
+  scan(true);
  }
  // Mutation callbacks run before the next paint. Give only newly changed
  // hashtag nodes a tiny fast path; keep the expensive feed scan debounced.
@@ -819,11 +1054,13 @@
    if(record.type==='childList'){for(const n of record.addedNodes)if(n.nodeType===1){roots.add(n);addedRoots.add(n);}else if(n.nodeType===3&&n.parentElement)roots.add(n.parentElement);if(record.target.nodeType===1)roots.add(record.target);}
    else roots.add(record.target.nodeType===1?record.target:record.target.parentElement);
   }
+  const budget={remaining:384};
   for(const root of roots){
+   if(budget.remaining--<=0)break;
    if(!root||root.closest('#fpro-style,#fpro-selection-style,#fpro-icon-filter,.fpro-video-tools'))continue;
    const nodes=[root];
    // Descend only added fragments; a character/style mutation is local.
-   if(addedRoots.has(root))for(const n of root.querySelectorAll('span,a,[role="link"]'))nodes.push(n);
+   if(addedRoots.has(root))for(const n of boundedElements(root,'span,a,[role="link"]',384,budget))nodes.push(n);
    for(const el of nodes){
     if(!el.matches('span,a,[role="link"]'))continue;
     const text=norm(el.textContent),href=el.getAttribute('href')||'';
@@ -844,35 +1081,55 @@
  }
  // Paint only changed fragments in the mutation microtask, before the next
  // browser paint. Keep banners/layout/full feed work on the old scheduler.
- function fastReferenceColors(records){
+ function fastReferenceColors(records,skipColor=false){
   if(document.hidden)return;
-  const roots=new Set(),local=new Set();
+  const roots=new Set(),local=new Set(),wrappers=new Set();
   const add=(set,el)=>{if(el&&el.nodeType===1&&!/^fpro/i.test(el.id)&&!el.closest('#fpro-reference-svg,.fpro-video-tools'))set.add(el);};
   for(const record of records){
-   if(record.type==='attributes')add(local,record.target);
+   if(record.type==='attributes'){add(local,record.target);if(['class','style','aria-modal','open','role'].includes(record.attributeName)&&!record.target.matches('html,head,body,a,button,[role="button"],[role="link"]'))add(wrappers,record.target);}
    else if(record.type==='characterData'){const el=record.target.parentElement;add(local,el&&(el.closest('a,button,[role="button"],[role="link"]')||el));}
    else if(record.type==='childList'){if(record.target.nodeType===1){if(record.target.matches('style'))add(local,record.target);else add(local,record.target.closest('a,button,[role="button"],[role="link"]'));}for(const node of record.addedNodes){if(node.nodeType===3)add(local,record.target);else add(roots,node);}}
   }
-  const apply=(list,selfOnly)=>{
+  const apply=(list,selfOnly,promptsOnly=false,usePriority=false)=>{
    if(!list.length)return;
    if(cfg.appBanner){
-    if(cfg.referenceEngine&&window.FproNoapp)window.FproNoapp.scan(list,true,selfOnly);
-    else {let budget=48;for(const root of list){const nodes=selfOnly?[root]:[root,...root.querySelectorAll('a,button,[role="button"],[role="link"]')];for(const el of nodes){if(budget--<=0)break;if(isAppPrompt(norm(el.getAttribute('aria-label')||el.textContent)))appBanner(el,true);}}}
+    if(cfg.referenceEngine&&window.FproNoapp)window.FproNoapp.scan(list,true,selfOnly,usePriority);
+    else {for(const control of appPromptOwned)if(list.some(root=>root.contains(control)||control.contains(root)))queueAppBanner(control);let budget=48;for(const root of list){const nodes=selfOnly?[root]:[usePriority?priorityPrompt(root):null,root,...boundedElements(root,'a,button,[role="button"],[role="link"]')];for(const el of nodes){if(budget<=0)break;if(queueAppBanner(el))budget--;}}}
    }
-   if(cfg.referenceEngine&&window.FproColor)window.FproColor.pass(list,true,selfOnly);
+   if(!promptsOnly&&!skipColor&&cfg.referenceEngine&&window.FproColor)window.FproColor.pass(list,true,selfOnly);
   };
-  apply(Array.from(local).slice(0,24),true);apply(Array.from(roots).slice(0,4),false);
+  // Newly inserted direct controls must not sit behind a batch of feed text
+  // roots: install CTAs remain cheap/urgent even while selection is held.
+  const directControls=Array.from(roots).filter(el=>el.matches('a,button,[role="button"],[role="link"]'));
+  // Progressive network hydration can add Search/profile AFTER the CTA. Its
+  // own text need not mutate again; inspect the newly verified sibling scope.
+  const navigationRoots=new Set();
+  if(cfg.appBanner)for(const control of [...directControls,...local].slice(0,24)){
+   if(!control.isConnected||!control.matches('a,button,[role="button"],[role="link"]'))continue;
+   for(let parent=control.parentElement,depth=0;parent&&parent!==document.body&&depth<3;parent=parent.parentElement,depth++)if(appNavigationSurface(parent)){if(navigationRoots.size<4)navigationRoots.add(parent);break;}
+  }
+  if(cfg.appBanner)apply(Array.from(navigationRoots),false,true);
+  apply([...directControls,...local].slice(0,24),true);apply(Array.from(roots).slice(0,4),false,false,true);
+  // A wrapper can become eligible without changing the nested button at all.
+  // Reuse the bounded prompt path, not a subtree recoloring pass.
+  if(cfg.appBanner)apply(Array.from(wrappers).slice(0,4),false,true);
  }
  const observer=new MutationObserver(records=>{
   if(!document||cfg.enhance===false)return;
   const relevant=records.filter(r=>{if(r.type==='childList'){const changes=[...r.addedNodes,...r.removedNodes];if(changes.length&&changes.every(n=>n.nodeType===1&&/^fpro/i.test(n.id)))return false;}const el=r.target.nodeType===1?r.target:r.target.parentElement;if(!el||el.closest('#fpro-style,#fpro-selection-style,#fpro-icon-filter,.fpro-video-tools'))return false;if(!el.hasAttribute('data-fpro-hidden')&&!el.hasAttribute('data-fpro-reference-noapp')&&window.FproColor&&window.FproColor.ownsStyle(el)&&(el.matches('style')||r.type==='attributes'&&r.attributeName==='style'))return false;if(r.type==='attributes'&&r.attributeName==='style'){const hiddenByUs=el.hasAttribute('data-fpro-hidden')||el.hasAttribute('data-fpro-reference-noapp');if(hiddenByUs)return !(el.style.getPropertyValue('display')==='none'&&el.style.getPropertyPriority('display')==='important');if(ownedStyles.get(el)===el.getAttribute('style'))return false;}return true;});
   if(!relevant.length)return;
-  fastHashtags(relevant);
-  fastReferenceColors(relevant);
-  if(pending!==null)return;pending=setTimeout(()=>{pending=null;scan();},500);
+  if(interactionBusy()){deferColorRecords(relevant);fastReferenceColors(relevant,true);}
+  else {fastHashtags(relevant);fastReferenceColors(relevant);}
+  // CSS text/node changes use the SAME observer. External LINK completion is
+  // handled by the reference engine's capture listener, without a time cutoff.
+  if(cfg.appBanner&&cfg.referenceEngine&&window.FproNoapp&&window.FproNoapp.stylesChanged&&relevant.some(r=>{
+   const el=r.target.nodeType===1?r.target:r.target.parentElement;
+   return el&&el.matches('style')||r.type==='childList'&&Array.from(r.addedNodes).some(n=>n.nodeType===1&&n.matches('style,link[rel~="stylesheet"]')&&!/^fpro/i.test(n.id));
+  }))window.FproNoapp.stylesChanged();
+  requestScan();
  });
  function colorReport(){
-  const report={version:35,media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
+  const report={version:43,work:{...workStats,interactionBusy:interactionBusy()},media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!colors[cfg.color]&&!['طبيعي','تلقائي'].includes(cfg.color),selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}
@@ -902,5 +1159,5 @@
   return report;
  }
  document.addEventListener('visibilitychange',()=>{if(document.hidden)restoreSelectionLink();else scan();});
- window.__fpro={update,colorReport};update(initial);
+ window.__fpro={update,colorReport,promptState:()=>({enabled:cfg.enhance!==false&&!!cfg.appBanner,enhance:cfg.enhance!==false,filterEnabled:!!cfg.appBanner,reference:!!cfg.referenceEngine,observingDocument,documentHidden:document.hidden,styleConnected:style.isConnected,scans:workStats.scans}),promptTiming:()=>({...promptUrgentTiming,prepaint:{...promptCheckpointTiming},priority:{...priorityPromptTiming}})};update(initial);
 })();

@@ -1,0 +1,35 @@
+name: Web tools compatibility
+on:
+  push:
+    paths: ['tools/**', 'app/src/main/assets/**', '.node-version', '.github/workflows/web-tools.yml']
+  pull_request:
+    paths: ['tools/**', 'app/src/main/assets/**', '.node-version', '.github/workflows/web-tools.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    name: Node24 on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: tools/package-lock.json
+      - name: Report exact environment
+        run: |
+          cat /etc/os-release
+          node --version
+          npm --version
+      - run: npm ci --prefix tools --ignore-scripts --no-audit --no-fund
+      - run: npm test --prefix tools
+      - name: Check encoding dependency migration
+        run: |
+          npm ls --prefix tools @exodus/bytes
+          node -e "const p=require('./tools/package-lock.json').packages;if(Object.keys(p).some(k=>k.endsWith('/whatwg-encoding')))throw Error('Legacy whatwg-encoding remains')"

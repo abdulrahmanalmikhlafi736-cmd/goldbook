@@ -27,6 +27,7 @@ class WebViewRenderingTest {
         org.junit.Assume.assumeTrue(android.os.Build.VERSION.SDK_INT >= 35)
         val nativeAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation(android.app.UiAutomation.FLAG_DONT_USE_ACCESSIBILITY)
         ActivityScenario.launch<android.app.Activity>(android.content.Intent().setClassName(InstrumentationRegistry.getInstrumentation().targetContext.packageName, "com.almekhlafi.FPRO.PlainWebActivity")).use { scenario ->
+            awaitBrowserReady(scenario)
             Thread.sleep(25_000)
             val complete = CountDownLatch(1)
             val evidence = java.util.concurrent.atomic.AtomicReference("no callback")
@@ -76,6 +77,7 @@ class WebViewRenderingTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val automation = instrumentation.getUiAutomation(android.app.UiAutomation.FLAG_DONT_USE_ACCESSIBILITY)
         ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            awaitBrowserReady(scenario)
             Thread.sleep(2300)
             val ready = CountDownLatch(1)
             val point = FloatArray(2)
@@ -128,6 +130,7 @@ class WebViewRenderingTest {
     @Test fun dHomeGearFollowsRtlLogoAndHidesAfterSpaNavigation() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            awaitBrowserReady(scenario)
             Thread.sleep(2300)
             val ready = CountDownLatch(1)
             var positioned = false
@@ -184,6 +187,7 @@ class WebViewRenderingTest {
         val icon = android.util.Base64.encodeToString("""<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="16" fill="#1877f2"/><path d="M9 16l5 5 10-11" fill="none" stroke="white" stroke-width="3"/></svg>""".toByteArray(), android.util.Base64.NO_WRAP)
         val portrait = android.util.Base64.encodeToString("""<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#ed1c24"/></svg>""".toByteArray(), android.util.Base64.NO_WRAP)
         ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            awaitBrowserReady(scenario)
             // The app schedules its first Facebook load from Compose after the
             // splash. Wait for that navigation, otherwise it can overwrite the
             // local fixture after a fixed sleep on a slow emulator.
@@ -383,6 +387,7 @@ class WebViewRenderingTest {
         org.junit.Assume.assumeTrue("Live site requires a recent system WebView", android.os.Build.VERSION.SDK_INT >= 35)
         val browserAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation(android.app.UiAutomation.FLAG_DONT_USE_ACCESSIBILITY)
         ActivityScenario.launch<android.app.Activity>(android.content.Intent().setClassName(InstrumentationRegistry.getInstrumentation().targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            awaitBrowserReady(scenario)
             val ready = CountDownLatch(1)
             val state = java.util.concurrent.atomic.AtomicReference("no callback")
             scenario.onActivity { activity ->
@@ -413,6 +418,7 @@ class WebViewRenderingTest {
 
     @Test fun websiteActuallyPaintsInNativeHost() {
         ActivityScenario.launch<android.app.Activity>(android.content.Intent().setClassName(InstrumentationRegistry.getInstrumentation().targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            awaitBrowserReady(scenario)
             val ready = CountDownLatch(1)
             // The app intentionally starts navigation after its 1.8 s splash.
             // Do not let that scheduled navigation replace the local fixture.
@@ -466,6 +472,7 @@ class WebViewRenderingTest {
         store.edit().putBoolean("amoled",true).putBoolean("dark",false).putBoolean("pageEnhancements",true).putBoolean("appBanner",true).putBoolean("textSelection",true).putString("color","تلقائي").commit()
         try {
             ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName,"com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            awaitBrowserReady(scenario)
                 Thread.sleep(2300)
                 val done=CountDownLatch(1);val result=java.util.concurrent.atomic.AtomicReference("null")
                 scenario.onActivity { activity ->
@@ -500,6 +507,7 @@ class WebViewRenderingTest {
         info.flags = info.flags or android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
         automation.serviceInfo = info
         ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            awaitBrowserReady(scenario)
             Thread.sleep(2300)
             val ready = CountDownLatch(1)
             scenario.onActivity { activity ->
@@ -508,7 +516,7 @@ class WebViewRenderingTest {
                 web.loadDataWithBaseURL("https://fixture.invalid/", """
                     <html><meta name="viewport" content="width=device-width,initial-scale=1">
                     <style>p,span,a{-webkit-user-select:none;user-select:none}body{margin:24px;font:24px sans-serif}p{margin:24px 0}</style>
-                    <body><article role="button" style="user-select:none!important;-webkit-user-select:none!important"><p id="post" style="user-select:none!important;-webkit-user-select:none!important">FPROpost selection sample</p><p><span id="comment" dir="auto" style="user-select:none!important;-webkit-user-select:none!important">FPROcomment selection sample</span></p><p><a id="hashtag" href="/hashtag/sample" style="user-select:none!important;-webkit-user-select:none!important">#FPROhashtag</a></p><button>Like</button></article><div id="bare" style="user-select:none!important;-webkit-user-select:none!important">FPRObare direct div sample</div>
+                    <body><article role="button" style="user-select:none!important;-webkit-user-select:none!important"><p id="post" style="user-select:none!important;-webkit-user-select:none!important">FPROpost selection sample</p><p><span id="comment" dir="auto" style="user-select:none!important;-webkit-user-select:none!important">FPROcomment selection sample</span></p><p><a id="hashtag" href="/hashtag/sample" style="user-select:none!important;-webkit-user-select:none!important">#FPROhashtag</a></p><button>Like</button><div role="button" aria-haspopup="dialog"><span id="wrappedPlain" style="user-select:none!important;-webkit-user-select:none!important">FPROwrapped plain reading sample</span></div></article><div id="bare" style="user-select:none!important;-webkit-user-select:none!important">FPRObare direct div sample</div>
                     <script>document.addEventListener('contextmenu',e=>e.preventDefault(),true);document.addEventListener('selectstart',e=>e.preventDefault(),true);document.addEventListener('pointerdown',e=>e.preventDefault(),true);document.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});</script></body></html>
                 """.trimIndent(), "text/html", "UTF-8", null)
                 fun probe(attempt: Int) {
@@ -538,7 +546,7 @@ class WebViewRenderingTest {
                 for(window in automation.windows)copyAction(window.root)?.let { return it }
                 return null
             }
-            for(id in listOf("post", "comment", "hashtag", "bare")) {
+            for(id in listOf("post", "comment", "hashtag", "bare", "wrappedPlain")) {
                 val coordinates = FloatArray(2)
                 val measured = CountDownLatch(1)
                 scenario.onActivity { activity ->
@@ -600,6 +608,7 @@ class WebViewRenderingTest {
         store.edit().putBoolean("pip", true).commit()
         try {
             ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(instrumentation.targetContext.packageName, "com.almekhlafi.FPRO.MainActivity")).use { scenario ->
+            awaitBrowserReady(scenario)
                 Thread.sleep(2300)
                 val ready = CountDownLatch(1)
                 val startPoint=FloatArray(2)

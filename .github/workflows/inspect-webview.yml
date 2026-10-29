@@ -6,7 +6,7 @@ on:
     inputs:
       run_id:
         description: Completed emulator run to inspect
-        default: '40246487948'
+        default: '40410738983'
         required: true
 jobs:
   inspect:
@@ -21,7 +21,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id="${{ github.event.inputs.run_id || '40246487948' }}"
+          id="${{ github.event.inputs.run_id || '40410738983' }}"
           echo "run=$id" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
@@ -56,7 +56,7 @@ jobs:
               try: root=ET.parse(path).getroot()
               except ET.ParseError: continue
               for case in root.iter('testcase'):
-                  if 'VideoOverlayRegressionTest' in case.get('classname','') or 'AudioPlaybackServiceTest' in case.get('classname','') or 'zNativeLongPress' in case.get('name','') or 'zzPictureInPicture' in case.get('name','') or 'yDocumentStart' in case.get('name',''):
+                  if 'InteractionRegressionTest' in case.get('classname','') or 'VideoOverlayRegressionTest' in case.get('classname','') or 'AudioPlaybackServiceTest' in case.get('classname','') or 'zNativeLongPress' in case.get('name','') or 'zzPictureInPicture' in case.get('name','') or 'yDocumentStart' in case.get('name',''):
                       status = 'FAIL' if case.find('failure') is not None or case.find('error') is not None else 'SKIP' if case.find('skipped') is not None else 'PASS'
                       print('::notice title=Native selection, early-frame or media testcase::'+str(path)+': '+case.get('name','')+': '+status)
               for failure in list(root.iter('failure'))+list(root.iter('error')):
@@ -65,6 +65,30 @@ jobs:
                   seen.add(text)
                   print('::notice title=Device test stack::'+text.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
           PYCODE
+      - name: Verify native Copy and reactions after native refresh removal
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          required = {'realTapAndHeldReactionSurviveFeedChurn', 'zNativeLongPressSelectsPostsCommentsAndHashtags', 'messageBridgeRejectsSameOriginSubframesAndMalformedPayloads', 'rendererCallbackReplacesBrowserAndBoundsAutomaticReloads', 'playbackReportingTracksPageOnEveryProvider'}
+          seen = {}
+          for path in Path('previous-diagnostics').rglob('*.xml'):
+              try: root = ET.parse(path).getroot()
+              except ET.ParseError: continue
+              for case in root.iter('testcase'):
+                  name = case.get('name', '')
+                  if name not in required: continue
+                  api = '29' if '29-debug' in str(path) else '35' if '35-debug' in str(path) else 'unknown'
+                  status = 'FAIL' if case.find('failure') is not None or case.find('error') is not None else 'SKIP' if case.find('skipped') is not None else 'PASS'
+                  print('::notice title=Build44 native evidence::API' + api + ': ' + name + ': ' + status)
+                  seen[(api, name)] = status
+          expected = {(api, name): 'PASS' for api in ('29', '35') for name in required}
+          # API29's stock provider lacks this optional bridge feature. Its separate
+          # non-skipped playback fallback test must still PASS; never waive Copy/reactions.
+          if seen.get(('29', 'messageBridgeRejectsSameOriginSubframesAndMalformedPayloads')) == 'SKIP':
+              expected[('29', 'messageBridgeRejectsSameOriginSubframesAndMalformedPayloads')] = 'SKIP'
+          assert seen == expected, 'Missing/failed core input evidence: ' + repr(seen)
+          PY
       - name: Inspect browsing session assertions separately
         run: |
           python3 - <<'PY'

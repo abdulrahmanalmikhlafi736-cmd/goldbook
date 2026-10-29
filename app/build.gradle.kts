@@ -5,12 +5,12 @@ plugins {
 }
 android {
     namespace = "com.almekhlafi.FPRO"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.almekhlafi.FPRO"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 35
-        versionCode = providers.gradleProperty("fproVersionCode").orNull?.let { value -> value.toIntOrNull()?.takeIf { it in 1..2100000000 } ?: error("fproVersionCode must be a positive Android version code") } ?: 40
+        versionCode = providers.gradleProperty("fproVersionCode").orNull?.let { value -> value.toIntOrNull()?.takeIf { it in 1..2100000000 } ?: error("fproVersionCode must be a positive Android version code") } ?: 56
         versionName = "0.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -36,7 +36,8 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2025.04.01"))
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.core:core-ktx:1.16.0")
-    implementation("androidx.webkit:webkit:1.12.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.0")
+    implementation("androidx.webkit:webkit:1.16.0")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
     testImplementation("junit:junit:4.13.2")
