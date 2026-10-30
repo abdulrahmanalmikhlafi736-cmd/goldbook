@@ -31,7 +31,17 @@ existing retained-target cleanup so it is not immediately restored each full sca
 ## Evidence / limitations
 
 Local Node24.22.1: all17 discovered DOM suites PASS, including the new57 suite.
-Android compile/lint/APK and emulator outcomes are recorded below once available.
+Final tested production/test source: `2b70cfbd8d88885b9e9c22cbc0220d559a80663f`.
+Subsequent delivery changes are documentation/archive only.
+
+- [Build/unit/lint/debug+compact APK/17 DOM suites: PASS](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41089014920).
+- [Android13: all6 required cases PASS, none skipped/missing](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41089014897), check124177632880. New real-palette/combined-style fixture plus existing trusted-transition, prompt, renderer, playback-reporting and origin-bridge cases.
+- [Node24.22.1 /17 suites on Ubuntu24.04 AND26.04: PASS](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41089014887).
+- [Wider device matrix: FAIL, only1/4 jobs PASS](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41089014980). Compact API35 passes all black-box cases; exact tested APK artifact12993845660. Debug API29/check124177633722 and35/check124177633853 still fail the PiP real-tap playback prerequisite previously unresolved in56. Compact API36/check124177633573 fails all3 cases at “Actual compact app must open”; launch/UI-visibility failure is unresolved, NOT a successful rendering test. Prior44f4fdf run41088546847 passed compact35/36, but that does NOT override the final36 failure. Do not call the complete matrix green or label this conclusively environmental. Full remote log retrieval in this sandbox returned EOF; check annotations establish the failure, not its root cause.
+
+Installable outputs exist, but passing compilation/targeted Android13 fixtures
+is not all-device or private-account acceptance. No test expectations weakened,
+failures hidden, automatic merge or data deletion.
 
 The owner's account-specific CTA disappearance is NOT established. Existing56
 controlled tests passed but the owner still reported visible CTA during interaction.
