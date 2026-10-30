@@ -221,6 +221,8 @@
    if(cfg.referenceEngine&&window.FproNoapp)window.FproNoapp.scan([bar],true,false);
    else for(const control of [bar,...boundedElements(bar,'a,button,[role="button"],[role="link"]',48)])queueAppBanner(control);
   }
+  // Preserve build41 held-input/selection deferral; CTA discovery above stays urgent.
+  if(fast&&interactionBusy())return;
   if(!cfg.ads&&!cfg.stories&&!cfg.homeStories&&!cfg.reels&&!cfg.people&&!cfg.groups&&!cfg.suggested&&!cfg.amoled&&!cfg.sticky)return;
   const selector='.sponsored_ad,article[data-ft*="sponsored_ad"],[data-tracking-duration-id],[data-mcomponent="MContainer"],.fl.ac .native-text,[role="tablist"]';
   const budget={remaining:fast?384:2400};

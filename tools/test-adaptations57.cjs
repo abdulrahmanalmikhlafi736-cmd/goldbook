@@ -22,9 +22,12 @@ const micro=async()=>{await Promise.resolve();await Promise.resolve();};
   run({color:'تلقائي',dynamic:false,systemAccent:'#135724'});assert(!w.document.getElementById('fpro-style').textContent.includes('#135724'));
   const header=w.document.createElement('div');header.innerHTML='<div data-mcomponent="MContainer" data-focusable="true" data-type="container" data-tti-phase="-1"><div aria-label="Facebook"></div><button aria-label="Search"></button><button>Profile</button></div><div role="tablist" data-mcomponent="MContainer"><button aria-label="feed"></button></div>';w.document.body.append(header);header.firstChild.getBoundingClientRect=()=>({height:48});
   run({sticky:true,color:'أحمر',amoled:true});assert.equal(header.firstChild.getAttribute('data-fpro-adapt-sticky'),'header');assert.equal(header.lastChild.getAttribute('data-fpro-adapt-sticky'),'tabs');assert.equal(header.lastChild.style.getPropertyValue('--fpro-nav-offset'),'48px');assert.equal(w.document.body.style.overflow,'');run();assert(!w.document.querySelector('[data-fpro-adapt-sticky]'));assert.equal(header.lastChild.style.getPropertyValue('--fpro-nav-offset'),'');
-  await micro();await new Promise(r=>w.requestAnimationFrame(r));
+  run({ads:true});await micro();await new Promise(r=>w.requestAnimationFrame(r));
+  w.dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true}));
+  const lateAd=w.document.createElement('div');lateAd.className='sponsored_ad';lateAd.textContent='Late ad';w.document.body.append(lateAd);await micro();assert.notEqual(lateAd.style.display,'none','Held input defers adapted non-CTA work');
   // Actual upstream footer shape beyond384 nodes, WITHOUT an aria-label.
   const root=w.document.createElement('section');root.innerHTML='<div>Noise</div>'.repeat(1000)+'<div class="bottom fixed-container" data-actual-height="65" style="position:fixed;bottom:0;width:100%;height:65px"><button>فتح التطبيق</button></div>';const bar=root.lastChild;bar.getBoundingClientRect=()=>({width:w.innerWidth,height:65});w.document.body.append(root);await micro();await micro();assert.equal(bar.style.display,'none','Metadata probe finds unlabelled late footer');
+  w.dispatchEvent(new w.Event('blur'));run({ads:true});assert.equal(lateAd.style.display,'none','Deferred ad work resumes');
   run({appBanner:false});assert.notEqual(bar.style.display,'none');
  }
  console.log('Adaptations57 PASS: guarded cards/stories/reels, OFF/recycle/form/photo protection, MaterialYou/manual choice, AMOLED restore, sticky offsets, upstream footer metadata after1000 nodes.');
