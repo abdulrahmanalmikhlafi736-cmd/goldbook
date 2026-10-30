@@ -127,7 +127,8 @@
   for(let root=link.parentElement,d=0;root&&d<7;root=root.parentElement,d++){
    if(root.matches('body,main,[role="main"],[role="feed"],header,nav')||root.querySelector(messageSelectionRegions))break;
    const reply=Array.from(root.querySelectorAll('a,button,[role="button"]')).some(el=>/^(?:reply|رد|الرد)$/.test(norm(el.getAttribute('aria-label')||el.textContent)));
-   if(reply&&root.querySelector('p,[dir="auto"],.native-text')&&root.querySelectorAll('a').length>=2)return root;
+   const author=Array.from(root.querySelectorAll('a[href]')).some(a=>!commentPermalink(a)&&/^(?:https?:\/\/(?:m\.|www\.)?facebook\.com)?\/(?:profile\.php|people\/|user\/|[\w.]+\/?(?:\?|$))/.test(a.getAttribute('href')||'')&&!selectionControlLabels.has(norm(a.textContent)));
+   if(reply&&author&&root.querySelector('p,span,[dir="auto"],.native-text,[data-mcomponent="TextArea"]'))return root;
   }
   return null;
  }
