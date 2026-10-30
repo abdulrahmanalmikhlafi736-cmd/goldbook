@@ -1,0 +1,68 @@
+name: Touch workload audit Android 13
+on:
+  push:
+    paths: ['app/src/androidTest/java/com/almekhlafi/FPRO/TouchWorkAuditTest.kt', 'tools/audit-touch.cjs', '.github/workflows/touch-audit.yml']
+  workflow_dispatch:
+jobs:
+  lifecycle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            mkdir -p upgrade-diagnostics
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.TouchWorkAuditTest --stacktrace > upgrade-diagnostics/gradle.log 2>&1
+            adb shell run-as com.almekhlafi.FPRO cat files/touch-audit.json > upgrade-diagnostics/touch-audit.json
+      - name: Publish exact upgrade evidence
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          expected = {'unrelatedMutationsRevalidateAllCommentsDuringRealHeldTouch'}
+          seen = {}
+          for report in Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'):
+              for case in ET.parse(report).iter('testcase'):
+                  name = case.get('name')
+                  if name not in expected: continue
+                  status = 'FAIL' if case.find('failure') is not None or case.find('error') is not None else 'SKIP' if case.find('skipped') is not None else 'PASS'
+                  seen[name] = status
+                  print('::notice title=Android13 touch audit::' + name + ': ' + status)
+                  for failure in list(case.iter('failure')) + list(case.iter('error')):
+                      message = (failure.text or failure.get('message',''))[:5000]
+                      print('::error title=Touch audit test::' + message.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+          telemetry = Path('upgrade-diagnostics/touch-audit.json')
+          if telemetry.exists(): print('::notice title=Touch workload counts::' + telemetry.read_text().strip())
+          log = Path('upgrade-diagnostics/gradle.log')
+          if not seen and log.exists():
+              for line in log.read_text(errors='replace').splitlines():
+                  if line.startswith('e: ') or any(x in line for x in ('FAILED','What went wrong','Could not','Execution failed')):
+                      print('::error::' + line.replace('%','%25'))
+          assert seen == {name:'PASS' for name in expected}, 'Missing/failed/skipped Android13 upgrade evidence: ' + repr(seen)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Android13-touch-audit-evidence
+          path: |
+            upgrade-diagnostics/
+            app/build/outputs/androidTest-results/
+            app/build/reports/androidTests/
