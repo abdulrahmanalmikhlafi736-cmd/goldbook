@@ -36,7 +36,7 @@ class PromptSelection59RegressionTest {
                 requestAnimationFrame(()=>{
                   const hidden=id=>{const e=document.getElementById(id);return !!e&&(!e.getClientRects().length||getComputedStyle(e).display==='none')};
                   window.first59={early:window.__fproEarly===true,plain:hidden('plain'),bar:hidden('bar'),wrapped:hidden('wrapped'),search:!hidden('search'),account:!hidden('account'),input:!hidden('password'),main:!hidden('main')};
-                  let n=0;function sample(){if(n++<12){document.getElementById('bar').style.setProperty('display','block','important');requestAnimationFrame(()=>{window.exposed59=(window.exposed59||0)+(hidden('bar')?0:1);sample();});}else window.finished59=true;}sample();
+                  let n=0;function sample(){if(n++<12){document.getElementById('main').setAttribute('aria-modal','true');document.getElementById('main').setAttribute('role','dialog');document.getElementById('bar').style.setProperty('display','block','important');requestAnimationFrame(()=>{window.exposed59=(window.exposed59||0)+(hidden('bar')&&hidden('wrapped')?0:1);sample();});}else window.finished59=true;}sample();
                 });</script></head><body><button id="plain">فتح التطبيق</button><main id="main" style="position:fixed;inset:0"><button id="search" aria-label="Search">Search</button><button id="account">Account</button><button id="wrapped">Open app</button><article><p>Protected post</p></article></main><form><input id="password" type="password"><button>Open app</button></form><div id="bar" class="bottom fixed-container" data-actual-height="64"><button aria-label="فتح التطبيق">فتح التطبيق</button></div></body></html>"""
                 val url="https://m.facebook.com/"
                 web.webViewClient=object:android.webkit.WebViewClient(){
@@ -69,7 +69,7 @@ class PromptSelection59RegressionTest {
                 web.loadDataWithBaseURL("https://fixture.invalid/", """
                     <html><meta name="viewport" content="width=device-width,initial-scale=1">
                     <style>p,span,a{-webkit-user-select:none;user-select:none}body{margin:24px;font:24px sans-serif}p{margin:24px 0}</style>
-                    <body><article role="button" style="user-select:none!important;-webkit-user-select:none!important"><p id="post" style="user-select:none!important;-webkit-user-select:none!important">FPROpost selection sample</p><div role="comment" data-commentid="1"><p><span id="comment" dir="auto" style="user-select:none!important;-webkit-user-select:none!important">FPROcomment selection sample</span></p></div><p><a id="hashtag" href="/hashtag/sample" style="user-select:none!important;-webkit-user-select:none!important">#FPROhashtag</a></p><button>Like</button><div role="button" aria-haspopup="dialog"><span id="wrappedPlain" style="user-select:none!important;-webkit-user-select:none!important">FPROwrapped plain reading sample</span></div></article><div id="bare" style="user-select:none!important;-webkit-user-select:none!important">FPRObare direct div sample</div>
+                    <body><article role="button" style="user-select:none!important;-webkit-user-select:none!important"><p id="post" style="user-select:none!important;-webkit-user-select:none!important">FPROpost selection sample</p><div role="comment" data-commentid="1"><p><span id="comment" dir="auto" style="user-select:none!important;-webkit-user-select:none!important">FPROcomment selection sample</span></p></div><p><a id="hashtag" href="/hashtag/sample" style="user-select:none!important;-webkit-user-select:none!important">#FPROhashtag</a></p><button>Like</button><div role="button" aria-haspopup="dialog"><span id="wrappedPlain" style="user-select:none!important;-webkit-user-select:none!important">FPROwrapped plain reading sample</span></div></article><div id="bare" class="native-text" style="user-select:none!important;-webkit-user-select:none!important">FPRObare direct div sample</div><div role="article"><div role="article"><p id="nested" style="user-select:none!important;-webkit-user-select:none!important">FPROnested post selection sample</p></div></div>
                     <script>document.addEventListener('contextmenu',e=>e.preventDefault(),true);document.addEventListener('selectstart',e=>e.preventDefault(),true);document.addEventListener('pointerdown',e=>e.preventDefault(),true);document.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});</script></body></html>
                 """.trimIndent(), "text/html", "UTF-8", null)
                 fun probe(attempt: Int) {
@@ -99,7 +99,7 @@ class PromptSelection59RegressionTest {
                 for(window in automation.windows)copyAction(window.root)?.let { return it }
                 return null
             }
-            for(id in listOf("post", "hashtag", "comment")) {
+            for(id in listOf("post", "hashtag", "bare", "nested", "comment")) {
                 val coordinates = FloatArray(2)
                 val measured = CountDownLatch(1)
                 scenario.onActivity { activity ->
