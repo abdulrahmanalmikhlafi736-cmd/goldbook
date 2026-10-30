@@ -104,6 +104,7 @@ class PromptSelection59RegressionTest {
                 val measured = CountDownLatch(1)
                 scenario.onActivity { activity ->
                     val web = requireNotNull(findWeb(activity.window.decorView))
+                    activity.getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("baseline", "not-copied-$id"))
                     web.evaluateJavascript("""
                         (()=>{getSelection().removeAllRanges();const e=document.getElementById('$id'),r=document.createRange();r.setStart(e.firstChild,1);r.setEnd(e.firstChild,5);const b=r.getBoundingClientRect();return JSON.stringify({x:b.left+b.width/2,y:b.top+b.height/2,w:innerWidth});})()
                     """.trimIndent()) { result ->
@@ -153,6 +154,12 @@ class PromptSelection59RegressionTest {
                 val copy= requireNotNull(nativeCopyAction())
                 assertTrue("Native Copy action must be clickable",copy.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)||copy.parent?.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)==true)
                 Thread.sleep(350)
+                val copied=java.util.concurrent.atomic.AtomicReference("")
+                scenario.onActivity { activity ->
+                    copied.set(activity.getSystemService(android.content.ClipboardManager::class.java).primaryClip?.getItemAt(0)?.coerceToText(activity)?.toString().orEmpty())
+                }
+                val expected=org.json.JSONArray("[${text.get()}]").getString(0)
+                assertEquals("Native Copy must place the actual selected $id text on the clipboard",expected,copied.get())
 
             }
         }
