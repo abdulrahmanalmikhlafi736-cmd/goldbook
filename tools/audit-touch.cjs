@@ -1,6 +1,6 @@
 // Development-only structural profiler. jsdom timings are NOT Android frame times.
 const fs=require('node:fs'),{performance}=require('node:perf_hooks'),{JSDOM}=require('jsdom');
-const assets=['app-prompt-engine.js','site-engine.js','facebook.js'].map(f=>fs.readFileSync('app/src/main/assets/'+f,'utf8'));
+const assets=['app-prompt-engine.js','site-engine.js','reference-engines.js','audio-mode.js','facebook.js'].map(f=>fs.readFileSync('app/src/main/assets/'+f,'utf8'));
 async function run(name,options,size=120,mutation="class",held=false){
  const card=i=>`<article><p>Post content ${i}</p><div><a href="/profile.php?id=4">Author</a><span dir="auto">Comment content</span><a href="/story.php?comment_id=${i+1}">2h</a><button>Reply</button></div></article>`;
  const dom=new JSDOM(`<html><head></head><body><header><button id="search">Search</button></header><main role="feed">${Array.from({length:size},(_,i)=>card(i)).join('')}</main><button id="action">Like</button><div id="changing"></div></body></html>`,{url:'https://m.facebook.com/',runScripts:'outside-only',pretendToBeVisual:true});

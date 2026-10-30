@@ -39,7 +39,7 @@ class TouchWorkAuditTest {
    val cfg="{siteEngine:'upstream',enhance:true,appBanner:true,textSelection:true,selectionScope:'posts',color:'طبيعي',referenceEngine:true}"
    scenario.onActivity { activity ->
     // Only read production assets; no modified runtime or fake Facebook UI.
-    for(name in listOf("app-prompt-engine.js","site-engine.js","facebook.js")) {
+    for(name in listOf("app-prompt-engine.js","site-engine.js","reference-engines.js","audio-mode.js","facebook.js")) {
      val source=activity.assets.open(name).bufferedReader().use{it.readText()}.replace("__CONFIG__",cfg)
      requireNotNull(find(activity.window.decorView)).evaluateJavascript(source,null)
     }
