@@ -54,7 +54,8 @@
   const allowed=el=>!el.closest('[id^="fpro"],.fpro-video-tools');
   const doc=new Proxy(document,{get(target,key){if(key==='querySelectorAll')return selector=>Array.from(target.querySelectorAll(selector)).filter(allowed);if(key==='querySelector')return selector=>Array.from(target.querySelectorAll(selector)).find(allowed)||null;const value=Reflect.get(target,key,target);return typeof value==='function'?value.bind(target):value;}});
   const win=new Proxy(window,{get(target,key){if(key==='document')return doc;if(key==='MaterialYouBridge')return bridge;if(key==='isDesktopMode')return isDesktopMode;if(key==='isFeed')return isFeed;if(key==='setTimeout')return timeout;const value=Reflect.get(target,key,target);return typeof value==='function'?value.bind(target):value;}});
-  const api={run,wrap,primary,body:document.body,url:location.href,
+  const protectedUI=el=>!el||el.matches('html,body,main,header,nav,[role="main"],[role="feed"],[role="navigation"],[role="banner"],.fpro-video-tools,[id^="fpro"]')||!!el.closest('form,dialog,[role="dialog"],[aria-modal="true"]')||!!el.querySelector('form,input,textarea,select,[aria-label="Search"],[aria-label="بحث"],.fpro-video-tools');
+  const api={run,wrap,primary,protectedUI,hide(el){if(!protectedUI(el))el.style.display='none';},remove(el){if(!protectedUI(el))el.remove();},body:document.body,url:location.href,
    cssRule(style,key,value){if(!rules.has(style))rules.set(style,new Map());const m=rules.get(style),old=m.get(key);m.set(key,{value:old?old.value:style.getPropertyValue(key),priority:old?old.priority:style.getPropertyPriority(key),applied:value});style.setProperty(key,value);},
    mount(name){run(()=>factories[name](win,doc,MO,IO,timeout,isDesktopMode,isFeed,api));},
    stop(){alive=false;for(const ob of observers)ob.disconnect();for(const id of timers)window.clearTimeout(id);capture.disconnect();

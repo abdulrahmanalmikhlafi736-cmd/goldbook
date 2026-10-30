@@ -12,7 +12,7 @@
           const selector = 'div.sponsored_ad, article[data-ft*="sponsored_ad"]';
 
           const removeSponsored = (root = document) => {
-            root.querySelectorAll(selector).forEach(el => el.remove());
+            root.querySelectorAll(selector).forEach(el => scope.remove(el));
           };
 
           removeSponsored();
@@ -22,7 +22,7 @@
               for (const node of mutation.addedNodes) {
                 if (!(node instanceof HTMLElement)) continue;
                 if (node.matches(selector)) {
-                  node.remove();
+                  scope.remove(node);
                 } else {
                   removeSponsored(node);
                 }
@@ -59,12 +59,12 @@
 
             const container = parent.closest('div[data-dcm-id="1"][data-mcomponent="MContainer"]');
             if (!container) continue;
-            container.style.display = 'none'
+            scope.hide(container);
 
             const postSeparator = container.previousElementSibling;
 
             if (postSeparator && postSeparator.offsetHeight === 1 && postSeparator.querySelector('[data-fd-action]') ) {
-              postSeparator.style.display = 'none';
+              scope.hide(postSeparator);
             }
         }
     }
@@ -130,6 +130,7 @@
                     container.dataset.adHidden = 'true';
 
                     // Completely empty the container but keep it in DOM for scroll snap
+                    if(scope.protectedUI(container)) return;
                     container.innerHTML = '';
 
                     // Add a styled message for blocked ad
@@ -453,7 +454,7 @@ const hideBottomBanner = () => {
   ) {
     const heightAttr = element.getAttribute('data-actual-height');
     if (heightAttr && parseInt(heightAttr, 10) < 80) {
-      element.style.display = 'none';
+      scope.hide(element);
     }
   }
 };
@@ -472,7 +473,7 @@ observer.observe(document.body, { childList: true, subtree: true });
     if (window.location.href.includes('facebook.com/search')) {
       const parents = document.querySelectorAll('[data-is-h-scrollable]');
       const lastParent = parents[parents.length - 1]?.closest('.m.bg-s1');
-      if (lastParent) lastParent.style.display = 'none';
+      if (lastParent) scope.hide(lastParent);
     }
   };
 
@@ -488,7 +489,7 @@ observer.observe(document.body, { childList: true, subtree: true });
     const groupContainer = document.querySelector('h3[data-tti-phase="-1"].m');
     if (groupContainer) {
       const parent = groupContainer.closest('.m.bg-s2');
-      if (parent) parent.style.display = 'none';
+      if (parent) scope.hide(parent);
     }
   };
 
@@ -511,7 +512,7 @@ observer.observe(document.body, { childList: true, subtree: true });
     const imgArea = document.querySelector('[data-mcomponent="ImageArea"]');
     const suggCont = imgArea?.nextElementSibling;
 
-    if (suggCont) suggCont.style.display = 'none';
+    if (suggCont) scope.hide(suggCont);
   };
 
   hidePymk();
@@ -534,7 +535,7 @@ observer.observe(document.body, { childList: true, subtree: true });
     nodes.forEach(node => {
       if (!(node instanceof HTMLElement)) return;
       const targets = node.matches('.hscroller') ? [node] : node.querySelectorAll?.('.hscroller') || [];
-      targets.forEach(el => el.closest('[data-tracking-duration-id]')?.style.setProperty('display', 'none'));
+      targets.forEach(el => scope.hide(el.closest('[data-tracking-duration-id]')));
     });
   };
 
@@ -558,7 +559,7 @@ observer.observe(document.body, { childList: true, subtree: true });
       if (!(node instanceof HTMLElement)) return;
       const targets = node.matches(CONTAINER) ? [node] : node.querySelectorAll(CONTAINER);
       targets.forEach(container => {
-        if (container.querySelector(CHILD)) container.style.display = 'none';
+        if (container.querySelector(CHILD)) scope.hide(container);
       });
     };
 
@@ -580,7 +581,7 @@ observer.observe(document.body, { childList: true, subtree: true });
           const box = el.closest('[data-tracking-duration-id]');
           if (box && !box.hasAttribute(FLAG)) {
             box.setAttribute(FLAG, '1');
-            box.style.display = 'none';
+            scope.hide(box);
           }
         }
       });
@@ -602,7 +603,7 @@ observer.observe(document.body, { childList: true, subtree: true });
     const storyContainer = isDesktopMode() ? document.querySelector('.x193iq5w.xgmub6v.x1ceravr')
         : document.querySelector('[data-mcomponent="MContainer"][data-srat="43"]');
 
-    if (storyContainer) storyContainer.style.display = 'none';
+    if (storyContainer) scope.hide(storyContainer);
   };
 
   hideTargetElement();
@@ -633,7 +634,7 @@ observer.observe(document.body, { childList: true, subtree: true });
           containers.forEach(container => {
             const targetSpan = container.querySelector(targetSpanSelector);
             if (targetSpan) {
-              container.style.display = 'none';
+              scope.hide(container);
             }
           });
         };
@@ -663,10 +664,10 @@ observer.observe(document.body, { childList: true, subtree: true });
             if (textSpan.textContent.trim() === '•') {
               const suggestedPostContainer = textSpan.closest('div[data-tracking-duration-id]');
               if (suggestedPostContainer) {
-                suggestedPostContainer.style.display = 'none';
+                scope.hide(suggestedPostContainer);
                 const postGap = suggestedPostContainer.previousElementSibling;
                 if (postGap) {
-                  postGap.style.display = 'none';
+                  scope.hide(postGap);
                 }
               }
             }
@@ -912,7 +913,7 @@ const SELECTORS={    storyIndicators: [
           if (flAcDiv) {
             const span = flAcDiv.querySelector('span');
             if (span && span.textContent.includes('󱥬')) {
-              button.style.display = 'none';
+              scope.hide(button);
             }
           }
         });
@@ -1086,7 +1087,8 @@ apply();new MutationObserver(apply).observe(document.body,{childList:true,subtre
   const allowed=el=>!el.closest('[id^="fpro"],.fpro-video-tools');
   const doc=new Proxy(document,{get(target,key){if(key==='querySelectorAll')return selector=>Array.from(target.querySelectorAll(selector)).filter(allowed);if(key==='querySelector')return selector=>Array.from(target.querySelectorAll(selector)).find(allowed)||null;const value=Reflect.get(target,key,target);return typeof value==='function'?value.bind(target):value;}});
   const win=new Proxy(window,{get(target,key){if(key==='document')return doc;if(key==='MaterialYouBridge')return bridge;if(key==='isDesktopMode')return isDesktopMode;if(key==='isFeed')return isFeed;if(key==='setTimeout')return timeout;const value=Reflect.get(target,key,target);return typeof value==='function'?value.bind(target):value;}});
-  const api={run,wrap,primary,body:document.body,url:location.href,
+  const protectedUI=el=>!el||el.matches('html,body,main,header,nav,[role="main"],[role="feed"],[role="navigation"],[role="banner"],.fpro-video-tools,[id^="fpro"]')||!!el.closest('form,dialog,[role="dialog"],[aria-modal="true"]')||!!el.querySelector('form,input,textarea,select,[aria-label="Search"],[aria-label="بحث"],.fpro-video-tools');
+  const api={run,wrap,primary,protectedUI,hide(el){if(!protectedUI(el))el.style.display='none';},remove(el){if(!protectedUI(el))el.remove();},body:document.body,url:location.href,
    cssRule(style,key,value){if(!rules.has(style))rules.set(style,new Map());const m=rules.get(style),old=m.get(key);m.set(key,{value:old?old.value:style.getPropertyValue(key),priority:old?old.priority:style.getPropertyPriority(key),applied:value});style.setProperty(key,value);},
    mount(name){run(()=>factories[name](win,doc,MO,IO,timeout,isDesktopMode,isFeed,api));},
    stop(){alive=false;for(const ob of observers)ob.disconnect();for(const id of timers)window.clearTimeout(id);capture.disconnect();

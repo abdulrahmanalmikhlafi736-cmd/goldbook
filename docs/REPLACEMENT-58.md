@@ -51,6 +51,7 @@ The raw vendor sources are preserved. Build-time edits:
   continuation so its writes and observers belong to the active lifecycle.
 - Journal AMOLED CSSOM writes for restoration.
 - Guard upstream adblock's null container dereference, retaining its selectors.
+- Mutation-boundary hide/remove protection for page/navigation/FPRO hosts, search and form/modal controls; imported matching logic otherwise retained, not replaced by our old classifier.
 - Arabic translations of the two injected Reels-ad placeholder strings.
 - Run the unchanged bottom-bar classifier once initially as well as its original
   mutation observer, rather than waiting for the first unrelated DOM change.
@@ -68,7 +69,7 @@ WebView debugging. Upstream factories are bundled as ordinary static JavaScript.
 
 Unlike57, actual upstream broad gray-span, bullet, next-sibling, last search group,
 all-hscroller, class/glyph and short-footer heuristics now determine matches.
-They can hide ordinary similar content, search suggestions or controls. Sticky
+They can hide ordinary similar content or search suggestions. Page/navigation hosts, FPRO tools and form/search/modal controls are rejected at the hide/remove boundary; this is not a claim to recognize every private account control. Sticky
 uses upstream FIXED positioning/body/scroller adjustments, not our sticky design.
 The imported Reels-ad module may replace contents with a localized placeholder and
 scroll past blocked ads. These behaviors are not falsely described as guarded57.
