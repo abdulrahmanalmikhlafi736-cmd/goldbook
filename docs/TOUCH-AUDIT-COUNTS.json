@@ -1,0 +1,383 @@
+{
+  "source": "41890c9; unchanged build61 production",
+  "environment": "Node24.22.1 + jsdom29.1.1; operation counts, not Android frame/input timings",
+  "workload": "Six separate unrelated DOM mutations; 5 production injected assets in their native order. Read-only instrumentation, synthetic content only.",
+  "rows": [
+    {
+      "name": "base-small",
+      "cards": 40,
+      "mutation": "class",
+      "held": false,
+      "queries": 744,
+      "nodesReturned": 1680,
+      "observerCallbacks": 18,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 0,
+          "touchstart": 0,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "base-large",
+      "cards": 240,
+      "mutation": "class",
+      "held": false,
+      "queries": 4344,
+      "nodesReturned": 10080,
+      "observerCallbacks": 18,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 0,
+          "touchstart": 0,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "selection-off",
+      "cards": 240,
+      "mutation": "class",
+      "held": false,
+      "queries": 18,
+      "nodesReturned": 0,
+      "observerCallbacks": 12,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "master-off",
+      "cards": 240,
+      "mutation": "class",
+      "held": false,
+      "queries": 4326,
+      "nodesReturned": 10080,
+      "observerCallbacks": 6,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 0,
+          "touchstart": 0,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "both-off",
+      "cards": 240,
+      "mutation": "class",
+      "held": false,
+      "queries": 0,
+      "nodesReturned": 0,
+      "observerCallbacks": 0,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "gold",
+      "cards": 120,
+      "mutation": "class",
+      "held": false,
+      "queries": 2184,
+      "nodesReturned": 5040,
+      "observerCallbacks": 18,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 0,
+          "touchstart": 0,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "amoled",
+      "cards": 120,
+      "mutation": "class",
+      "held": false,
+      "queries": 2184,
+      "nodesReturned": 5040,
+      "observerCallbacks": 18,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 0,
+          "touchstart": 0,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "gold-style",
+      "cards": 120,
+      "mutation": "style",
+      "held": false,
+      "queries": 66,
+      "nodesReturned": 24,
+      "observerCallbacks": 18,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 0,
+          "touchstart": 0,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "amoled-style",
+      "cards": 120,
+      "mutation": "style",
+      "held": false,
+      "queries": 60,
+      "nodesReturned": 24,
+      "observerCallbacks": 18,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 0,
+          "touchstart": 0,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "base-child",
+      "cards": 120,
+      "mutation": "child",
+      "held": false,
+      "queries": 2190,
+      "nodesReturned": 5040,
+      "observerCallbacks": 24,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 0,
+          "touchstart": 0,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "base-held-class",
+      "cards": 240,
+      "mutation": "class",
+      "held": true,
+      "queries": 4345,
+      "nodesReturned": 10080,
+      "observerCallbacks": 18,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 0,
+          "touchstart": 0,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "gold-held-style",
+      "cards": 120,
+      "mutation": "style",
+      "held": true,
+      "queries": 67,
+      "nodesReturned": 24,
+      "observerCallbacks": 18,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 0,
+          "touchstart": 0,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    },
+    {
+      "name": "all-imported-filters",
+      "cards": 120,
+      "mutation": "class",
+      "held": false,
+      "queries": 2184,
+      "nodesReturned": 5040,
+      "observerCallbacks": 18,
+      "websiteEvents": {
+        "button": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        },
+        "post": {
+          "pointerdown": 0,
+          "touchstart": 0,
+          "click": 1
+        },
+        "comment": {
+          "pointerdown": 1,
+          "touchstart": 1,
+          "click": 1
+        }
+      }
+    }
+  ],
+  "detachedNodeRetention": [
+    {
+      "batch": 1,
+      "engine": "Materialbook/Nobook",
+      "active": true,
+      "observers": 1,
+      "timers": 0,
+      "elements": 32,
+      "childChanges": 3,
+      "errors": []
+    },
+    {
+      "batch": 5,
+      "engine": "Materialbook/Nobook",
+      "active": true,
+      "observers": 1,
+      "timers": 0,
+      "elements": 160,
+      "childChanges": 3,
+      "errors": []
+    },
+    {
+      "batch": 10,
+      "engine": "Materialbook/Nobook",
+      "active": true,
+      "observers": 1,
+      "timers": 0,
+      "elements": 320,
+      "childChanges": 3,
+      "errors": []
+    },
+    {
+      "stopped": true,
+      "engine": "Materialbook/Nobook",
+      "active": false,
+      "errors": []
+    }
+  ]
+}

@@ -44,11 +44,11 @@ fun SettingsPanel(prefs: Preferences, audioOnly: () -> Unit, change: () -> Unit,
         }
         SettingsGroup("المظهر والألوان", "ألوان خفيفة دون تغيير صورك") {
         var expanded by remember { mutableStateOf(false) }
-        Toggle("محرك التلوين الشامل وإخفاء لافتة التطبيق — الكود المرسل", "referenceEngine", prefs, revision, default = true) { update() }
-        Text("عند تفعيله يوسّع اللون المختار إلى خلفيات وأزرار وأنماط الواجهة وفق المحرك الذي أرسلته. يعمل مع تعديلات الصفحة ولون غير طبيعي/تلقائي؛ إيقافه يرجع للتلوين المحدود. إخفاء اللافتة يبقى تابعًا لمفتاحه في الحجب. لا يغيّر صور الحساب أو الفيديو.", style = MaterialTheme.typography.bodySmall)
-        Text("عند إيقاف المحرك الشامل، تلوين خفيف للتفاصيل: الهاشتاجات والمتابعة والصداقة والتوثيق وحلقات القصص؛ دون تغيير خلفيات الموقع.", style = MaterialTheme.typography.bodySmall)
+        Toggle("تلوين Materialbook الشامل", "referenceEngine", prefs, revision, default = true) { update() }
+        Text("يستخدم الآن كود Materialbook بدل محركنا السابق. يطبّق اللون اليدوي أو ألوان النظام مع تلقائي؛ إيقافه يوقف تلوين الصفحة دون تعطيل مرشحات الإخفاء المستوردة.", style = MaterialTheme.typography.bodySmall)
+        Text("التلوين والإخفاء وتثبيت التنقل من أكواد المشروعين الآن؛ لا تعمل المحركات القديمة بالتوازي. القواعد الأصلية أوسع وقد تخفي عناصر مشابهة للاقتراحات.", style = MaterialTheme.typography.bodySmall)
         Toggle("تجربة متغيرات ألوان فيسبوك", "experimentalColorVars", prefs, revision) { update() }
-        Text("تجريبي ومغلق افتراضياً: يوسّع التعرف على بعض الزخارف الصغيرة. توافق حلقات القصص يختلف حسب نسخة فيسبوك، وليس مضمونًا. لا يعمل مع طبيعي أو تلقائي؛ إيقافه يستعيد أنماط الموقع الأصلية.", style = MaterialTheme.typography.bodySmall)
+        Text("تجريبي ومغلق افتراضياً: يضيف متغيرات لوحة اللون إلى تلوين المشروع المستورد. يحتاج تفعيل التلوين ولونًا يدويًا أو تلقائيًا مع ألوان النظام.", style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = copyColorDiagnostics) { Text("نسخ تشخيص التلوين — دون بيانات الحساب") }
         Box {
             OutlinedButton(onClick = { expanded = true }) { Text("اللون: ${prefs.text("color", "تلقائي")}") }
@@ -58,6 +58,7 @@ fun SettingsPanel(prefs: Preferences, audioOnly: () -> Unit, change: () -> Unit,
                 }
             }
         }
+        Text("اللون تلقائي مع ألوان النظام يلوّن واجهة فيسبوك بألوان Material You على Android12+؛ الألوان اليدوية تبقى كما تختارها.", style = MaterialTheme.typography.bodySmall)
         listOf("الوضع الداكن" to "dark", "أسود AMOLED" to "amoled", "ألوان النظام الديناميكية (Android 12+)" to "dynamic", "مطابقة الشريط مع لون الصفحة" to "liveColor").forEach { (label,key) -> Toggle(label,key,prefs,revision) { update() } }
         }
         SettingsGroup("الحجب والإخفاء", "اختر ما تريد إخفاءه من الصفحة") {
@@ -69,7 +70,7 @@ fun SettingsPanel(prefs: Preferences, audioOnly: () -> Unit, change: () -> Unit,
         Toggle("حفظ آخر موضع للتصفح لمدة تصل إلى 24 ساعة", "rememberPosition", prefs, revision, default = true) { update() }
         Text("العودة العادية لا تعيد تحميل الصفحة. إذا أغلق أندرويد التطبيق نحاول استعادة الصفحة والموضع؛ قد يغيّر فيسبوك ترتيب المنشورات. الحفظ خاص داخل التطبيق، وتعطيل الخيار يمسحه.", style = MaterialTheme.typography.bodySmall)
         listOf("شريط تقدم فيديو قابل للسحب — قوس قزح مع كرة" to "rainbow", "التكبير بالإصبعين" to "zoom", "تثبيت شريط التنقل" to "sticky", "وضع سطح المكتب (يعيد تحميل الصفحة)" to "desktop", "عكس اتجاه الصفحة" to "reverse", "صورة داخل صورة عند المغادرة (Android 8+)" to "pip", "الوضع المغمور" to "immersive").forEach { (label,key) -> Toggle(label,key,prefs,revision) { update() } }
-        Text("الضغطتان للدخول إلى ملء الشاشة فقط؛ للخروج استخدم الرجوع أو زر المشغل الأصلي. الضغطتان لملء الشاشة تعملان بالمفتاح المستقل أعلاه حتى عند تعطيل التنزيل وشريط التقدم؛ يبقى زر ملء الشاشة الأصلي متاحاً. نسخ النص متاح بتحديده حيث يسمح الموقع. الرسائل متاحة وفق دعم فيسبوك للويب. خيار المغادرة يُبقي الفيديو في نافذة صورة داخل صورة عند الضغط على الرئيسية إذا سمح النظام؛ للصوت مع قفل الشاشة استخدم خيار «صوت فقط» المنفصل. إشعارات الويب والعمل الصوتي الدائم في الخلفية غير مضمونين؛ لا توجد خدمة إشعارات Meta أصلية في هذا التطبيق.", style = MaterialTheme.typography.bodySmall)
+        Text("الضغطتان للدخول إلى ملء الشاشة فقط؛ للخروج استخدم الرجوع أو زر المشغل الأصلي. الضغطتان لملء الشاشة تعملان بالمفتاح المستقل أعلاه حتى عند تعطيل التنزيل وشريط التقدم؛ يبقى زر ملء الشاشة الأصلي متاحاً. التحديد والنسخ لمحتوى المنشورات فقط، وليس التعليقات؛ حقول كتابة الردود تبقى قابلة للتحرير. الرسائل متاحة وفق دعم فيسبوك للويب. خيار المغادرة يُبقي الفيديو في نافذة صورة داخل صورة عند الضغط على الرئيسية إذا سمح النظام؛ للصوت مع قفل الشاشة استخدم خيار «صوت فقط» المنفصل. إشعارات الويب والعمل الصوتي الدائم في الخلفية غير مضمونين؛ لا توجد خدمة إشعارات Meta أصلية في هذا التطبيق.", style = MaterialTheme.typography.bodySmall)
         }
         SettingsGroup("التوافق والتشخيص", "خيارات متقدمة — اتركها كما هي إذا كان العرض سليمًا") {
         Text(diagnostics, style = MaterialTheme.typography.bodySmall)

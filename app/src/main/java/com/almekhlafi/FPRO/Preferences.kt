@@ -35,13 +35,16 @@ class Preferences(context: Context) {
         }.apply()
     }
     fun scriptConfig(): String = JSONObject().apply {
+        put("siteEngine", "upstream")
         listOf("homeStories", "ads", "suggested", "reels", "stories", "people", "groups", "rainbow", "sticky", "reverse", "downloads").forEach { put(it, flag(it)) }
         put("enhance", flag("pageEnhancements"))
         put("doubleTapFullscreen", flag("doubleTapFullscreen", true))
         put("textSelection", flag("textSelection", true))
+        put("selectionScope", "posts")
         put("referenceEngine", flag("referenceEngine", true))
         put("appBanner", flag("appBanner", true))
         put("color", text("color", "تلقائي"))
+        put("dynamic", flag("dynamic"))
         put("experimentalColorVars", flag("experimentalColorVars"))
         put("dark", flag("dark") || flag("amoled")); put("amoled", flag("amoled"))
     }.toString()

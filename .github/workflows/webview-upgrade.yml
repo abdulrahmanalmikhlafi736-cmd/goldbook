@@ -29,14 +29,14 @@ jobs:
           disable-animations: true
           script: |
             mkdir -p upgrade-diagnostics
-            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.WebViewUpgradeRegressionTest,com.almekhlafi.FPRO.AppPromptRegressionTest,com.almekhlafi.FPRO.AppPromptTransitionRegressionTest --stacktrace > upgrade-diagnostics/gradle.log 2>&1
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.WebViewUpgradeRegressionTest,com.almekhlafi.FPRO.AppPromptRegressionTest,com.almekhlafi.FPRO.AppPromptTransitionRegressionTest,com.almekhlafi.FPRO.SiteAdaptationsRegressionTest,com.almekhlafi.FPRO.SiteReplacementRegressionTest,com.almekhlafi.FPRO.PromptSelection59RegressionTest --stacktrace > upgrade-diagnostics/gradle.log 2>&1
       - name: Publish exact upgrade evidence
         if: always()
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
-          expected = {'trustedActionsKeepVerifiedFooterHiddenDuringFixedPageTransitions', 'openAppFilterKeepsBlockingSheetsAndPageControlsUsable', 'rendererCallbackReplacesBrowserAndBoundsAutomaticReloads', 'playbackReportingTracksPageOnEveryProvider', 'messageBridgeRejectsSameOriginSubframesAndMalformedPayloads'}
+          expected = {'productionPromptRulesHideBeforeFirstFrameAndRestoreOff', 'nativeCopyIsAvailableForPostsAndHashtagsButNotComments', 'importedEngineReplacesLegacySelectorsAndRestoresNativeLayout', 'adaptedFiltersUseNativeMaterialPaletteAndRestoreSiteContent', 'trustedActionsKeepVerifiedFooterHiddenDuringFixedPageTransitions', 'openAppFilterKeepsBlockingSheetsAndPageControlsUsable', 'rendererCallbackReplacesBrowserAndBoundsAutomaticReloads', 'playbackReportingTracksPageOnEveryProvider', 'messageBridgeRejectsSameOriginSubframesAndMalformedPayloads'}
           seen = {}
           for report in Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'):
               for case in ET.parse(report).iter('testcase'):
