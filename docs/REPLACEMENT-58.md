@@ -89,8 +89,37 @@ The engine has multiple original vendor observers/full walks, NOT one bounded
 - New SiteReplacementRegressionTest uses actual WebView/native palette and combined
   imported features, checks17 booleans including original-selector matches, legacy
   matcher inactivity, AMOLED, fixed navigation, native controls and OFF restoration.
-  Prior six Android13 required cases retained; seven are now required.
-- Native build/emulator results must be recorded after execution. Local DOM passes
+  Prior six Android13 required cases retained; seven are now required. Historical prompt/adaptation fixtures deliberately omit siteEngine to preserve their old regression baselines. Their legacy-policy results are NOT evidence for the new upstream prompt policy; the new replacement fixture explicitly selects the production upstream route.
+- Native results are recorded below. Local DOM passes
   alone are NOT an APK build, real Facebook account acceptance or performance proof.
 
 Official native UI reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
+
+
+## Executed final production evidence
+
+Production/native-test source: `5b1b369` (subsequent expanded DOM tests and docs do
+not change production). All7 required Android13 cases PASS, including17 computed
+checks in the actual replacement fixture; no missing/skipped results:
+https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41098696329
+Check124211075870 confirms each exact required result.
+
+Build/unit/lint/18 DOM/debug+compact APK PASS:
+https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41098696398
+Compact APK artifact12997546762, debug12998200500, reports12997805990.
+
+Node24.22.1 /18 suites on Ubuntu24.04 AND26.04 PASS:
+https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41098696353
+
+Wider device matrix tracked separately (not declared green):
+https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41098696088
+Initial matrix is0/4 FAIL: debug29/35 retain PiP playback-prerequisite failures;
+API29 also reports a null fixture result, and API35 reports “Open App must already
+be hidden at first requested frame” in yDocumentStartHidesCtaBeforeFirstFrameAndEnablesAmoled.
+This is a real coverage gap of the replacement, NOT dismissed as unrelated:
+upstream short-footer/glyph selectors do not identify every old FPRO text-label
+fixture. That assertion is retained, not weakened or reclassified as passing.
+Compact35/36 fail selectedPageTools at the renamed setting label. Updated ONLY
+the UI lookup to “تلوين Materialbook الشامل”, keeping all test actions/assertions;
+a follow-up matrix is required. Do not describe this as all-device ready.
+Owner acceptance of CTA disappearance remains unverified after their57 failure.
