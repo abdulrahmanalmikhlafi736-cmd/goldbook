@@ -44,11 +44,11 @@ fun SettingsPanel(prefs: Preferences, audioOnly: () -> Unit, change: () -> Unit,
         }
         SettingsGroup("المظهر والألوان", "ألوان خفيفة دون تغيير صورك") {
         var expanded by remember { mutableStateOf(false) }
-        Toggle("محرك التلوين الشامل وإخفاء لافتة التطبيق — الكود المرسل", "referenceEngine", prefs, revision, default = true) { update() }
-        Text("عند تفعيله يوسّع اللون المختار إلى خلفيات وأزرار وأنماط الواجهة وفق المحرك الذي أرسلته. يعمل مع تعديلات الصفحة ولون مختار، أو تلقائي مع ألوان النظام؛ إيقافه يرجع للتلوين المحدود. إخفاء اللافتة يبقى تابعًا لمفتاحه في الحجب. لا يغيّر صور الحساب أو الفيديو.", style = MaterialTheme.typography.bodySmall)
-        Text("عند إيقاف المحرك الشامل، تلوين خفيف للتفاصيل: الهاشتاجات والمتابعة والصداقة والتوثيق وحلقات القصص؛ دون تغيير خلفيات الموقع.", style = MaterialTheme.typography.bodySmall)
+        Toggle("تلوين Materialbook الشامل", "referenceEngine", prefs, revision, default = true) { update() }
+        Text("يستخدم الآن كود Materialbook بدل محركنا السابق. يطبّق اللون اليدوي أو ألوان النظام مع تلقائي؛ إيقافه يوقف تلوين الصفحة دون تعطيل مرشحات الإخفاء المستوردة.", style = MaterialTheme.typography.bodySmall)
+        Text("التلوين والإخفاء وتثبيت التنقل من أكواد المشروعين الآن؛ لا تعمل المحركات القديمة بالتوازي. القواعد الأصلية أوسع وقد تخفي عناصر مشابهة للاقتراحات.", style = MaterialTheme.typography.bodySmall)
         Toggle("تجربة متغيرات ألوان فيسبوك", "experimentalColorVars", prefs, revision) { update() }
-        Text("تجريبي ومغلق افتراضياً: يوسّع التعرف على بعض الزخارف الصغيرة. توافق حلقات القصص يختلف حسب نسخة فيسبوك، وليس مضمونًا. لا يعمل مع طبيعي، أو تلقائي دون ألوان النظام؛ إيقافه يستعيد أنماط الموقع الأصلية.", style = MaterialTheme.typography.bodySmall)
+        Text("تجريبي ومغلق افتراضياً: يضيف متغيرات لوحة اللون إلى تلوين المشروع المستورد. يحتاج تفعيل التلوين ولونًا يدويًا أو تلقائيًا مع ألوان النظام.", style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = copyColorDiagnostics) { Text("نسخ تشخيص التلوين — دون بيانات الحساب") }
         Box {
             OutlinedButton(onClick = { expanded = true }) { Text("اللون: ${prefs.text("color", "تلقائي")}") }

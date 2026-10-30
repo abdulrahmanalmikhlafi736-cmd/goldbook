@@ -10,7 +10,7 @@ android {
         applicationId = "com.almekhlafi.FPRO"
         minSdk = 24
         targetSdk = 35
-        versionCode = providers.gradleProperty("fproVersionCode").orNull?.let { value -> value.toIntOrNull()?.takeIf { it in 1..2100000000 } ?: error("fproVersionCode must be a positive Android version code") } ?: 57
+        versionCode = providers.gradleProperty("fproVersionCode").orNull?.let { value -> value.toIntOrNull()?.takeIf { it in 1..2100000000 } ?: error("fproVersionCode must be a positive Android version code") } ?: 58
         versionName = "0.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -3,7 +3,9 @@
  const initial = __CONFIG__;
  if (!document.body) return;
  if (window.__fpro) { window.__fpro.update(initial); return; }
- let cfg = initial, pending = null, hidingPass = null, observingDocument = false;
+ // Replacement routing: old color/hide/sticky classifiers stay dormant in production.
+ function legacyConfig(raw){if(raw.siteEngine!=='upstream')return raw;return {...raw,color:'طبيعي',referenceEngine:false,ads:false,suggested:false,reels:false,stories:false,homeStories:false,people:false,groups:false,appBanner:false,amoled:false,dark:raw.dark&&!raw.amoled,sticky:false,experimentalColorVars:false};}
+ let cfg = legacyConfig(initial), pending = null, hidingPass = null, observingDocument = false;
  const style = document.createElement('style'); style.id = 'fpro-style'; const nonce=document.querySelector('style[nonce],script[nonce]'); if(nonce)style.nonce=nonce.nonce;
  // Keep Android WebView's real selection handles/action mode: no synthetic
  // copy popup, clipboard bridge or touch/scroll interception.
@@ -1061,6 +1063,8 @@
  window.addEventListener('scroll',scheduleLayout,true);window.addEventListener('resize',scheduleLayout);window.addEventListener('fproviewportchange',scheduleLayout);window.addEventListener('popstate',scheduleLayout);window.addEventListener('hashchange',scheduleLayout);
  const resize=typeof ResizeObserver==='function'?new ResizeObserver(scheduleLayout):null;
  function update(c){
+  if(window.FproSiteEngine)window.FproSiteEngine.update(c);
+  c=legacyConfig(c);
   if(JSON.stringify(cfg)===JSON.stringify(c)&&(window.__fpro&&window.__fpro.ready)){updateSelection();scan();return;}
   window.__fpro.ready=true;
   if(window.FproColor)window.FproColor.off();

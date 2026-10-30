@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private val pageInfoQuery by lazy {
         "(window.__fproPageInfo ? JSON.stringify(window.__fproPageInfo()) : " + pageInfoScript.trim().removeSuffix(";") + ")"
     }
-    private val script by lazy { assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("audio-mode.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
+    private val script by lazy { assets.open("site-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("audio-mode.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -549,6 +549,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         val config = org.json.JSONObject(prefs.scriptConfig())
         if (prefs.flag("dynamic") && Build.VERSION.SDK_INT >= 31) {
             val scheme = if (prefs.flag("dark") || prefs.flag("amoled")) dynamicDarkColorScheme(this) else dynamicLightColorScheme(this)
+            config.put("systemOnAccent", String.format(java.util.Locale.ROOT, "#%06x", scheme.onPrimary.toArgb() and 0xffffff))
             config.put("systemAccent", String.format(java.util.Locale.ROOT, "#%06x", scheme.primary.toArgb() and 0xffffff))
         }
         return config.toString()

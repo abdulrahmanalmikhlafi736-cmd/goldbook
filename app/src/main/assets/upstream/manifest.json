@@ -1,0 +1,47 @@
+{
+  "material_you.js": {
+    "sha256": "336a5086a32089e342a68131a4d7a2f8e0bbe49ce6a69bd869ac638fb7f6dd9b",
+    "materialbook": "f63919dae54dd91debcfea1ea5c3d2ab1793c34e",
+    "identicalNobook608296b": false
+  },
+  "amoled_black.js": {
+    "sha256": "9ddf904862df38d48c9d5773b4db4c8f1ffc6d2eb98b4012616293b7bda7ecce",
+    "materialbook": "f63919dae54dd91debcfea1ea5c3d2ab1793c34e",
+    "identicalNobook608296b": false
+  },
+  "adblock.js": {
+    "sha256": "5914062966cd0dbb542d737935161b2240d89840e4c3a8129afca960558435a5",
+    "materialbook": "f63919dae54dd91debcfea1ea5c3d2ab1793c34e",
+    "identicalNobook608296b": false
+  },
+  "hide_suggested.js": {
+    "sha256": "6bbe712a88da1c9755149dad3e4e7c94e0eebecd8a9c48fa10039663fe185109",
+    "materialbook": "f63919dae54dd91debcfea1ea5c3d2ab1793c34e",
+    "identicalNobook608296b": true
+  },
+  "hide_stories.js": {
+    "sha256": "d48e14b1be0bac840bfaf8c9c32d03e9e7765a869d990ad93cf4f7cc4707d6f8",
+    "materialbook": "f63919dae54dd91debcfea1ea5c3d2ab1793c34e",
+    "identicalNobook608296b": true
+  },
+  "hide_pymk.js": {
+    "sha256": "ccc169ffe49d7d30092d84468d4c1c8e765fe046fc45675106f45154b5dcb5ea",
+    "materialbook": "f63919dae54dd91debcfea1ea5c3d2ab1793c34e",
+    "identicalNobook608296b": true
+  },
+  "hide_groups.js": {
+    "sha256": "472b4a8bf2256341669e10f96197db552ea7a8c7414c61e32d03b21e35e7fd61",
+    "materialbook": "f63919dae54dd91debcfea1ea5c3d2ab1793c34e",
+    "identicalNobook608296b": true
+  },
+  "hide_reels.js": {
+    "sha256": "a83d3358c36956bcc3c6d3059d57959fa3753e1edd659b25985227d6f279e97e",
+    "materialbook": "f63919dae54dd91debcfea1ea5c3d2ab1793c34e",
+    "identicalNobook608296b": false
+  },
+  "sticky_navbar.js": {
+    "sha256": "cde8c9433d24ff81556b48bc5294f3e00fb28856375bb5734b6317cf094c0753",
+    "materialbook": "f63919dae54dd91debcfea1ea5c3d2ab1793c34e",
+    "identicalNobook608296b": true
+  }
+}
