@@ -136,14 +136,14 @@ class PromptSelection59RegressionTest {
                 assertTrue(selected.await(5,TimeUnit.SECONDS))
                 if(id=="comment") {
                     assertFalse("Comments must not gain native selection from FPRO: ${text.get()}",text.get().contains("FPRO"))
-                    if(android.os.Build.VERSION.SDK_INT>=33)automation.clearCache()
+                    if(android.os.Build.VERSION.SDK_INT>=35)automation.clearCache()
                     assertNull("Comments must not show Android Copy",nativeCopyAction())
                     continue
                 }
                 assertTrue("Real long press must select $id text, not a programmatic range: ${text.get()}", text.get().contains("FPRO"))
                 var copyVisible=false
                 repeat(15) {
-                    if(android.os.Build.VERSION.SDK_INT>=33)automation.clearCache()
+                    if(android.os.Build.VERSION.SDK_INT>=35)automation.clearCache()
                     if(nativeCopyAction()!=null)copyVisible=true
                     if(!copyVisible)Thread.sleep(100)
                 }
