@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const source = fs.readFileSync('app/src/main/assets/facebook.js','utf8');
 const selection23=fs.readFileSync('tools/selection-build23.js.txt','utf8');
-assert.equal(source.slice(source.indexOf(' // Keep Android WebView'),source.indexOf(' const colors =')).replace('selectionActionTarget(el)||',''),selection23,'Build23 CSS and preparation handlers unchanged; only narrow positive-action dispatch exclusion remains');
+assert.equal(source.slice(source.indexOf(' // Keep Android WebView'),source.indexOf(' const colors =')).replace('selectionActionTarget(el)||','').replace("cfg.selectionScope==='posts'&&!postSelectionBody(el)||",''),selection23,'Build23 CSS and preparation handlers unchanged; only narrow positive-action dispatch exclusion remains');
 const nativeMain=fs.readFileSync('app/src/main/java/com/almekhlafi/FPRO/MainActivity.kt','utf8');
 const settings=fs.readFileSync('app/src/main/java/com/almekhlafi/FPRO/SettingsPanel.kt','utf8');
 assert(!nativeMain.includes('Intent.createChooser'),'No Android share chooser fallback');

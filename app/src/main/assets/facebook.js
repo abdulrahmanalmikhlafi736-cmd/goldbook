@@ -81,7 +81,7 @@
   restoreSelectionLink();
   if(cfg.textSelection===false||e.isPrimary===false||e.pointerType==='mouse'&&e.button!==0)return;
   const el=e.target.nodeType===1?e.target:e.target.parentElement;
-  if(!el||el.closest('button,input,textarea,select,[contenteditable]:not([contenteditable="false"]),.fpro-video-tools'))return;
+  if(!el||cfg.selectionScope==='posts'&&!postSelectionBody(el)||el.closest('button,input,textarea,select,[contenteditable]:not([contenteditable="false"]),.fpro-video-tools'))return;
   const link=el.closest('a[href]');if(!link)return;
   const href=link.getAttribute('href'),text=(link.textContent||'').trim();
   if(!/(?:\/hashtag\/|[?&]hashtag=)/i.test(href)||!/^#[^\s#]+$/.test(text))return;
@@ -113,6 +113,43 @@
  const colors = {'طبيعي':'#1877f2','ذهبي':'#d4af37','أحمر':'#c62828','أخضر':'#17833e','بنفسجي':'#8643c5','برتقالي':'#ed701b','فيروزي':'#008c95','وردي':'#d34489','بني':'#805539','فضي':'#9ba6b0','أبيض':'#ffffff'};
  // Material You is serialized by native code; no new account-access bridge.
  function pageAccent(c=cfg){return c.color==='تلقائي'&&c.dynamic&&/^#[0-9a-f]{6}$/i.test(c.systemAccent||'')?c.systemAccent:colors[c.color];}
+ // Build59: production selection is positive post-content scope, not all page text.
+ const commentSelectionRegions='[role="comment"],[data-commentid],[data-comment-id],[data-sigil~="comment"],[data-sigil~="comment-body"],[data-testid*="comment" i],[id^="comment_"],[aria-label^="Comment by " i],[aria-label^="تعليق بواسطة"],article article,article [role="article"],[role="article"] article,[role="article"] [role="article"]';
+ const messageSelectionRegions='[data-ad-preview="message"],[data-ad-comet-preview="message"],[data-testid="post_message"],[data-sigil~="story-body"]';
+ const postSelectionRegions=messageSelectionRegions+',article p,[role="article"] p,article [dir="auto"],[role="article"] [dir="auto"]';
+ function postSelectionBody(el){
+  if(!el||el.closest(commentSelectionRegions)||el.closest('button,input,textarea,select,[contenteditable]:not([contenteditable="false"]),.fpro-video-tools,header,nav,[role="navigation"],[role="toolbar"]'))return null;
+  const message=el.closest(messageSelectionRegions);if(message)return message;
+  const article=el.closest('article,[role="article"]'),reading=el.closest('p,[dir="auto"]');
+  return article&&reading&&article.contains(reading)?reading:null;
+ }
+ const unrestrictedReadingTarget=readingTarget;
+ readingTarget=function(target){
+  const el=target&&target.nodeType===1?target:target&&target.parentElement;
+  if(cfg.selectionScope==='posts'&&!postSelectionBody(el)){
+   if(el&&el.closest(commentSelectionRegions)){restoreSelectionLink();restoreSelectionOverrides();}
+   return null;
+  }
+  return unrestrictedReadingTarget(target);
+ };
+ const unrestrictedUpdateSelection=updateSelection;let activeSelectionScope='legacy';
+ updateSelection=function(){
+  if(cfg.selectionScope!=='posts'){
+   if(activeSelectionScope==='posts')selectionStyle.textContent='';activeSelectionScope='legacy';return unrestrictedUpdateSelection();
+  }
+  activeSelectionScope='posts';
+  if(cfg.textSelection===false){restoreSelectionLink();restoreSelectionOverrides();selectionStyle.remove();return;}
+  const postCss=`
+   body{-webkit-user-select:none!important;user-select:none!important}
+   :is(${postSelectionRegions}),:is(${postSelectionRegions}) *{-webkit-user-select:text!important;user-select:text!important}
+   :is(${commentSelectionRegions}),:is(${commentSelectionRegions}) *{-webkit-user-select:none!important;user-select:none!important}
+   button,button *,[role="button"],select,video,canvas,.fpro-video-tools,.fpro-video-tools *{-webkit-user-select:none!important;user-select:none!important}
+   :is(${postSelectionRegions}) [data-fpro-selectable-text]{-webkit-user-select:text!important;user-select:text!important}
+   input,textarea,[contenteditable]:not([contenteditable="false"]),[contenteditable]:not([contenteditable="false"]) *{-webkit-user-select:auto!important;user-select:auto!important}
+  `;
+  if(selectionStyle.textContent!==postCss)selectionStyle.textContent=postCss;
+  if(!selectionStyle.isConnected)document.head.appendChild(selectionStyle);
+ };
  const LIGHT_MODE_FG = {'ذهبي':'#8a6500','فضي':'#56616b','أبيض':'#333','برتقالي':'#a64600'};
  const norm = s => (s || '').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u200B-\u200F\u2066-\u2069]/g,'').replace(/\s+/g,' ').toLowerCase().trim().replace(/[·•\s:.!؟]+$/g,'');
  const selectionControlLabels=new Set(['like','love','reply','replies','share','follow','comment','comments','send','save','copy','cancel','more','see more','see less','play','pause','إعجاب','أعجبني','رد','ردود','مشاركة','متابعة','تعليق','تعليقات','التعليقات','إرسال','حفظ','نسخ','إلغاء','المزيد','عرض المزيد','عرض أقل','تشغيل','إيقاف'].map(norm));
@@ -1091,7 +1128,7 @@
    ? `:root,body,.__fb-light-mode,.__fb-dark-mode{${['--accent','--primary-blue','--blue-link','--primary-button-background','--primary-deemphasized-button-text'].map(key=>key+':'+accent+'!important').join(';')};--primary-button-text:${contrast}!important}` : '';
   style.textContent=`
    ${rcTokens}
-   body{-webkit-user-select:text!important}
+   ${c.selectionScope==='posts'?'':'body{-webkit-user-select:text!important}'}
    /* Only policy-verified owned targets. A normal site style rewrite cannot
       expose them between observer delivery and the guarded frame scan. */
    [data-fpro-app-prompt],[data-fpro-reference-noapp]{display:none!important}
@@ -1202,7 +1239,7 @@
   requestScan();
  });
  function colorReport(){
-  const report={version:43,work:{...workStats,interactionBusy:interactionBusy(),adapted:{...adaptedStats}},media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!pageAccent()&&cfg.color!=='طبيعي',selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
+  const report={version:59,appPrompt:window.FproPrompt?window.FproPrompt.report():null,selectionScope:cfg.selectionScope||'legacy',work:{...workStats,interactionBusy:interactionBusy(),adapted:{...adaptedStats}},media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!pageAccent()&&cfg.color!=='طبيعي',selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}

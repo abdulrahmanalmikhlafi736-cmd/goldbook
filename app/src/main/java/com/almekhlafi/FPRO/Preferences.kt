@@ -40,6 +40,7 @@ class Preferences(context: Context) {
         put("enhance", flag("pageEnhancements"))
         put("doubleTapFullscreen", flag("doubleTapFullscreen", true))
         put("textSelection", flag("textSelection", true))
+        put("selectionScope", "posts")
         put("referenceEngine", flag("referenceEngine", true))
         put("appBanner", flag("appBanner", true))
         put("color", text("color", "تلقائي"))

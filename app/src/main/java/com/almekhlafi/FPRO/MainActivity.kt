@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private val pageInfoQuery by lazy {
         "(window.__fproPageInfo ? JSON.stringify(window.__fproPageInfo()) : " + pageInfoScript.trim().removeSuffix(";") + ")"
     }
-    private val script by lazy { assets.open("site-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("audio-mode.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
+    private val script by lazy { assets.open("app-prompt-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("site-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("audio-mode.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

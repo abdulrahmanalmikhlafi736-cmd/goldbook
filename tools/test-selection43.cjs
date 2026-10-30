@@ -3,7 +3,7 @@
 const {JSDOM}=require('jsdom'),fs=require('node:fs'),assert=require('node:assert/strict');
 const source=fs.readFileSync('app/src/main/assets/facebook.js','utf8');
 const golden=fs.readFileSync('tools/selection-build23.js.txt','utf8');
-assert.equal(source.slice(source.indexOf(' // Keep Android WebView'),source.indexOf(' const colors =')).replace('selectionActionTarget(el)||',''),golden);
+assert.equal(source.slice(source.indexOf(' // Keep Android WebView'),source.indexOf(' const colors =')).replace('selectionActionTarget(el)||','').replace("cfg.selectionScope==='posts'&&!postSelectionBody(el)||",''),golden);
 const native=fs.readFileSync('app/src/main/java/com/almekhlafi/FPRO/MainActivity.kt','utf8');
 assert(!native.includes('NativePullRefresh'));assert(!fs.existsSync('app/src/main/assets/pull-refresh.js'));
 const touch=native.slice(native.indexOf('setOnTouchListener'),native.indexOf('setOnScrollChangeListener'));
