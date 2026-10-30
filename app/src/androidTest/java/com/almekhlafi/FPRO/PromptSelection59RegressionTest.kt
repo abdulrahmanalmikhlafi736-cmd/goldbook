@@ -70,7 +70,15 @@ class PromptSelection59RegressionTest {
                     <html><meta name="viewport" content="width=device-width,initial-scale=1">
                     <style>p,span,a{-webkit-user-select:none;user-select:none}body{margin:24px;font:24px sans-serif}p{margin:24px 0}</style>
                     <body><article role="button" style="user-select:none!important;-webkit-user-select:none!important"><p id="post" style="user-select:none!important;-webkit-user-select:none!important">FPROpost selection sample</p><div role="comment" data-commentid="1"><p><span id="comment" dir="auto" style="user-select:none!important;-webkit-user-select:none!important">FPROcomment selection sample</span></p></div><p><a id="hashtag" href="/hashtag/sample" style="user-select:none!important;-webkit-user-select:none!important">#FPROhashtag</a></p><button>Like</button><div role="button" aria-haspopup="dialog"><span id="wrappedPlain" style="user-select:none!important;-webkit-user-select:none!important">FPROwrapped plain reading sample</span></div></article><div id="bare" class="native-text" style="user-select:none!important;-webkit-user-select:none!important">FPRObare direct div sample</div><div role="article"><div role="article"><p id="nested" style="user-select:none!important;-webkit-user-select:none!important">FPROnested post selection sample</p></div></div><div><a href="/profile.php?id=4">Author</a><div class="native-text" id="mobileComment">FPROmobile comment sample</div><div><a href="/story.php?comment_id=9">2h</a><button>رد</button></div><textarea></textarea></div><div class="comment-body"><span id="legacyComment">FPROlegacy comment sample</span></div>
-                    <script>document.addEventListener('contextmenu',e=>e.preventDefault(),true);document.addEventListener('selectstart',e=>e.preventDefault(),true);document.addEventListener('pointerdown',e=>e.preventDefault(),true);document.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});</script></body></html>
+                    <div><a href="/profile.php?id=88">Author</a><div><span id="opaqueComment" dir="auto">FPROopaque mobile comment sample</span></div><div role="button">رد</div></div>
+                    <script>
+                    // Test-only website handler: no comment classes/permalink assumptions.
+                    // This is not Facebook's actual menu or signed-in account DOM.
+                    window.siteCommentPointer=0;window.siteCommentTouch=0;window.siteCommentHold=0;
+                    document.addEventListener('pointerdown',e=>{if(e.target.closest('#opaqueComment')){window.siteCommentPointer++;window.siteHoldTimer=setTimeout(()=>window.siteCommentHold++,600);}},true);
+                    document.addEventListener('touchstart',e=>{if(e.target.closest('#opaqueComment'))window.siteCommentTouch++;},{capture:true,passive:true});
+                    document.addEventListener('pointerup',()=>clearTimeout(window.siteHoldTimer),true);
+                    document.addEventListener('contextmenu' ,e=>e.preventDefault(),true);document.addEventListener('selectstart',e=>e.preventDefault(),true);document.addEventListener('pointerdown',e=>e.preventDefault(),true);document.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});</script></body></html>
                 """.trimIndent(), "text/html", "UTF-8", null)
                 fun probe(attempt: Int) {
                     web.evaluateJavascript("!!document.querySelector('#hashtag') && document.readyState==='complete'") { result ->
@@ -99,7 +107,7 @@ class PromptSelection59RegressionTest {
                 for(window in automation.windows)copyAction(window.root)?.let { return it }
                 return null
             }
-            for(id in listOf("post", "hashtag", "bare", "nested", "comment", "mobileComment", "legacyComment")) {
+            for(id in listOf("post", "hashtag", "bare", "nested", "comment", "mobileComment", "legacyComment", "opaqueComment")) {
                 val coordinates = FloatArray(2)
                 val measured = CountDownLatch(1)
                 scenario.onActivity { activity ->
@@ -135,7 +143,20 @@ class PromptSelection59RegressionTest {
                     requireNotNull(findWeb(activity.window.decorView)).evaluateJavascript("getSelection().toString()") { result ->text.set(result);selected.countDown()}
                 }
                 assertTrue(selected.await(5,TimeUnit.SECONDS))
-                if(id in listOf("comment", "mobileComment", "legacyComment")) {
+                if(id=="opaqueComment") {
+                    val dispatched=java.util.concurrent.atomic.AtomicReference("")
+                    val inspected=CountDownLatch(1)
+                    scenario.onActivity { activity ->
+                        requireNotNull(findWeb(activity.window.decorView)).evaluateJavascript("JSON.stringify({pointer:window.siteCommentPointer,touch:window.siteCommentTouch,hold:window.siteCommentHold})") { result ->dispatched.set(result);inspected.countDown()}
+                    }
+                    assertTrue(inspected.await(5,TimeUnit.SECONDS))
+                    assertFalse("Opaque comment must not select Android text; website dispatch=${dispatched.get()}, selection=${text.get()}",text.get().contains("FPRO"))
+                    val events=org.json.JSONObject(org.json.JSONArray("[${dispatched.get()}]").getString(0))
+                    assertTrue("Website must receive the original pointerdown",events.getInt("pointer")>0)
+                    assertTrue("Website must receive the original touchstart",events.getInt("touch")>0)
+                    assertTrue("Website must own the long-press handler",events.getInt("hold")>0)
+                }
+                if(id in listOf("comment", "mobileComment", "legacyComment", "opaqueComment")) {
                     assertFalse("Comments must not gain native selection from FPRO: ${text.get()}",text.get().contains("FPRO"))
                     if(android.os.Build.VERSION.SDK_INT>=35)automation.clearCache()
                     assertNull("Comments must not show Android Copy",nativeCopyAction())
