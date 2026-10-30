@@ -1,0 +1,14 @@
+const fs=require('node:fs'),assert=require('node:assert/strict'),{JSDOM}=require('jsdom');
+const source=fs.readFileSync('app/src/main/assets/facebook.js','utf8');
+const dom=new JSDOM(`<html><head></head><body><article><p id="post">Original post content</p><div class="m bg-s2" id="card"><a href="/profile.php?id=4">Author</a><div class="native-text" id="comment">Unlabelled mobile comment</div><div><a href="/story.php?story_fbid=1&amp;comment_id=9">2h</a><button>رد</button></div><textarea id="reply"></textarea></div></article><div role="article"><div role="article"><p id="nested">Nested ordinary post</p></div></div><div class="comment-body"><span id="legacy">Legacy comment</span></div></body></html>`,{url:'https://m.facebook.com/story.php?story_fbid=1',runScripts:'outside-only',pretendToBeVisual:true});
+const w=dom.window,cfg={enhance:false,textSelection:true,selectionScope:'posts',color:'طبيعي'};
+const get=w.getComputedStyle.bind(w);w.getComputedStyle=(el,p)=>p?{content:'none',display:'none',backgroundImage:'none',boxShadow:'none',borderRadius:'0px'}:get(el);
+const touch=id=>w.document.getElementById(id).dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true}));
+(async()=>{try{w.eval(source.replace('__CONFIG__',JSON.stringify(cfg)));
+for(const id of ['comment','legacy']){touch(id);const el=w.document.getElementById(id);assert(!el.hasAttribute('data-fpro-selectable-text'),'Do not prepare '+id);assert.equal(get(el).userSelect,'none','Suppress native comment selection for '+id);}
+for(const id of ['post','nested']){touch(id);assert.equal(w.document.getElementById(id).style.userSelect,'text','Preserve post '+id);w.dispatchEvent(new w.Event('blur'));}
+assert.equal(get(w.document.getElementById('reply')).userSelect,'auto');
+const fresh=w.document.createElement('div');fresh.innerHTML='<a href="/profile.php?id=7">Name</a><p id="late">New comment</p><a href="/story.php?comment_id=45">Now</a><button>Reply</button>';w.document.body.appendChild(fresh);await new Promise(r=>w.setTimeout(r,20));touch('late');assert(!w.document.getElementById('late').hasAttribute('data-fpro-selectable-text'));assert.equal(get(w.document.getElementById('late')).userSelect,'none');
+const card=w.document.getElementById('card');card.innerHTML='<p id="recycled">Recycled ordinary post</p>';await new Promise(r=>w.setTimeout(r,20));touch('recycled');assert.equal(w.document.getElementById('recycled').style.userSelect,'text');
+w.__fpro.update({...cfg,textSelection:false});assert(!card.hasAttribute('data-fpro-comment-region'));console.log('Comments61 PASS: mobile permalink+Reply comments, legacy comment classes, post/nested selection, editable reply, recycled container and OFF cleanup');
+}finally{w.__fpro?.update({...cfg,textSelection:false,enhance:false});w.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

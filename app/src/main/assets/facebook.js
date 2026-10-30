@@ -116,8 +116,44 @@
  // Build60: recover build23's readable-text preparation for Bloks/plain posts.
  // Exclude positively identified comments, not nested article layout wrappers.
  const commentIdRegions=Array.from({length:10},(_,n)=>'[id^="comment_'+n+'"]').join(',');
- const commentSelectionRegions='[role="comment"],[data-commentid],[data-comment-id],[data-sigil~="comment"],[data-sigil~="comment-body"],[data-testid="comment"],[data-testid="comment_body"],[data-testid="UFI2Comment/body"],[data-testid^="comment-"],[data-testid^="comment_"],[aria-label^="Comment by " i],[aria-label^="Reply by " i],[aria-label^="تعليق بواسطة"],[aria-label^="تعليق من"],'+commentIdRegions;
+ const commentSelectionRegions='[data-fpro-comment-region],.comment,.comment-body,.comment_body,.UFIComment,.UFICommentBody,.UFI2Comment,[data-mcomponent="Comment"],[data-mcomponent="CommentBody"],[data-sigil~="comment-text"],[data-testid^="UFI2Comment/"],[role="comment"],[data-commentid],[data-comment-id],[data-sigil~="comment"],[data-sigil~="comment-body"],[data-testid="comment"],[data-testid="comment_body"],[data-testid="UFI2Comment/body"],[data-testid^="comment-"],[data-testid^="comment_"],[aria-label^="Comment by " i],[aria-label^="Reply by " i],[aria-label^="تعليق بواسطة"],[aria-label^="تعليق من"],'+commentIdRegions;
  const messageSelectionRegions='[data-ad-preview="message"],[data-ad-comet-preview="message"],[data-testid="post_message"],[data-sigil~="story-body"]';
+ // Bloks comments can be anonymous divs: use their own permalink + Reply,
+ // never the nesting of articles or the presence of a comments toolbar alone.
+ const inferredComments=new Set();let commentObserver=null;
+ function commentPermalink(link){return /[?&](?:comment_id|reply_comment_id)=\d+(?:[&#]|$)/.test(link.getAttribute('href')||'');}
+ function inferCommentRoot(link){
+  if(!commentPermalink(link))return null;
+  for(let root=link.parentElement,d=0;root&&d<7;root=root.parentElement,d++){
+   if(root.matches('body,main,[role="main"],[role="feed"],header,nav')||root.querySelector(messageSelectionRegions))break;
+   const reply=Array.from(root.querySelectorAll('a,button,[role="button"]')).some(el=>/^(?:reply|رد|الرد)$/.test(norm(el.getAttribute('aria-label')||el.textContent)));
+   if(reply&&root.querySelector('p,[dir="auto"],.native-text')&&root.querySelectorAll('a').length>=2)return root;
+  }
+  return null;
+ }
+ function refreshCommentRegions(roots=[document.body]){
+  for(const root of inferredComments){
+   if(root.isConnected&&Array.from(root.querySelectorAll('a[href]')).some(a=>inferCommentRoot(a)===root))continue;
+   root.removeAttribute('data-fpro-comment-region');inferredComments.delete(root);
+  }
+  for(const scope of roots){if(!scope||scope.nodeType!==1)continue;
+   const links=scope.matches('a[href]')?[scope]:Array.from(scope.querySelectorAll('a[href]')).slice(0,1600);
+   for(const link of links){const root=inferCommentRoot(link);if(!root||inferredComments.has(root))continue;
+    if(Array.from(selectionOverrides.keys()).some(el=>root.contains(el)))restoreSelectionOverrides();
+    root.setAttribute('data-fpro-comment-region','');inferredComments.add(root);
+   }
+  }
+ }
+ function watchCommentRegions(){
+  if(commentObserver)commentObserver.disconnect();
+  if(cfg.selectionScope!=='posts'||cfg.textSelection===false){for(const root of inferredComments)root.removeAttribute('data-fpro-comment-region');inferredComments.clear();return;}
+  refreshCommentRegions();
+  if(!commentObserver)commentObserver=new MutationObserver(records=>{
+   const roots=new Set();for(const r of records){for(const n of r.addedNodes||[])if(n.nodeType===1&&!/^fpro/i.test(n.id))roots.add(n);let root=r.target.nodeType===1?r.target:r.target.parentElement;if(root&&root.closest('#fpro-selection-style,.fpro-video-tools'))continue;for(let i=0;root&&i<6&&!root.matches('body,main,[role="feed"]');i++,root=root.parentElement)roots.add(root);}
+   refreshCommentRegions(roots);
+  });
+  commentObserver.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['href','aria-label','class']});
+ }
  const postSelectionRegions=messageSelectionRegions+',body p,body span,body [dir="auto"],body .native-text,body article,body [role="article"]';
  function postSelectionBody(el){
   if(!el||el.closest(commentSelectionRegions)||el.closest('button,input,textarea,select,[contenteditable]:not([contenteditable="false"]),.fpro-video-tools,header,nav,[role="navigation"],[role="toolbar"]'))return null;
@@ -134,6 +170,7 @@
  };
  const unrestrictedUpdateSelection=updateSelection;let activeSelectionScope='legacy';
  updateSelection=function(){
+  watchCommentRegions();
   if(cfg.selectionScope!=='posts'){
    if(activeSelectionScope==='posts')selectionStyle.textContent='';activeSelectionScope='legacy';return unrestrictedUpdateSelection();
   }
