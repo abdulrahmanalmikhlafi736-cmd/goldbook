@@ -113,15 +113,15 @@
  const colors = {'طبيعي':'#1877f2','ذهبي':'#d4af37','أحمر':'#c62828','أخضر':'#17833e','بنفسجي':'#8643c5','برتقالي':'#ed701b','فيروزي':'#008c95','وردي':'#d34489','بني':'#805539','فضي':'#9ba6b0','أبيض':'#ffffff'};
  // Material You is serialized by native code; no new account-access bridge.
  function pageAccent(c=cfg){return c.color==='تلقائي'&&c.dynamic&&/^#[0-9a-f]{6}$/i.test(c.systemAccent||'')?c.systemAccent:colors[c.color];}
- // Build59: production selection is positive post-content scope, not all page text.
- const commentSelectionRegions='[role="comment"],[data-commentid],[data-comment-id],[data-sigil~="comment"],[data-sigil~="comment-body"],[data-testid*="comment" i],[id^="comment_"],[aria-label^="Comment by " i],[aria-label^="تعليق بواسطة"],article article,article [role="article"],[role="article"] article,[role="article"] [role="article"]';
+ // Build60: recover build23's readable-text preparation for Bloks/plain posts.
+ // Exclude positively identified comments, not nested article layout wrappers.
+ const commentIdRegions=Array.from({length:10},(_,n)=>'[id^="comment_'+n+'"]').join(',');
+ const commentSelectionRegions='[role="comment"],[data-commentid],[data-comment-id],[data-sigil~="comment"],[data-sigil~="comment-body"],[data-testid="comment"],[data-testid="comment_body"],[data-testid="UFI2Comment/body"],[data-testid^="comment-"],[data-testid^="comment_"],[aria-label^="Comment by " i],[aria-label^="Reply by " i],[aria-label^="تعليق بواسطة"],[aria-label^="تعليق من"],'+commentIdRegions;
  const messageSelectionRegions='[data-ad-preview="message"],[data-ad-comet-preview="message"],[data-testid="post_message"],[data-sigil~="story-body"]';
- const postSelectionRegions=messageSelectionRegions+',article p,[role="article"] p,article [dir="auto"],[role="article"] [dir="auto"]';
+ const postSelectionRegions=messageSelectionRegions+',body p,body span,body [dir="auto"],body .native-text,body article,body [role="article"]';
  function postSelectionBody(el){
   if(!el||el.closest(commentSelectionRegions)||el.closest('button,input,textarea,select,[contenteditable]:not([contenteditable="false"]),.fpro-video-tools,header,nav,[role="navigation"],[role="toolbar"]'))return null;
-  const message=el.closest(messageSelectionRegions);if(message)return message;
-  const article=el.closest('article,[role="article"]'),reading=el.closest('p,[dir="auto"]');
-  return article&&reading&&article.contains(reading)?reading:null;
+  return el.closest(messageSelectionRegions+',p,[dir="auto"],.native-text,span,div,article,[role="article"]');
  }
  const unrestrictedReadingTarget=readingTarget;
  readingTarget=function(target){
@@ -140,10 +140,10 @@
   activeSelectionScope='posts';
   if(cfg.textSelection===false){restoreSelectionLink();restoreSelectionOverrides();selectionStyle.remove();return;}
   const postCss=`
-   body{-webkit-user-select:none!important;user-select:none!important}
+   body{-webkit-user-select:auto;user-select:auto}
    :is(${postSelectionRegions}),:is(${postSelectionRegions}) *{-webkit-user-select:text!important;user-select:text!important}
    :is(${commentSelectionRegions}),:is(${commentSelectionRegions}) *{-webkit-user-select:none!important;user-select:none!important}
-   button,button *,[role="button"],select,video,canvas,.fpro-video-tools,.fpro-video-tools *{-webkit-user-select:none!important;user-select:none!important}
+   header,header *,nav,nav *,[role="navigation"],[role="navigation"] *,button,button *,[role="button"],select,video,canvas,.fpro-video-tools,.fpro-video-tools *{-webkit-user-select:none!important;user-select:none!important}
    :is(${postSelectionRegions}) [data-fpro-selectable-text]{-webkit-user-select:text!important;user-select:text!important}
    input,textarea,[contenteditable]:not([contenteditable="false"]),[contenteditable]:not([contenteditable="false"]) *{-webkit-user-select:auto!important;user-select:auto!important}
   `;
@@ -1239,7 +1239,7 @@
   requestScan();
  });
  function colorReport(){
-  const report={version:59,appPrompt:window.FproPrompt?window.FproPrompt.report():null,selectionScope:cfg.selectionScope||'legacy',work:{...workStats,interactionBusy:interactionBusy(),adapted:{...adaptedStats}},media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!pageAccent()&&cfg.color!=='طبيعي',selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
+  const report={version:60,appPrompt:window.FproPrompt?window.FproPrompt.report():null,selectionScope:cfg.selectionScope||'legacy',work:{...workStats,interactionBusy:interactionBusy(),adapted:{...adaptedStats}},media:window.__fproAudio?window.__fproAudio.report():null,documentStart:window.__fproEarly===true,enhance:cfg.enhance!==false,color:cfg.color,referenceEngine:!!cfg.referenceEngine,experimentalColorVars:cfg.experimentalColorVars===true,experimentalColorVarsActive:cfg.enhance!==false&&cfg.experimentalColorVars===true&&!!pageAccent()&&cfg.color!=='طبيعي',selection:{enabled:cfg.textSelection!==false,cssInstalled:selectionStyle.isConnected,preparedNodes:selectionOverrides.size,lastTarget:{...selectionTargetInfo}},matched:{},avatarSources:{img:0,svg:0,background:0},avatarFrames:[],canvasLayers:[],smallImages:[],remainingBlue:[]};
   for(const key of accentAttrs)report.matched[key]=document.querySelectorAll('[data-fpro-accent-'+key+']').length;
   for(const photo of avatarPictures()){const key=photo.matches('img')?'img':photo.matches('image')?'svg':'background';report.avatarSources[key]++;}
   function paint(c){return {color:!!isBlue(c.color),background:!!isBlue(c.backgroundColor),border:['Top','Right','Bottom','Left'].some(side=>parseFloat(c['border'+side+'Width'])>0&&!['none','hidden'].includes(c['border'+side+'Style'])&&isBlue(c['border'+side+'Color'])),outline:parseFloat(c.outlineWidth)>0&&!['none','hidden'].includes(c.outlineStyle)&&!!isBlue(c.outlineColor),shadow:replaceBlue(c.boxShadow).changed,gradient:replaceBlue(c.backgroundImage).changed,fill:isBlue(c.fill),stroke:!!isBlue(c.stroke)};}

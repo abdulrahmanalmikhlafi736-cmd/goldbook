@@ -8,6 +8,7 @@ const micro=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  for(const file of files)w.eval(file.replace('__CONFIG__',JSON.stringify(cfg)));
  const cta=w.document.getElementById('cta');assert.equal(cta.style.display,'none');
  const page=w.document.getElementById('page');page.setAttribute('aria-modal','true');page.setAttribute('role','dialog');await micro();assert.equal(cta.style.display,'none','Page scroll-lock/dialog transition must not revoke the verified CTA');
+ page.removeAttribute('aria-modal');page.setAttribute('role','main');page.setAttribute('aria-hidden','true');await micro();assert.equal(cta.style.display,'none','Accessibility-hidden page must not erase the CTA caption');
  assert.notEqual(w.document.getElementById('sheet').style.display,'none','True blocking sheet protected');
  for(const id of ['flat','nested']){const el=w.document.getElementById(id);el.dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true}));assert.equal(el.style.userSelect,'text','Native reading preparation for '+id);w.dispatchEvent(new w.Event('blur'));}
  const comment=w.document.getElementById('comment');let delegated=0;w.document.addEventListener('pointerdown',()=>delegated++,true);comment.dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true}));assert.equal(delegated,1);assert(!comment.hasAttribute('data-fpro-selectable-text'));assert.equal(w.getComputedStyle(comment).userSelect,'none');
