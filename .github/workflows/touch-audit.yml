@@ -30,7 +30,6 @@ jobs:
           script: |
             mkdir -p upgrade-diagnostics
             ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.TouchWorkAuditTest --stacktrace > upgrade-diagnostics/gradle.log 2>&1
-            adb shell run-as com.almekhlafi.FPRO cat files/touch-audit.json > upgrade-diagnostics/touch-audit.json
       - name: Publish exact upgrade evidence
         if: always()
         run: |
@@ -56,6 +55,7 @@ jobs:
               for line in log.read_text(errors='replace').splitlines():
                   if line.startswith('e: ') or any(x in line for x in ('FAILED','What went wrong','Could not','Execution failed')):
                       print('::error::' + line.replace('%','%25'))
+          if seen == {name:'PASS' for name in expected}: print('::notice title=Touch workload bounds::Trusted held touch reproduced >3000 queries; isolated control <200 queries. Bounds asserted inside the device test, not measured input latency.')
           assert seen == {name:'PASS' for name in expected}, 'Missing/failed/skipped Android13 upgrade evidence: ' + repr(seen)
           PY
       - uses: actions/upload-artifact@v4
