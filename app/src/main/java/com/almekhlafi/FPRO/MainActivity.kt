@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -544,10 +545,19 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         if (reloadDesktop && (changed || cookiesChanged)) web.reload() else inject()
     }
 
+    private fun pageScriptConfig(): String {
+        val config = org.json.JSONObject(prefs.scriptConfig())
+        if (prefs.flag("dynamic") && Build.VERSION.SDK_INT >= 31) {
+            val scheme = if (prefs.flag("dark") || prefs.flag("amoled")) dynamicDarkColorScheme(this) else dynamicLightColorScheme(this)
+            config.put("systemAccent", String.format(java.util.Locale.ROOT, "#%06x", scheme.primary.toArgb() and 0xffffff))
+        }
+        return config.toString()
+    }
+
     private fun installEarlyScript() {
         earlyScript?.remove(); earlyScript = null
         if(androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
-            val source = viewportScript(web.width, web.height) + script.replace("__CONFIG__", prefs.scriptConfig())
+            val source = viewportScript(web.width, web.height) + script.replace("__CONFIG__", pageScriptConfig())
             val bootstrap = assets.open("early-start.js").bufferedReader().use { it.readText() }.replace("__FPRO_SOURCE__", source)
             earlyScript = androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web, bootstrap, setOf("https://facebook.com", "https://*.facebook.com", "https://messenger.com", "https://*.messenger.com"))
         }
@@ -670,7 +680,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         }
         if (!Navigation.isFacebook(web.url ?: "")) return
         enhancementsInstalled = enhance
-        web.evaluateJavascript(viewportScript(web.width, web.height) + script.replace("__CONFIG__", prefs.scriptConfig()), null)
+        web.evaluateJavascript(viewportScript(web.width, web.height) + script.replace("__CONFIG__", pageScriptConfig()), null)
         if (enhance && prefs.flag("liveColor")) web.evaluateJavascript("document.querySelector('meta[name=\"theme-color\"]')?.content || getComputedStyle(document.body).backgroundColor") { result ->
             try {
                 val value = JSONArray("[$result]").getString(0)

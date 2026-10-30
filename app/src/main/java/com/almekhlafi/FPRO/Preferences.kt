@@ -42,6 +42,7 @@ class Preferences(context: Context) {
         put("referenceEngine", flag("referenceEngine", true))
         put("appBanner", flag("appBanner", true))
         put("color", text("color", "تلقائي"))
+        put("dynamic", flag("dynamic"))
         put("experimentalColorVars", flag("experimentalColorVars"))
         put("dark", flag("dark") || flag("amoled")); put("amoled", flag("amoled"))
     }.toString()

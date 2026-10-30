@@ -45,10 +45,10 @@ fun SettingsPanel(prefs: Preferences, audioOnly: () -> Unit, change: () -> Unit,
         SettingsGroup("المظهر والألوان", "ألوان خفيفة دون تغيير صورك") {
         var expanded by remember { mutableStateOf(false) }
         Toggle("محرك التلوين الشامل وإخفاء لافتة التطبيق — الكود المرسل", "referenceEngine", prefs, revision, default = true) { update() }
-        Text("عند تفعيله يوسّع اللون المختار إلى خلفيات وأزرار وأنماط الواجهة وفق المحرك الذي أرسلته. يعمل مع تعديلات الصفحة ولون غير طبيعي/تلقائي؛ إيقافه يرجع للتلوين المحدود. إخفاء اللافتة يبقى تابعًا لمفتاحه في الحجب. لا يغيّر صور الحساب أو الفيديو.", style = MaterialTheme.typography.bodySmall)
+        Text("عند تفعيله يوسّع اللون المختار إلى خلفيات وأزرار وأنماط الواجهة وفق المحرك الذي أرسلته. يعمل مع تعديلات الصفحة ولون مختار، أو تلقائي مع ألوان النظام؛ إيقافه يرجع للتلوين المحدود. إخفاء اللافتة يبقى تابعًا لمفتاحه في الحجب. لا يغيّر صور الحساب أو الفيديو.", style = MaterialTheme.typography.bodySmall)
         Text("عند إيقاف المحرك الشامل، تلوين خفيف للتفاصيل: الهاشتاجات والمتابعة والصداقة والتوثيق وحلقات القصص؛ دون تغيير خلفيات الموقع.", style = MaterialTheme.typography.bodySmall)
         Toggle("تجربة متغيرات ألوان فيسبوك", "experimentalColorVars", prefs, revision) { update() }
-        Text("تجريبي ومغلق افتراضياً: يوسّع التعرف على بعض الزخارف الصغيرة. توافق حلقات القصص يختلف حسب نسخة فيسبوك، وليس مضمونًا. لا يعمل مع طبيعي أو تلقائي؛ إيقافه يستعيد أنماط الموقع الأصلية.", style = MaterialTheme.typography.bodySmall)
+        Text("تجريبي ومغلق افتراضياً: يوسّع التعرف على بعض الزخارف الصغيرة. توافق حلقات القصص يختلف حسب نسخة فيسبوك، وليس مضمونًا. لا يعمل مع طبيعي، أو تلقائي دون ألوان النظام؛ إيقافه يستعيد أنماط الموقع الأصلية.", style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = copyColorDiagnostics) { Text("نسخ تشخيص التلوين — دون بيانات الحساب") }
         Box {
             OutlinedButton(onClick = { expanded = true }) { Text("اللون: ${prefs.text("color", "تلقائي")}") }
@@ -58,6 +58,7 @@ fun SettingsPanel(prefs: Preferences, audioOnly: () -> Unit, change: () -> Unit,
                 }
             }
         }
+        Text("اللون تلقائي مع ألوان النظام يلوّن واجهة فيسبوك بألوان Material You على Android12+؛ الألوان اليدوية تبقى كما تختارها.", style = MaterialTheme.typography.bodySmall)
         listOf("الوضع الداكن" to "dark", "أسود AMOLED" to "amoled", "ألوان النظام الديناميكية (Android 12+)" to "dynamic", "مطابقة الشريط مع لون الصفحة" to "liveColor").forEach { (label,key) -> Toggle(label,key,prefs,revision) { update() } }
         }
         SettingsGroup("الحجب والإخفاء", "اختر ما تريد إخفاءه من الصفحة") {
