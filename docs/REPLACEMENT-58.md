@@ -119,7 +119,17 @@ be hidden at first requested frame” in yDocumentStartHidesCtaBeforeFirstFrameA
 This is a real coverage gap of the replacement, NOT dismissed as unrelated:
 upstream short-footer/glyph selectors do not identify every old FPRO text-label
 fixture. That assertion is retained, not weakened or reclassified as passing.
-Compact35/36 fail selectedPageTools at the renamed setting label. Updated ONLY
+Compact35/36 fail selectedPageTools at the renamed setting label. Compact36 also reports “Local HTML must be accessible in actual WebView”; that failure remains unresolved, not attributed conclusively to the label. Updated ONLY
 the UI lookup to “تلوين Materialbook الشامل”, keeping all test actions/assertions;
 a follow-up matrix is required. Do not describe this as all-device ready.
 Owner acceptance of CTA disappearance remains unverified after their57 failure.
+
+Follow-up after the label-only test correction (production unchanged):
+https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41100096029
+Pending at archive preparation; do not treat a rerun as a pass or overwrite the
+initial failing evidence. Node expanded replacement coverage also checks vendor
+SHA256, combined AMOLED/color, search groups/people, contextual glyph and body
+replacement. All18 suites PASS locally after those test additions.
+
+Delivery is an actual full-source/APK implementation for evaluation, NOT a claim
+that all acceptance tests now pass or the owner's CTA problem is resolved.
