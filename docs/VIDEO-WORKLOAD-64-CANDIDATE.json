@@ -1,0 +1,114 @@
+{
+  "productionCommit": "fd98e31",
+  "scope": "Synthetic DOM operation counts with simulated timeupdate at four Hz; NOT real media decode, CPU utilization, GPU, battery, thermal or owner-account measurement.",
+  "rows": [
+    {
+      "name": "progress-gold-owned-skip",
+      "stimulus": "progress",
+      "auditOnlyIgnoreOwnedColorChanges": true,
+      "updates": 12,
+      "nominalCadenceHz": 4,
+      "config": {
+        "siteEngine": "upstream",
+        "enhance": true,
+        "appBanner": true,
+        "textSelection": true,
+        "selectionScope": "posts",
+        "referenceEngine": true,
+        "color": "ذهبي",
+        "downloads": true,
+        "rainbow": true
+      },
+      "queries": 0,
+      "returned": 0,
+      "styles": 0,
+      "rects": 0,
+      "observerCallbacks": 48,
+      "observerRecords": 228,
+      "observers": {
+        "at eval (app-prompt-engine.js:105:17) | at eval (app-prompt-engine.js:138:3)": {
+          "callbacks": 12,
+          "records": 72
+        },
+        "at eval (site-engine.js:1122:13) | at eval (site-engine.js:1126:3)": {
+          "callbacks": 12,
+          "records": 36
+        },
+        "at eval (facebook.js:1264:17) | at eval (facebook.js:1311:3)": {
+          "callbacks": 12,
+          "records": 72
+        },
+        "at new MO (site-engine.js:1077:45) | at eval (site-engine.js:856:3)": {
+          "callbacks": 12,
+          "records": 48
+        }
+      },
+      "fullScans": 0,
+      "siteEngine": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 1,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 3,
+        "errors": []
+      }
+    },
+    {
+      "name": "site-clock-gold-owned-skip",
+      "stimulus": "site",
+      "auditOnlyIgnoreOwnedColorChanges": true,
+      "updates": 12,
+      "nominalCadenceHz": 4,
+      "config": {
+        "siteEngine": "upstream",
+        "enhance": true,
+        "appBanner": true,
+        "textSelection": true,
+        "selectionScope": "posts",
+        "referenceEngine": true,
+        "color": "ذهبي",
+        "downloads": true,
+        "rainbow": true
+      },
+      "queries": 128,
+      "returned": 1492,
+      "styles": 16,
+      "rects": 6,
+      "observerCallbacks": 68,
+      "observerRecords": 92,
+      "observers": {
+        "at eval (app-prompt-engine.js:105:17) | at eval (app-prompt-engine.js:138:3)": {
+          "callbacks": 14,
+          "records": 22
+        },
+        "at eval (site-engine.js:1122:13) | at eval (site-engine.js:1126:3)": {
+          "callbacks": 14,
+          "records": 18
+        },
+        "at eval (facebook.js:1264:17) | at eval (facebook.js:1311:3)": {
+          "callbacks": 14,
+          "records": 22
+        },
+        "at new MO (site-engine.js:1077:45) | at eval (site-engine.js:856:3)": {
+          "callbacks": 14,
+          "records": 18
+        },
+        "at watchCommentRegions (facebook.js:152:39) | at updateSelection (facebook.js:174:3)": {
+          "callbacks": 12,
+          "records": 12
+        }
+      },
+      "fullScans": 2,
+      "siteEngine": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 1,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 3,
+        "errors": []
+      }
+    }
+  ]
+}
