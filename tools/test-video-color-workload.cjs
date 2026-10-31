@@ -30,6 +30,7 @@ const settle=async()=>{for(let i=0;i<24;i++)await Promise.resolve();};
   w.FproSiteEngine.update({...cfg,enhance:false});await settle();
   assert.equal(existing.style.color,'rgb(8, 102, 255)','OFF restores original inline style');
   assert.equal(section.firstChild.style.color,'rgb(8, 102, 255)');
+  assert(style.textContent.includes('rgb(8,102,255)'),'OFF preserves the latest website stylesheet edit');
   console.log('Video color PASS: zero unrelated progress/clock queries, target-only inline updates, nested additions, reused/character-data CSS, 48 roots, OFF restoration.');
  }finally{w.FproSiteEngine?.update({...cfg,enhance:false});w.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -7,7 +7,7 @@ module.exports=function scopeMaterialColor(source){
     if(root.nodeType===1 && root.closest('.fpro-video-tools,[id^="fpro"]'))return;
     const query = selector => {
       const result=root.nodeType===1 && root.matches(selector)?[root]:[];
-      if(deep)result.push(...root.querySelectorAll(selector));
+      if(deep)for(const el of root.querySelectorAll(selector))result.push(el);
       return result.filter(el=>!el.closest('.fpro-video-tools,[id^="fpro"]'));
     };`);
  const begin=source.indexOf("    document.querySelectorAll('style')"),end=source.indexOf("    document.querySelectorAll('[style*=\"color\"]')",begin);
@@ -38,7 +38,7 @@ module.exports=function scopeMaterialColor(source){
     }
     for(const [root,deep] of roots){
       let covered=false;
-      for(const [other,subtree] of roots)if(other!==root && subtree && other.contains(root)){covered=true;break;}
+      for(let parent=root.parentElement;parent;parent=parent.parentElement)if(roots.get(parent)===true){covered=true;break;}
       if(!covered)processMaterialYouStyles(root,deep);
     }
   }).observe(document.documentElement, {`)

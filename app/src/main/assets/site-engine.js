@@ -728,7 +728,7 @@ observer.observe(document.body, { childList: true, subtree: true });
     if(root.nodeType===1 && root.closest('.fpro-video-tools,[id^="fpro"]'))return;
     const query = selector => {
       const result=root.nodeType===1 && root.matches(selector)?[root]:[];
-      if(deep)result.push(...root.querySelectorAll(selector));
+      if(deep)for(const el of root.querySelectorAll(selector))result.push(el);
       return result.filter(el=>!el.closest('.fpro-video-tools,[id^="fpro"]'));
     };
     query('style')?.forEach(style => {
@@ -878,7 +878,7 @@ observer.observe(document.body, { childList: true, subtree: true });
     }
     for(const [root,deep] of roots){
       let covered=false;
-      for(const [other,subtree] of roots)if(other!==root && subtree && other.contains(root)){covered=true;break;}
+      for(let parent=root.parentElement;parent;parent=parent.parentElement)if(roots.get(parent)===true){covered=true;break;}
       if(!covered)processMaterialYouStyles(root,deep);
     }
   }).observe(document.documentElement, {
