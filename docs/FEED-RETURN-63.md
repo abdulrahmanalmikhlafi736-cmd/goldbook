@@ -52,7 +52,22 @@ without broadcasting a synthetic DOM event.
 A new Android13 instrumented regression uses a real WebView, trusted click on a
 Comments button, Activity BackHandler/WebView history-back, two simulated layout
 shifts and trusted touch cancellation. The page is synthetic, NOT logged-in
-Facebook. CI results and build artifacts are recorded after completion below.
+Facebook. Final result **PASS**, run41208266445. The post returned to exactly
+100px (initial100px) despite spacer height increasing700->1300->1500px. Actual
+windowY1400px;2 corrections,9 attempts,1 trusted cancellation; no retained
+checkpoint/active timer after cancellation. See `FEED-RETURN-63-ANDROID.json`.
+
+- Native test: https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41208266445
+- Build/unit/lint/23 DOM suites: **PASS** run41208383930 (same production assets,
+  additional full-document tests), compatibility24.04/26.04 **PASS**41208383947.
+- Build62 prompt workload recheck **PASS**41208198454. Broader Android13 suite
+  again8 PASS/1 known comment-copy FAIL, run41208266319. Prompt first-frame
+  hiding, fixed transitions, native layout and palette tests still PASS.
+- Exact compact APK black-box device checks succeeded on API36 (job124557708999).
+  API35 also completed its tests and uploaded the success-only artifact; overall
+  matrix still includes pre-existing debug/comment failures and is not all green.
+- Small APK ZIP (~1.08MB): https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41208266412/artifacts/13045612613
+- APK production sourcec498f25 is byte-identical to later tests/docs commits.
 
 The pre-existing opaque-comment/native-copy regression remains outside this
 scope. Do not describe the entire repository device matrix as passing if that
