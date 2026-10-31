@@ -44,7 +44,7 @@ class FullscreenRotationRegressionTest {
                     scenario.onActivity { a -> ok = predicate(a) }; if (!ok) Thread.sleep(100)
                 }
                 var state=""
-                if(!ok) scenario.onActivity { a -> state="orientation=${a.resources.configuration.orientation}, request=${a.requestedOrientation}, full=${field.get(a)!=null}" }
+                if(!ok) scenario.onActivity { a -> state="orientation=${a.resources.configuration.orientation}, request=${a.requestedOrientation}, full=${field.get(a)!=null}, focus=${a.hasWindowFocus()}" }
                 assertTrue(label+"; "+state+if(!ok)js("JSON.stringify({remounts,wide:initialWide,w:innerWidth,h:innerHeight,fs:!!document.fullscreenElement,native:!!window.__fproNativeFullscreen,events:rotationTrace})")else "", ok)
             }
             val point = FloatArray(2)
@@ -110,6 +110,7 @@ class FullscreenRotationRegressionTest {
             val frames = js("player.getVideoPlaybackQuality().totalVideoFrames").toInt()
             Thread.sleep(700)
             assertTrue("Frames continue in landscape", js("player.getVideoPlaybackQuality().totalVideoFrames").toInt() > frames)
+            awaitState("Fullscreen window has input focus") { it.hasWindowFocus() }
             android.os.ParcelFileDescriptor.AutoCloseInputStream(inst.uiAutomation.executeShellCommand("input keyevent KEYCODE_BACK")).use { it.readBytes() }
             awaitState("Back exits fullscreen and restores portrait") {
                 field.get(it) == null && it.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT &&
