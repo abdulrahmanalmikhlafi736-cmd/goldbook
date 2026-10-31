@@ -71,3 +71,6 @@ downloads/FPRO-build58-source.zip.sha256
 
 downloads/FPRO-build59-source.zip
 downloads/FPRO-build59-source.zip.sha256
+
+# Local profiling reports and tool runtimes
+/.cache/

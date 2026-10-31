@@ -53,7 +53,7 @@ class PromptWorkAuditTest {
    assertFalse(off.getBoolean("hidden"));assertTrue(on.getBoolean("hidden"))
    assertTrue("Trusted input reached page: $on",on.getInt("pointers")>0)
    assertTrue("Site click survived: $on",on.getInt("clicks")>off.getInt("clicks"))
-   if(InstrumentationRegistry.getArguments().getString("expectOptimized")=="true") {
+   if(InstrumentationRegistry.getArguments().getString("expectOptimized", "true")=="true") {
     assertTrue("No ancestor subtree rescans: $on",on.getInt("returned")<30)
     assertTrue("Bounded prompt checks: $on",on.getInt("checked")<60)
    } else assertTrue("Baseline reproduces scan fanout: $on",on.getInt("returned")>1000)
