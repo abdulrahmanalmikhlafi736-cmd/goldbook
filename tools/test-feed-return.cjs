@@ -1,6 +1,6 @@
 const {JSDOM}=require('jsdom'),fs=require('node:fs'),assert=require('node:assert/strict');
 const source=fs.readFileSync('app/src/main/assets/feed-return.js','utf8');
-function fixture(inner=false,rootType='article'){
+function fixture(inner=false,rootType='article',saved=null,navigation='navigate'){
  const w=new JSDOM('<!doctype html><head></head><body><div id="scroller"><article data-tracking-duration-id="post42"><a id="open" href="/posts/42">Post</a><button id="comments">Comments</button></article></div></body>',{url:'https://m.facebook.com/',runScripts:'outside-only',pretendToBeVisual:true}).window;
  let y=1000,offset=1100,clock=0,token=0;const timers=new Map();
  w.setTimeout=(fn,ms)=>{const id=++token;timers.set(id,{fn,at:clock+(ms||0)});return id;};w.clearTimeout=id=>timers.delete(id);w.requestAnimationFrame=fn=>w.setTimeout(fn,1);w.cancelAnimationFrame=w.clearTimeout;
@@ -8,7 +8,7 @@ function fixture(inner=false,rootType='article'){
  Object.defineProperty(w,'scrollY',{get:()=>y});w.scrollTo=(x,v)=>{y=v;};
  const scroller=w.document.getElementById('scroller');if(inner){scroller.style.overflowY='auto';Object.defineProperty(scroller,'clientHeight',{value:400});Object.defineProperty(scroller,'scrollHeight',{value:6000});scroller.scrollTop=1000;}
  let post=w.document.querySelector('article');if(rootType!=='article'){const div=w.document.createElement('div');div.innerHTML=post.innerHTML;if(rootType==='bloks'){div.setAttribute('data-mcomponent','MContainer');div.setAttribute('data-dcm-id','1');}else if(rootType==='ft'){div.setAttribute('data-ft',JSON.stringify({top_level_post_id:'42'}));}else div.setAttribute('data-pagelet','FeedUnit_42');post.replaceWith(div);post=div;}const geometry=node=>node.getBoundingClientRect=()=>({top:offset-(inner?scroller.scrollTop:y),bottom:offset-(inner?scroller.scrollTop:y)+350,height:350,width:400});geometry(post);
- const rawReplace=w.history.replaceState.bind(w.history);const cfg={rememberPosition:true};w.eval(source.replace('__CONFIG__',JSON.stringify(cfg)));
+ if(saved)w.sessionStorage.setItem('fpro.feed-return.v1',saved);w.performance.getEntriesByType=()=>[{type:navigation}];const rawReplace=w.history.replaceState.bind(w.history);const cfg={rememberPosition:true};w.eval(source.replace('__CONFIG__',JSON.stringify(cfg)));
  function click(){w.document.getElementById('comments').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
  function depart(){click();w.history.pushState({site:'keep-me'},'', '/posts/42');}
  function back(){rawReplace({},'', '/');w.dispatchEvent(new w.PopStateEvent('popstate'));step(1);}
@@ -36,4 +36,11 @@ function fixture(inner=false,rootType='article'){
  const f=fixture();try{f.depart();f.offset=1700;f.y=2700;f.back();f.w.dispatchEvent(new f.w.Event('wheel'));const y=f.y;f.step(3000);assert.equal(f.y,y);}finally{f.close();}
 }
 for(const type of ['bloks','ft','feedunit']){const f=fixture(false,type);try{f.depart();f.replace();f.offset=1800;f.y=2500;f.back();assert.equal(f.y,1700,'Stable return for '+type);}finally{f.close();}}
+{
+ const old=fixture();let snapshot;try{old.depart();snapshot=old.w.sessionStorage.getItem('fpro.feed-return.v1');}finally{old.close();}
+ const restored=fixture(false,'article',snapshot,'back_forward');try{restored.offset=1800;restored.y=2700;restored.step(1);assert.equal(restored.y,1700,'New document history traversal restores persisted post anchor');}finally{restored.close();}
+ const fresh=fixture(false,'article',snapshot,'navigate');try{fresh.offset=1800;fresh.y=2700;fresh.step(3000);assert.equal(fresh.y,2700,'Fresh document visit is not history traversal');}finally{fresh.close();}
+ const expired=JSON.parse(snapshot);expired.at=Date.now()-600001;
+ const stale=fixture(false,'article',JSON.stringify(expired),'back_forward');try{stale.y=2700;stale.step(3000);assert.equal(stale.y,2700,'Expired checkpoints ignored');}finally{stale.close();}
+}
 console.log('Feed return PASS: post identity/offset, late layout, nested scroller, re-render, missing post, explicit Home, same-URL dialog, user cancellation, OFF and bounded work; no history.state or event suppression.');
