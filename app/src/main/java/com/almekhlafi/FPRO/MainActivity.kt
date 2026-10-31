@@ -101,6 +101,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private var fullscreenLastAngle = android.view.OrientationEventListener.ORIENTATION_UNKNOWN
     private var fullscreenRotation: FullscreenRotationGate? = null
     private var fullscreenOrientationListener: android.view.OrientationEventListener? = null
+    private var fullscreenBrowserLayout: ViewGroup.LayoutParams? = null
     private var fullView: View? = null
     private var fullCallback: WebChromeClient.CustomViewCallback? = null
     private var fileCallback: ValueCallback<Array<Uri>>? = null
@@ -419,6 +420,13 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                 if (fullView != null) { callback.onCustomViewHidden(); return }
                 web.evaluateJavascript("window.__fproNativeFullscreen=true", null)
                 fullView = view; fullCallback = callback
+                // Keep the site's portrait player tree stable behind the native
+                // fullscreen surface. Resizing it to landscape can make responsive
+                // sites replace the video node and Chromium then exits fullscreen.
+                if (web.width > 0 && web.height > 0 && fullscreenBrowserLayout == null) {
+                    fullscreenBrowserLayout = web.layoutParams
+                    web.layoutParams = FrameLayout.LayoutParams(web.width, web.height)
+                }
                 startFullscreenRotation()
                 (window.decorView as ViewGroup).addView(view, FrameLayout.LayoutParams(-1,-1))
                 systemBars(true)
@@ -779,11 +787,25 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         fullscreenOrientationListener?.disable(); fullscreenOrientationListener = null
         fullscreenRotation = null
     }
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        restoreBrowserAfterFullscreen()
+        if (fullView != null) systemBars(true)
+    }
+    private fun restoreBrowserAfterFullscreen() {
+        // Do not briefly resize the site to landscape while Back is returning
+        // the window to portrait. The config callback completes that restoration.
+        if (fullView != null || resources.configuration.orientation != Configuration.ORIENTATION_PORTRAIT) return
+        val original = fullscreenBrowserLayout ?: return
+        fullscreenBrowserLayout = null
+        if (::web.isInitialized && !isDestroyed) web.layoutParams = original
+    }
     private fun closeFullscreen() {
         stopFullscreenRotation()
         if (fullView != null && !isFinishing && !isDestroyed) requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         web.evaluateJavascript("window.__fproNativeFullscreen=false", null)
         fullView?.let { (it.parent as? ViewGroup)?.removeView(it) }; fullView = null
+        restoreBrowserAfterFullscreen()
         fullCallback?.onCustomViewHidden(); fullCallback = null
         systemBars(prefs.flag("immersive"))
     }
@@ -990,6 +1012,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         fullView?.let { (it.parent as? ViewGroup)?.removeView(it) }; fullView = null
         fullCallback = null
+        fullscreenBrowserLayout = null // Old layout belongs to the dead WebView only.
         fileCallback?.onReceiveValue(null); fileCallback = null
         if (AudioPlaybackService.controls === this) AudioPlaybackService.controls = null
         stopService(Intent(this, AudioPlaybackService::class.java))

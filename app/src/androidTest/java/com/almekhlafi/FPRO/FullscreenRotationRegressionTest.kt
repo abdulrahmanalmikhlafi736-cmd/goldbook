@@ -58,6 +58,7 @@ class FullscreenRotationRegressionTest {
                     <div role="button" aria-label="Play" style="position:fixed;inset:0"></div>
                     <script>
                     window.token='same-document';window.remounts=0;window.initialWide=innerWidth>innerHeight;
+                    document.addEventListener('pointerup',()=>player.play().catch(()=>{}),true);
                     // Responsive SPA behaviour: crossing a layout breakpoint replaces its player.
                     addEventListener('resize',()=>{
                       if((innerWidth>innerHeight)!==initialWide){
