@@ -83,7 +83,12 @@
    if(!el.isConnected){restore(el);continue;}
    if(scopes.some(root=>root.contains(el)||el.contains(root))){
     if(!candidate(old.control)||blocked(el)||el!==old.control&&el.querySelector(excluded))restore(el);
-    else hide(el,old.control);
+    else {
+     hide(el,old.control);
+     // A previously ordinary wrapper may become a fixed footer after layout
+     // styles arrive. Re-evaluate only its known cue, not every feed child.
+     const target=surface(old.control);if(target!==el)hide(target,old.control);
+    }
    }
   }
   const visited=new Set();

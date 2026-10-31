@@ -30,6 +30,12 @@ const micro=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
   const reuse=d.createElement('div');reuse.textContent='Account';d.body.append(reuse);await micro();reuse.setAttribute('role','button');reuse.firstChild.data='فتح التطبيق';await micro();assert.equal(reuse.style.display,'none');reuse.firstChild.data='Search';await micro();assert.notEqual(reuse.style.display,'none');
   // Reparenting into protected UI must restore the old ownership.
   const dialog=d.createElement('div');dialog.setAttribute('role','dialog');dialog.innerHTML='<input>';d.body.append(dialog);dialog.append(bar);await micro();assert.notEqual(bar.style.display,'none');
+  // Late layout promotes a known hidden child to its dedicated footer,
+  // without leaving an empty fixed strip or enumerating unrelated feed cards.
+  const lateBar=d.createElement('div');lateBar.innerHTML='<button>Open app</button>';d.body.append(lateBar);await micro();
+  assert.equal(lateBar.firstChild.style.display,'none');
+  lateBar.getBoundingClientRect=()=>({height:48,width:400,top:600,left:0});
+  lateBar.style.cssText='position:fixed;height:48px;bottom:0';await micro();assert.equal(lateBar.style.display,'none','Known cue promotes after parent style changes');
   // Pending work and detached ownership cannot survive OFF.
   d.body.append(bar);c.textContent='Open app';await micro();assert.equal(bar.style.display,'none');
   d.getElementById('late').remove();await micro();w.FproPrompt.update({...cfg,appBanner:false});const stopped=w.FproPrompt.report();
