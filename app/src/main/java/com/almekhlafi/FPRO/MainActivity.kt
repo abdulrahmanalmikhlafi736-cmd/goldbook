@@ -645,10 +645,11 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
             surface.webChromeClient = null
             surface.webViewClient = WebViewClient()
             surface.destroy()
-            if (!sessionClosing && !isDestroyed) web.onResume()
+            if (!sessionClosing && !isDestroyed) { web.onResume(); configurePictureInPicture() }
         }
         web.onPause()
         displayTestDialog = dialog
+        configurePictureInPicture()
         dialog.show()
         dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
@@ -800,7 +801,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     }
     private fun canEnterPip(): Boolean = Build.VERSION.SDK_INT >= 26 &&
         packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
-        prefs.flag("pip") && !audioOnly && mediaPlaying && !settings && !externalHandoff && !isFinishing && !isDestroyed
+        prefs.flag("pip") && !audioOnly && mediaPlaying && !settings && displayTestDialog == null && !externalHandoff && !isFinishing && !isDestroyed
 
     @androidx.annotation.RequiresApi(26)
     private fun pipParameters(): PictureInPictureParams.Builder {
