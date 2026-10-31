@@ -1,7 +1,7 @@
 name: Fullscreen video rotation
 on:
   push:
-    paths: ['app/src/main/java/com/almekhlafi/FPRO/MainActivity.kt', 'app/src/main/java/com/almekhlafi/FPRO/FullscreenRotationGate.kt', 'app/src/androidTest/java/com/almekhlafi/FPRO/FullscreenRotationRegressionTest.kt', '.github/workflows/fullscreen-rotation.yml']
+    paths: ['app/src/main/assets/facebook.js', 'app/src/main/java/com/almekhlafi/FPRO/MainActivity.kt', 'app/src/main/java/com/almekhlafi/FPRO/FullscreenRotationGate.kt', 'app/src/androidTest/java/com/almekhlafi/FPRO/FullscreenRotationRegressionTest.kt', '.github/workflows/fullscreen-rotation.yml']
   workflow_dispatch:
 jobs:
   verify:
