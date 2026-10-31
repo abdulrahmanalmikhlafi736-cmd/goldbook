@@ -64,8 +64,20 @@ subtree scans.
   sibling roots, text-only CTA after3500 nodes, five inline-important re-shows,
   recycled Account/Search controls, forms/dialogs, reparenting, late footer
   promotion, detached ownership, OFF/no later work, and re-enable.
-- Optimized Android13 trusted-input run and APK build are recorded below after
-  CI completion. Do not mistake pending status for a pass.
+- Optimized Android13 run **41175586980 PASS**:600 cards, six batches x30
+  ancestor style writes. OFF and ON both returned0 query results /0 candidate
+  checks. Trusted pointer counts1->2 and site click counts1->2. ON prompt hidden,
+  OFF visible; important re-show correction and final OFF restoration asserted.
+  Raw evidence: `PROMPT-WORKLOAD-62-ANDROID.json`. Its elapsed/event timestamps
+  are NOT a statistically valid latency comparison or frame-rate benchmark.
+- Native Android13 broader regression **41175240916**:8 PASS/1 FAIL, matching
+  baseline. First-frame prompt hiding/restoration, trusted fixed-page transitions,
+  blocking-sheet/search protection, imported-engine layout and palette all PASS.
+  The sole failure remains the pre-existing opaque-comment/native-copy test.
+- Build **41175240930 PASS**:22 DOM suites, unit tests, lint, debug and compact
+  APK compilation. Separate compatibility workflow **41175240955 PASS** on
+  Ubuntu24.04 and26.04. APK production source is commit8c43e7b, identical to the
+  production source in the final native test (subsequent changes are CI/docs).
 - Baseline broader Android13 suite already had8 PASS/1 FAIL: the deferred opaque
   comment/native-copy test fails before this change. It is not fixed or hidden
   here. Baseline compact-device checks also have app-opening failures. These
@@ -82,3 +94,11 @@ The owner's Note20 Ultra/Android13 account comparison is still required.
 - Baseline native: https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41174596998
 - Baseline broader Android13: https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41174591618
 - New tests: `tools/test-prompt-workload.cjs`, `app/src/androidTest/java/com/almekhlafi/FPRO/PromptWorkAuditTest.kt`.
+
+## Final build/test links
+
+- Native optimized + JSON: https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41175586980
+- Native broader: https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41175240916
+- APK build: https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41175240930
+- Debug APK ZIP: https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41175240930/artifacts/13032840857
+- Compact APK ZIP (compiled, not claimed compact-device verified): https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41175240930/artifacts/13033250331
