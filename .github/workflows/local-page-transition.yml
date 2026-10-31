@@ -1,7 +1,7 @@
 name: Local page transition Android 16 isolation
 on:
   push:
-    paths: ['.github/workflows/local-page-transition.yml', 'device-tests/src/main/java/com/almekhlafi/FPRO/devicechecks/LocalTransitionUiTest.kt']
+    paths: ['.github/workflows/local-page-transition.yml', 'device-tests/src/main/java/com/almekhlafi/FPRO/devicechecks/LocalTransitionUiTest.kt', 'device-tests/src/main/java/com/almekhlafi/FPRO/devicechecks/CompactUiTest.kt']
   workflow_dispatch:
 jobs:
   isolate:
