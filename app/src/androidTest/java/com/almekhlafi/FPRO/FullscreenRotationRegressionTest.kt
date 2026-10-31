@@ -99,9 +99,10 @@ class FullscreenRotationRegressionTest {
             }
             awaitState("Actual landscape window") { it.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE }
             Thread.sleep(1400)
+            val rotationDetails=js("JSON.stringify({remounts,wide:initialWide,w:innerWidth,h:innerHeight,fs:!!document.fullscreenElement,native:!!window.__fproNativeFullscreen,events:rotationTrace})")
             scenario.onActivity { a ->
                 val full = field.get(a) as? View
-                assertNotNull("Responsive resize must not exit the native player", full)
+                assertNotNull("Responsive resize must not exit the native player; "+rotationDetails, full)
                 assertTrue("Fullscreen fills landscape", full!!.width > full.height)
             }
             assertEquals("No underlying responsive remount during fullscreen", "0", js("remounts"))

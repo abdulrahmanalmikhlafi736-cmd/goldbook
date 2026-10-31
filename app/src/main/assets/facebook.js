@@ -1057,7 +1057,7 @@
  // out of our double-tap session only; native rotation and CSS layout continue.
  // Capture runs before the site's normal window listeners, even older ones.
  function protectFullscreenResize(event){
-  if(managedFullscreen&&(document.fullscreenElement||document.webkitFullscreenElement||window.__fproNativeFullscreen))event.stopImmediatePropagation();
+  if(managedFullscreen)event.stopImmediatePropagation();
  }
  window.addEventListener('resize',protectFullscreenResize,true);
  window.addEventListener('orientationchange',protectFullscreenResize,true);
