@@ -43,7 +43,9 @@ class FullscreenRotationRegressionTest {
                 while (!ok && SystemClock.elapsedRealtime() < until) {
                     scenario.onActivity { a -> ok = predicate(a) }; if (!ok) Thread.sleep(100)
                 }
-                assertTrue(label, ok)
+                var state=""
+                if(!ok) scenario.onActivity { a -> state="orientation=${a.resources.configuration.orientation}, request=${a.requestedOrientation}, full=${field.get(a)!=null}" }
+                assertTrue(label+"; "+state+if(!ok)js("JSON.stringify({remounts,wide:initialWide,w:innerWidth,h:innerHeight,fs:!!document.fullscreenElement,native:!!window.__fproNativeFullscreen,events:rotationTrace})")else "", ok)
             }
             val point = FloatArray(2)
             scenario.onActivity { a ->
@@ -58,6 +60,8 @@ class FullscreenRotationRegressionTest {
                     <div role="button" aria-label="Play" style="position:fixed;inset:0"></div>
                     <script>
                     window.token='same-document';window.remounts=0;window.initialWide=innerWidth>innerHeight;
+                    window.rotationTrace=[];
+                    for(const name of ['resize','orientationchange','fullscreenchange'])addEventListener(name,()=>rotationTrace.push({event:name,w:innerWidth,h:innerHeight,fs:!!document.fullscreenElement,native:!!window.__fproNativeFullscreen}),true);
                     document.addEventListener('pointerup',()=>player.play().catch(()=>{}),true);
                     // Responsive SPA behaviour: crossing a layout breakpoint replaces its player.
                     addEventListener('resize',()=>{
