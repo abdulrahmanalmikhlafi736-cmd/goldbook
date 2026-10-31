@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private val pageInfoQuery by lazy {
         "(window.__fproPageInfo ? JSON.stringify(window.__fproPageInfo()) : " + pageInfoScript.trim().removeSuffix(";") + ")"
     }
-    private val script by lazy { assets.open("app-prompt-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("site-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("audio-mode.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
+    private val script by lazy { assets.open("feed-return.js").bufferedReader().use { it.readText() } + "\n" + assets.open("app-prompt-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("site-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("audio-mode.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -703,8 +703,8 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                   if(document.fullscreenElement){document.exitFullscreen();return 'closed';}
                   const dialog=document.querySelector('[role="dialog"]');
                   const close=dialog?.querySelector('[aria-label="Close"],[aria-label="إغلاق"]');
-                  if(close){close.click();return 'closed';}
-                  if(window.scrollY>80){window.scrollTo({top:0,behavior:'smooth'});return 'scrolled';}
+                  if(close){close.click();window.FproFeedReturn?.afterDialogBack();return 'closed';}
+                  if(window.scrollY>80&&!window.FproFeedReturn?.canReturn()){window.scrollTo({top:0,behavior:'smooth'});return 'scrolled';}
                   return 'back';
                 })()
             """.trimIndent()) { result ->
