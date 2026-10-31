@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cancel: ['true', 'false']
+        mode: ['baseline', 'isolated']
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -20,16 +20,17 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Apply audit-only candidate, not a release artifact
-        if: matrix.cancel == 'false'
+      - name: Restore pre-fix baseline in the comparison arm only
+        if: matrix.mode == 'baseline'
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('app/src/main/java/com/almekhlafi/FPRO/MainActivity.kt')
           s=p.read_text()
-          old='private fun showDisplayTest() {\n        web.stopLoading()'
-          assert s.count(old)==1
-          p.write_text(s.replace(old,'private fun showDisplayTest() {\n        // Audit candidate: loadData already replaces the current document.'))
+          a=s.index('    @SuppressLint("SetJavaScriptEnabled")\n    private fun showDisplayTest() {')
+          b=s.index('\n    // Physical WebView',a)
+          baseline=Path('tools/fixtures/local-display-baseline.kt.txt').read_text()
+          p.write_text(s[:a]+baseline+s[b:])
           PY
       - name: Enable KVM
         run: |
@@ -69,7 +70,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: local-transition-cancel-${{ matrix.cancel }}
+          name: local-transition-${{ matrix.mode }}
           path: |
             transition-evidence/
             device-tests/build/outputs/androidTest-results/

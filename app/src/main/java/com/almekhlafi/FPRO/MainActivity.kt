@@ -53,6 +53,7 @@ import org.json.JSONArray
 
 class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     companion object { const val AUDIO_MODE = "com.almekhlafi.FPRO.AUDIO_MODE"; const val VIDEO_MODE = "com.almekhlafi.FPRO.VIDEO_MODE" }
+    private var displayTestDialog: android.app.Dialog? = null
     private var audioOnly = false
     private var audioRequested = false
     private var earlyScript: androidx.webkit.ScriptHandler? = null
@@ -612,13 +613,46 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         return "$health\nFPRO code ${BuildConfig.VERSION_CODE} / Android ${Build.VERSION.RELEASE}\n${provider ?: mobileAgent}\n$loadState\nURL: ${web.url}\nProgress: $loadingProgress / Size: ${web.width}x${web.height} / Attached: ${web.isAttachedToWindow}\nSoftware: ${prefs.flag("software")}\nPiP enabled: ${prefs.flag("pip")} / Playing: $mediaPlaying / Requested: $pipRequested / Active: $pip / Handoff: $externalHandoff / Audio: $audioOnly / Early: ${earlyScript != null} / Gesture required: ${web.settings.mediaPlaybackRequiresUserGesture} / Fullscreen: ${fullView != null} / Orientation request: $requestedOrientation / Sensor available: $fullscreenSensorAvailable / Last angle: $fullscreenLastAngle / Turn gate: ${fullscreenRotation != null} / Music active: ${getSystemService(android.media.AudioManager::class.java).isMusicActive}"
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     private fun showDisplayTest() {
-        web.stopLoading()
-        failure = null
-        pageConfirmed = false
-        pageSequence++
-        loadState = "اختبار محلي بلا إنترنت"
-        web.loadDataWithBaseURL("https://fpro.invalid/", """
+        if (isDestroyed || isFinishing) return
+        displayTestDialog?.dismiss()
+        // Do not navigate/cancel the live Facebook network context to display
+        // offline HTML: WebView133/API36 can abort its browser IO process there.
+        val dialog = android.app.Dialog(this)
+        val surface = WebView(this).apply {
+            settings.javaScriptEnabled = true
+            settings.allowFileAccess = false
+            settings.allowContentAccess = false
+            settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                    if (request.isForMainFrame && Navigation.isFacebook(request.url.toString())) {
+                        dialog.dismiss()
+                        web.loadUrl(request.url.toString())
+                    }
+                    return true
+                }
+            }
+            webChromeClient = object : WebChromeClient() {
+                override fun onPermissionRequest(request: PermissionRequest) { request.deny() }
+            }
+        }
+        dialog.setContentView(surface)
+        dialog.setOnDismissListener {
+            if (displayTestDialog === dialog) displayTestDialog = null
+            (surface.parent as? ViewGroup)?.removeView(surface)
+            surface.webChromeClient = null
+            surface.webViewClient = WebViewClient()
+            surface.destroy()
+            if (!sessionClosing && !isDestroyed) web.onResume()
+        }
+        web.onPause()
+        displayTestDialog = dialog
+        dialog.show()
+        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        surface.loadDataWithBaseURL(null, """
             <!doctype html><html dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
             <body style="margin:0;background:#14b450;color:#101010;font:22px sans-serif;padding:70px 24px;min-height:100vh;box-sizing:border-box">
             <h1>اختبار عرض WebView</h1><p>هذه صفحة تشخيص محلية وليست فيسبوك. ظهور الخلفية الخضراء وهذا النص يؤكد أن المحرك يرسم المحتوى.</p>
@@ -890,6 +924,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     override fun onDestroy() {
         headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
         sessionClosing = true; sessions.close()
+        displayTestDialog?.dismiss(); displayTestDialog = null
         earlyScript?.remove(); earlyScript = null
         if (!::web.isInitialized) { super.onDestroy(); return }
         stopAudioMode(true)
