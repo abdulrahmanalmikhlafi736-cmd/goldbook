@@ -29,7 +29,7 @@ def summarize(root):
         console = []
         engines = []
         for path in logs:
-            lines = path.read_text(errors='replace').splitlines()
+            lines = [line for line in path.read_text(errors='replace').splitlines() if 'F crashpad:' not in line]
             for i, line in enumerate(lines):
                 if ('WebViewFactory' in line and 'Loading' in line) or ('cr_Provider' in line and 'version=' in line):
                     if line not in engines and len(engines)<12: engines.append(line[:1200])
@@ -54,14 +54,18 @@ if __name__ == '__main__':
     Path(sys.argv[2]).write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     if not report['jobs']:
         raise SystemExit('Missing downloaded emulator artifacts')
+    summaries=[]
     for job in report['jobs']:
         summary = {key: job[key] for key in ('artifact', 'testCount', 'passed', 'skipped', 'missingTestEvidence')}
         summary['failed'] = len(job['failed'])
         summary['crashContexts'] = len(job['crashOrAnrContexts'])
-        print('::notice title=Reliability summary::' + json.dumps(summary))
+        summaries.append(summary)
+    print('::notice title=Reliability summary::' + json.dumps(summaries))
     # Checks messages are truncated at roughly4KB. Chunk a lossless compressed
     # report rather than silently losing failure details in one long annotation.
     payload = base64.b64encode(zlib.compress(json.dumps(report, ensure_ascii=False).encode())).decode()
     chunks = [payload[i:i+2800] for i in range(0, len(payload), 2800)]
+    if len(chunks)>9:
+        raise SystemExit('Report exceeds lossless Checks transport limit; full JSON is available in the job artifact')
     for i, chunk in enumerate(chunks):
         print(f'::notice title=Reliability evidence chunk::RELCHUNK:{i}:{len(chunks)}:{chunk}')
