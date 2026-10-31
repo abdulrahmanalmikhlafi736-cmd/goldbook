@@ -102,3 +102,24 @@ The owner's Note20 Ultra/Android13 account comparison is still required.
 - APK build: https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41175240930
 - Debug APK ZIP: https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41175240930/artifacts/13032840857
 - Compact APK ZIP (compiled, not claimed compact-device verified): https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41175240930/artifacts/13033250331
+
+## Final compact results (reviewed after the device matrix finished)
+
+The earlier compact-launch failures were baseline results, not the final build62
+result. Final production run41175240875 completed with BOTH compact jobs passing:
+
+- Android15/API35 job124461319647: success.
+- Android16/API36 job124461319446: success.
+- These black-box UIAutomator jobs exercise startup, local WebView painting via
+  real settings, anonymous real-Facebook rendering/login-input touch, and selected
+  settings. They do not log in to the owner's account or prove every feature.
+- API35 artifact13032639201 is the exact compact APK uploaded only after that
+  job succeeded; archive size1,072,040 bytes (about1.1MB), versus debug archive
+  9,376,759 bytes. Source assets and the confirmed prompt fix are unchanged.
+- Download: https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41175240875/artifacts/13032639201
+- There is no new version or behavioral production edit here; it is the existing
+  minified build62 variant. Android13 compact was not independently tested in this
+  matrix. The earlier Android13 trusted-input test used the debug variant.
+- Do not promise in-place installation across independently signed CI artifacts.
+  If Android rejects an update, preserve the working install/account data rather
+  than recommending uninstalling it to bypass signature verification.
