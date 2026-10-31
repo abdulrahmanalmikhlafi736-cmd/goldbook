@@ -1,0 +1,27 @@
+name: Historical device reliability audit
+on:
+  push:
+    paths: ['.github/workflows/reliability-audit.yml', 'tools/summarize-device-evidence.py']
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '41221443278'
+          pattern: webview-device-diagnostics-*
+          path: evidence
+      - name: Classify failures without altering or hiding them
+        run: python3 tools/summarize-device-evidence.py evidence reliability-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: historical-device-reliability-evidence
+          path: reliability-report.json
+          if-no-files-found: error
