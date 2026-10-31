@@ -35,8 +35,10 @@ class VideoColorWorkloadTest {
    Thread.sleep(2000)
    val cfg="{siteEngine:'upstream',enhance:true,appBanner:true,referenceEngine:true,color:'ذهبي',downloads:true,rainbow:true,textSelection:true,selectionScope:'posts'}"
    scenario.onActivity{a->val source=listOf("feed-return.js","app-prompt-engine.js","site-engine.js","reference-engines.js","audio-mode.js","facebook.js").joinToString("\n"){a.assets.open(it).bufferedReader().use{r->r.readText()}}.replace("__CONFIG__",cfg);find(a.window.decorView)!!.evaluateJavascript(source,null)}
-   js("player.muted=true;player.play();true");Thread.sleep(2000)
-   assertEquals("true",js("!player.paused&&player.readyState>=2"))
+   js("player.muted=true;player.play().catch(e=>window.playError=e.name+':'+e.message);true")
+   repeat(16){if(js("!player.paused&&player.readyState>=2")!="true")Thread.sleep(500)}
+   val playback=js("JSON.stringify({paused:player.paused,ready:player.readyState,network:player.networkState,error:player.error&&{code:player.error.code,message:player.error.message},playError:window.playError,canPlay:player.canPlayType('video/mp4')})")
+   assertEquals("Real playback must start: $playback","true",js("!player.paused&&player.readyState>=2"))
    assertEquals("true",js("getComputedStyle(document.querySelector('main p')).color!=='rgb(8, 102, 255)'"))
    js("""
     window.colorQueries=0;window.fullColorQueries=0;window.videoUpdates=0;window.clockUpdates=0;
