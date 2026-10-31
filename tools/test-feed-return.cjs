@@ -43,14 +43,23 @@ for(const type of ['bloks','ft','feedunit']){const f=fixture(false,type);try{f.d
  const expired=JSON.parse(snapshot);expired.at=Date.now()-600001;
  const stale=fixture(false,'article',JSON.stringify(expired),'back_forward');try{stale.y=2700;stale.step(3000);assert.equal(stale.y,2700,'Expired checkpoints ignored');}finally{stale.close();}
 }
-// The source position must precede a pointer-activation layout shift.
+// Capture geometry before both collapse and expansion during activation.
+for(const activatedOffset of [700,1500]){
+ const f=fixture();try{
+  const button=f.w.document.getElementById('comments');
+  button.dispatchEvent(new f.w.MouseEvent('pointerdown',{bubbles:true,clientX:40,clientY:140}));
+  f.offset=activatedOffset;
+  f.depart();f.offset=1900;f.y=2400;f.back();
+  assert.equal(f.y,1800,'Pre-activation offset wins over shifted click geometry: '+activatedOffset);
+ }finally{f.close();}
+}
 {
  const f=fixture();try{
   const button=f.w.document.getElementById('comments');
   button.dispatchEvent(new f.w.MouseEvent('pointerdown',{bubbles:true,clientX:40,clientY:140}));
-  f.offset=1500; // Site activation shifts the source before the click handler.
-  f.depart();f.offset=1900;f.y=2400;f.back();
-  assert.equal(f.y,1800,'Use pre-activation offset100px, not click-time offset500px');
+  button.dispatchEvent(new f.w.MouseEvent('pointermove',{bubbles:true,clientX:100,clientY:240}));
+  f.offset=700;f.depart();f.offset=1900;f.y=2400;f.back();
+  assert.equal(f.y,2200,'Do not reuse pre-drag press geometry for a later click');
  }finally{f.close();}
 }
 // A broad ancestor article can wrap multiple mobile feed cards.

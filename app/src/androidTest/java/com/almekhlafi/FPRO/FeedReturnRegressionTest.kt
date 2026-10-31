@@ -30,8 +30,8 @@ class FeedReturnRegressionTest {
    Thread.sleep(1000)
    scenario.onActivity{a->find(a.window.decorView)!!.evaluateJavascript(a.assets.open("feed-return.js").bufferedReader().use{it.readText()}.replace("__CONFIG__","{rememberPosition:true}"),null)}
    js("""
-    window.siteClicks=0;comments.addEventListener('pointerdown',()=>{siteClicks++;history.pushState({site:'untouched'},'', '/posts/42');feed.style.display='none';detail.style.display='block';scrollTo(0,0);});
-    window.addEventListener('popstate',()=>{if(location.pathname==='/'){detail.style.display='none';const rebuilt=post.cloneNode(true);post.replaceWith(rebuilt);rebuilt.removeAttribute('data-ft');rebuilt.removeAttribute('data-tracking-duration-id');rebuilt.setAttribute('data-pagelet','FeedUnit_42');spacer.style.height='1300px';feed.style.display='block';setTimeout(()=>spacer.style.height='1500px',450);}});
+    window.firstReturnTop=null;window.siteClicks=0;comments.addEventListener('pointerdown',()=>{siteClicks++;history.pushState({site:'untouched'},'', '/posts/42');feed.style.display='none';detail.style.display='block';scrollTo(0,0);});
+    window.addEventListener('popstate',()=>{if(location.pathname==='/'){detail.style.display='none';const rebuilt=post.cloneNode(true);post.replaceWith(rebuilt);rebuilt.removeAttribute('data-ft');rebuilt.removeAttribute('data-tracking-duration-id');rebuilt.setAttribute('data-pagelet','FeedUnit_42');spacer.style.height='1300px';feed.style.display='block';requestAnimationFrame(()=>window.firstReturnTop=post.getBoundingClientRect().top);setTimeout(()=>spacer.style.height='1500px',450);}});
     scrollTo(0,600);true
    """.trimIndent());Thread.sleep(200)
    val initialTop=js("post.getBoundingClientRect().top").toDouble()
@@ -43,6 +43,8 @@ class FeedReturnRegressionTest {
    // Exercise the Activity BackHandler, not a synthetic DOM event/history call.
    inst.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);Thread.sleep(900)
    assertEquals("true",js("location.pathname==='/'"))
+   val firstReturnTop=js("firstReturnTop").toDouble()
+   assertEquals("First return frame uses the opened post, not a lower card",initialTop,firstReturnTop,4.0)
    val restoredTop=js("post.getBoundingClientRect().top").toDouble()
    assertEquals("Nearest source post survives early activation, new wrapper and late layout",initialTop,restoredTop,4.0)
    assertTrue(js("FproFeedReturn.report().corrections").toInt()>0)
@@ -52,7 +54,7 @@ class FeedReturnRegressionTest {
    assertEquals("Trusted touch cancels automatic corrections",y,js("scrollY").toDouble(),4.0)
    assertEquals("false",js("FproFeedReturn.report().active"))
    assertTrue("Trusted gesture must cancel a live settling window",js("FproFeedReturn.report().cancelled").toInt()>0)
-   android.util.Log.i("FPRO_FEED_RETURN","initialTop=$initialTop restoredTop=$restoredTop y=$y "+js("JSON.stringify(FproFeedReturn.report())"))
+   android.util.Log.i("FPRO_FEED_RETURN","initialTop=$initialTop firstReturnTop=$firstReturnTop restoredTop=$restoredTop y=$y "+js("JSON.stringify(FproFeedReturn.report())"))
   }
  }
 }
