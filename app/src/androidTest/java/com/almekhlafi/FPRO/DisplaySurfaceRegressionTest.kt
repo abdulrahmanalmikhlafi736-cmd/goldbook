@@ -20,6 +20,10 @@ class DisplaySurfaceRegressionTest {
   val inst=InstrumentationRegistry.getInstrumentation()
   val scenario=ActivityScenario.launch<MainActivity>(android.content.Intent().setClassName(inst.targetContext.packageName,"com.almekhlafi.FPRO.MainActivity"))
   var owner:MainActivity?=null
+  val store=inst.targetContext.getSharedPreferences("fpro",android.content.Context.MODE_PRIVATE)
+  val hadPip=store.contains("pip");val previousPip=store.getBoolean("pip",false)
+  val media=MainActivity::class.java.getDeclaredField("mediaPlaying").apply{isAccessible=true}
+  val canPip=MainActivity::class.java.getDeclaredMethod("canEnterPip").apply{isAccessible=true}
   val field=MainActivity::class.java.getDeclaredField("displayTestDialog").apply{isAccessible=true}
   val show=MainActivity::class.java.getDeclaredMethod("showDisplayTest").apply{isAccessible=true}
   try{
@@ -30,14 +34,26 @@ class DisplaySurfaceRegressionTest {
    Thread.sleep(700)
    js("window.diagnosticSourceToken='kept';true")
    val before=js("location.href+'|'+history.length")
-   scenario.onActivity{a->show.invoke(a);val dialog=field.get(a) as android.app.Dialog;assertTrue(dialog.isShowing);assertNotSame(original,find(dialog.window!!.decorView));assertSame(original,find(a.window.decorView))}
+   scenario.onActivity{a->
+    if(a.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)){
+     store.edit().putBoolean("pip",true).commit();media.setBoolean(a,true)
+     assertTrue("Policy permits actual playing state outside diagnostics",canPip.invoke(a) as Boolean)
+    }
+    show.invoke(a)
+    media.setBoolean(a,true)
+    assertFalse("Diagnostic window cannot auto-enter video PiP",canPip.invoke(a) as Boolean)
+    media.setBoolean(a,false)
+    val dialog=field.get(a) as android.app.Dialog;assertTrue(dialog.isShowing);assertNotSame(original,find(dialog.window!!.decorView));assertSame(original,find(a.window.decorView))}
    Thread.sleep(300)
    inst.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);Thread.sleep(200)
    scenario.onActivity{a->assertNull("Back dismisses and releases local surface",field.get(a));assertSame(original,find(a.window.decorView))}
    assertEquals("Original document survives","\"kept\"",js("diagnosticSourceToken"))
    assertEquals("No main-browser navigation/history replacement",before,js("location.href+'|'+history.length"))
    scenario.onActivity{a->show.invoke(a);assertNotNull(field.get(a))}
-  }finally{scenario.close()}
+  }finally{
+   scenario.close()
+   store.edit().apply{if(hadPip)putBoolean("pip",previousPip)else remove("pip")}.commit()
+  }
   assertNull("Activity destruction releases the diagnostic window",field.get(owner))
   android.util.Log.i("FPRO_REELS_VIEWER","display-surface: original document kept; Back and destroy released diagnostic window")
  }
