@@ -1,7 +1,7 @@
 name: Fullscreen video rotation
 on:
   push:
-    paths: ['app/src/main/assets/facebook.js', 'app/src/main/java/com/almekhlafi/FPRO/MainActivity.kt', 'app/src/main/java/com/almekhlafi/FPRO/FullscreenRotationGate.kt', 'app/src/androidTest/java/com/almekhlafi/FPRO/FullscreenRotationRegressionTest.kt', '.github/workflows/fullscreen-rotation.yml']
+    paths: ['app/src/main/assets/fullscreen-rotation.js', 'app/src/main/assets/early-start.js', 'app/src/main/assets/facebook.js', 'app/src/main/java/com/almekhlafi/FPRO/MainActivity.kt', 'app/src/main/java/com/almekhlafi/FPRO/FullscreenRotationGate.kt', 'app/src/androidTest/java/com/almekhlafi/FPRO/FullscreenRotationRegressionTest.kt', '.github/workflows/fullscreen-rotation.yml']
   workflow_dispatch:
 jobs:
   verify:
@@ -29,7 +29,9 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.FullscreenRotationRegressionTest --stacktrace
+          script: |
+            adb shell dumpsys webviewupdate
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.FullscreenRotationRegressionTest --stacktrace
       - name: Publish exact test result
         if: always()
         run: |

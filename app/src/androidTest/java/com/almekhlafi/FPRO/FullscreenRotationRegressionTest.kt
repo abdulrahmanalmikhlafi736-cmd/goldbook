@@ -53,7 +53,7 @@ class FullscreenRotationRegressionTest {
                 val xy = IntArray(2); w.getLocationOnScreen(xy)
                 point[0] = xy[0] + w.width / 2f; point[1] = xy[1] + w.height / 2f
                 w.stopLoading()
-                w.loadDataWithBaseURL("https://fixture.invalid/", """
+                w.loadDataWithBaseURL("https://m.facebook.com/reel/rotation-fixture/", """
                     <!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
                     <body style="margin:0"><video id="player" muted loop playsinline preload="auto"
                     style="position:fixed;inset:0;width:100%;height:100%" src="data:video/mp4;base64,$clip"></video>
@@ -74,10 +74,9 @@ class FullscreenRotationRegressionTest {
                 """.trimIndent(), "text/html", "UTF-8", null)
             }
             Thread.sleep(1500)
+            assertEquals("Production page tools installed", "true", js("!!window.__fpro&&!!window.FproFullscreenRotation"))
             scenario.onActivity { a ->
-                val source = a.assets.open("facebook.js").bufferedReader().use { it.readText() }
-                    .replace("__CONFIG__", "{\"enhance\":false,\"doubleTapFullscreen\":true,\"downloads\":false,\"rainbow\":false}")
-                find(a.window.decorView)!!.evaluateJavascript(source + ";player.play().catch(()=>{});", null)
+                android.util.Log.i("FPRO_ROTATION", "provider="+android.webkit.WebView.getCurrentWebViewPackage()?.versionName+" early="+androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT))
             }
             repeat(2) {
                 val down = SystemClock.uptimeMillis()
@@ -89,6 +88,7 @@ class FullscreenRotationRegressionTest {
                 if (it == 0) Thread.sleep(70)
             }
             awaitState("Trusted double tap enters real fullscreen") { field.get(it) != null }
+            assertEquals("Managed session active", "true", js("FproFullscreenRotation.isActive()"))
             scenario.onActivity { a ->
                 assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, a.requestedOrientation)
                 // Exercise production turn gate. Emulator window rotation below is forced,
@@ -115,6 +115,7 @@ class FullscreenRotationRegressionTest {
                 field.get(it) == null && it.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT &&
                     find(it.window.decorView)!!.height > find(it.window.decorView)!!.width
             }
+            assertEquals("Back releases temporary guard", "false", js("FproFullscreenRotation.isActive()"))
             assertEquals("Back keeps document", "true", js("token==='same-document'"))
             android.util.Log.i("FPRO_ROTATION", "PASS: trusted double tap; real landscape custom view; continuing frames; no responsive remount; Back restores portrait")
         }

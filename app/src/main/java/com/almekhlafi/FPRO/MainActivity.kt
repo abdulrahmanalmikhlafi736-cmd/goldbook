@@ -112,7 +112,8 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private val pageInfoQuery by lazy {
         "(window.__fproPageInfo ? JSON.stringify(window.__fproPageInfo()) : " + pageInfoScript.trim().removeSuffix(";") + ")"
     }
-    private val script by lazy { assets.open("feed-return.js").bufferedReader().use { it.readText() } + "\n" + assets.open("app-prompt-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("site-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("audio-mode.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
+    private val fullscreenRotationScript by lazy { assets.open("fullscreen-rotation.js").bufferedReader().use { it.readText() } }
+    private val script by lazy { fullscreenRotationScript + "\n" + assets.open("feed-return.js").bufferedReader().use { it.readText() } + "\n" + assets.open("app-prompt-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("site-engine.js").bufferedReader().use { it.readText() } + "\n" + assets.open("reference-engines.js").bufferedReader().use { it.readText() } + "\n" + assets.open("audio-mode.js").bufferedReader().use { it.readText() } + "\n" + assets.open("facebook.js").bufferedReader().use { it.readText() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -561,7 +562,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         if(androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
             val source = viewportScript(web.width, web.height) + script.replace("__CONFIG__", pageScriptConfig())
             val bootstrap = assets.open("early-start.js").bufferedReader().use { it.readText() }.replace("__FPRO_SOURCE__", source)
-            earlyScript = androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web, bootstrap, setOf("https://facebook.com", "https://*.facebook.com", "https://messenger.com", "https://*.messenger.com"))
+            earlyScript = androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web, fullscreenRotationScript + "\n" + bootstrap, setOf("https://facebook.com", "https://*.facebook.com", "https://messenger.com", "https://*.messenger.com"))
         }
     }
     private fun requestAudioOnly() {
@@ -782,7 +783,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private fun closeFullscreen() {
         stopFullscreenRotation()
         if (fullView != null && !isFinishing && !isDestroyed) requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        web.evaluateJavascript("window.__fproNativeFullscreen=false", null)
+        web.evaluateJavascript("window.__fproNativeFullscreen=false;window.FproFullscreenRotation?.end()", null)
         fullView?.let { (it.parent as? ViewGroup)?.removeView(it) }; fullView = null
         fullCallback?.onCustomViewHidden(); fullCallback = null
         systemBars(prefs.flag("immersive"))
