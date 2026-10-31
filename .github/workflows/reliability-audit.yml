@@ -1,7 +1,7 @@
 name: Historical device reliability audit
 on:
   push:
-    paths: ['.github/workflows/reliability-audit.yml', 'tools/summarize-device-evidence.py']
+    paths: ['.github/workflows/reliability-audit.yml', 'tools/summarize-device-evidence.py', 'tools/test_device_evidence.py']
   workflow_dispatch:
 jobs:
   inspect:
@@ -12,6 +12,8 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v4
+      - name: Test evidence classification and lossless transport
+        run: python3 -B tools/test_device_evidence.py
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
@@ -21,6 +23,7 @@ jobs:
       - name: Classify failures without altering or hiding them
         run: python3 tools/summarize-device-evidence.py evidence reliability-report.json
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: historical-device-reliability-evidence
           path: reliability-report.json
