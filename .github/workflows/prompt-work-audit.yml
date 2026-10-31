@@ -1,5 +1,7 @@
 name: Prompt workload Android 13
 on:
+  push:
+    paths: ['app/src/androidTest/java/com/almekhlafi/FPRO/PromptWorkAuditTest.kt', '.github/workflows/prompt-work-audit.yml']
   workflow_dispatch:
     inputs:
       optimized:
@@ -31,7 +33,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.PromptWorkAuditTest -Pandroid.testInstrumentationRunnerArguments.expectOptimized=${{ inputs.optimized }} --stacktrace
+          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.PromptWorkAuditTest -Pandroid.testInstrumentationRunnerArguments.expectOptimized=${{ inputs.optimized || 'false' }} --stacktrace
       - name: Publish test evidence
         if: always()
         run: |
