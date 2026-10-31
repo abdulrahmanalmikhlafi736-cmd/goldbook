@@ -1,5 +1,7 @@
 """Development-only anonymous emulator evidence; no production behavior changes."""
 import json
+import base64
+import zlib
 import re
 import sys
 from pathlib import Path
@@ -50,5 +52,13 @@ if __name__ == '__main__':
     if not report['jobs']:
         raise SystemExit('Missing downloaded emulator artifacts')
     for job in report['jobs']:
-        message = json.dumps(job, ensure_ascii=False)
-        print('::notice title=Reliability evidence::' + message.replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D'))
+        summary = {key: job[key] for key in ('artifact', 'testCount', 'passed', 'skipped', 'missingTestEvidence')}
+        summary['failed'] = len(job['failed'])
+        summary['crashContexts'] = len(job['crashOrAnrContexts'])
+        print('::notice title=Reliability summary::' + json.dumps(summary))
+    # Checks messages are truncated at roughly4KB. Chunk a lossless compressed
+    # report rather than silently losing failure details in one long annotation.
+    payload = base64.b64encode(zlib.compress(json.dumps(report, ensure_ascii=False).encode())).decode()
+    chunks = [payload[i:i+2800] for i in range(0, len(payload), 2800)]
+    for i, chunk in enumerate(chunks):
+        print(f'::notice title=Reliability evidence chunk::RELCHUNK:{i}:{len(chunks)}:{chunk}')
