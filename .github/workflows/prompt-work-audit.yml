@@ -1,7 +1,7 @@
 name: Prompt workload Android 13
 on:
   push:
-    paths: ['app/src/androidTest/java/com/almekhlafi/FPRO/PromptWorkAuditTest.kt', '.github/workflows/prompt-work-audit.yml']
+    paths: ['app/src/main/assets/app-prompt-engine.js', 'app/src/androidTest/java/com/almekhlafi/FPRO/PromptWorkAuditTest.kt', 'app/build.gradle.kts', '.github/workflows/prompt-work-audit.yml']
   workflow_dispatch:
     inputs:
       optimized:
