@@ -1140,7 +1140,9 @@ apply();new MutationObserver(apply).observe(document.body,{childList:true,subtre
   signature=next;lastConfig={...config};if(active){active.stop();active=null;}
   if(config.siteEngine!=='upstream'||config.enhance===false||!document.body)return;
   active=scope(config);
-  for(const [flag,file] of [['amoled','amoled_black'],['ads','adblock'],['suggested','hide_suggested'],['people','hide_pymk'],['groups','hide_groups'],['reels','hide_reels'],['sticky','sticky_navbar']])if(config[flag])active.mount(file);
+  // Feed-card hiding must not blank an explicitly opened media viewer.
+  const mediaViewer=/\/(?:reels?|watch|videos?)(?:\/|\.php|$)/i.test(location.pathname)||new URLSearchParams(location.search).has('v');
+  for(const [flag,file] of [['amoled','amoled_black'],['ads','adblock'],['suggested','hide_suggested'],['people','hide_pymk'],['groups','hide_groups'],['reels','hide_reels'],['sticky','sticky_navbar']])if(config[flag]&&!(flag==='reels'&&mediaViewer))active.mount(file);
   if(config.stories||config.homeStories&&location.pathname==='/')active.mount('hide_stories');
   if(config.appBanner&&!window.FproPrompt){active.mount('bottom_banner');active.mount('open_app_glyph');}
   if(config.referenceEngine!==false&&config.color!=='طبيعي'&&active.primary){active.mount('material_you');if(config.experimentalColorVars)active.run(()=>{const tokenStyle=document.createElement('style');tokenStyle.id='fpro-upstream-tokens';tokenStyle.textContent=':root{'+['--accent','--primary-blue','--blue-link','--primary-button-background','--primary-deemphasized-button-text'].map(k=>k+':'+active.primary+'!important').join(';')+'}';document.head.append(tokenStyle);});}
