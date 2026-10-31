@@ -4,7 +4,8 @@
  'use strict';
  if (!window.FproFeedReturn) {
   var STORAGE='fpro.feed-return.v1', TTL=600000;
-  var POSTS='article,[role="article"],[data-tracking-duration-id],[data-ft]';
+  var ROOTS={article:'article,[role="article"]',feedunit:'[data-pagelet^="FeedUnit"]',tracking:'[data-tracking-duration-id]',ft:'[data-ft]',bloks:'div[data-dcm-id="1"][data-mcomponent="MContainer"]'};
+  var POSTS=Object.keys(ROOTS).map(function(k){return ROOTS[k];}).join(',');
   var enabled=false,pending=null,record=null,liveNode=null,job=null,serial=0;
   var stats={captures:0,returns:0,corrections:0,cancelled:0,attempts:0};
   function home(){return /(^|\.)facebook\.com$/.test(location.hostname)&&(/^\/$|^\/home\.php$/).test(location.pathname);}
@@ -28,7 +29,7 @@
   }
   function same(a,b){return !!a&&!!b&&a.kind===b.kind&&a.value===b.value;}
   function usable(el){return el&&el.isConnected&&!el.closest('dialog,[role="dialog"],[aria-modal="true"],form,[id^="fpro"],.fpro-video-tools');}
-  function valid(r){return r&&r.v===1&&typeof r.url==='string'&&r.url.length<8192&&r.key&&['post','url','tracking'].indexOf(r.key.kind)>=0&&typeof r.key.value==='string'&&r.key.value.length<512&&Number.isFinite(r.top)&&Math.abs(r.top)<100000&&now()-r.at>=0&&now()-r.at<TTL;}
+  function valid(r){return r&&r.v===1&&typeof r.url==='string'&&r.url.length<8192&&r.key&&['post','url','tracking'].indexOf(r.key.kind)>=0&&typeof r.key.value==='string'&&r.key.value.length<512&&(!r.root||Object.prototype.hasOwnProperty.call(ROOTS,r.root))&&Number.isFinite(r.top)&&Math.abs(r.top)<100000&&now()-r.at>=0&&now()-r.at<TTL;}
   function read(){try{var r=JSON.parse(sessionStorage.getItem(STORAGE));return valid(r)?r:null;}catch(ignore){return null;}}
   function persist(){try{if(record)sessionStorage.setItem(STORAGE,JSON.stringify(record));else sessionStorage.removeItem(STORAGE);}catch(ignore){}}
   function stop(clear){
@@ -48,7 +49,7 @@
    var nodes,i,root;
    if(r.key.kind==='url'){
     nodes=document.querySelectorAll('a[href*='+JSON.stringify(r.key.value.split('?')[0])+']');
-    for(i=0;i<nodes.length;i++)if(canonical(nodes[i].getAttribute('href'))===r.key.value){root=nodes[i].closest(POSTS);if(usable(root)){liveNode=root;return root;}}
+    for(i=0;i<nodes.length;i++)if(canonical(nodes[i].getAttribute('href'))===r.key.value){root=nodes[i].closest(ROOTS[r.root]||POSTS);if(usable(root)){liveNode=root;return root;}}
    }else{
     var selector=r.key.kind==='tracking'?'[data-tracking-duration-id='+JSON.stringify(r.key.value)+']':'[data-ft*='+JSON.stringify(r.key.value)+']';
     nodes=document.querySelectorAll(selector);
@@ -94,10 +95,12 @@
    var target=event.target&&event.target.nodeType===1?event.target:event.target&&event.target.parentElement;
    if(!target||target.closest('dialog,[role="dialog"],[aria-modal="true"],form,input,textarea,select,[contenteditable="true"],[id^="fpro"],.fpro-video-tools'))return;
    var link=target.closest('a[href]');if(link&&(link.target==='_blank'||link.hasAttribute('download')))return;
-   var post=target.closest(POSTS);if(!usable(post))return;
+   var post=null,rootKind=null;
+   for(var kind in ROOTS){post=target.closest(ROOTS[kind]);if(post){rootKind=kind;break;}}
+   if(!usable(post))return;
    var key=identity(post),box=post.getBoundingClientRect();
    if(!key||key.value.length>=512||box.height<=0||box.width<=0||box.bottom<=0||box.top>=innerHeight)return;
-   stop(false);liveNode=post;pending={v:1,url:location.href,key:key,top:box.top,at:now()};stats.captures++;
+   stop(false);liveNode=post;pending={v:1,url:location.href,key:key,root:rootKind,top:box.top,at:now()};stats.captures++;
   }
   function commit(fresh){
    if(enabled&&valid(pending)&&pending.url===location.href&&(!fresh||now()-pending.at<2000)){record=pending;persist();return true;}return false;
