@@ -27,11 +27,14 @@ def summarize(root):
         logs = list(folder.rglob('logcat.txt'))
         crashes = []
         console = []
+        engines = []
         for path in logs:
             lines = path.read_text(errors='replace').splitlines()
             for i, line in enumerate(lines):
+                if ('WebViewFactory' in line and 'Loading' in line) or ('cr_Provider' in line and 'version=' in line):
+                    if line not in engines and len(engines)<12: engines.append(line[:1200])
                 if 'FATAL EXCEPTION' in line or 'Fatal signal ' in line or 'ANR in ' in line:
-                    crashes.append('\n'.join(lines[max(0, i-2):i+20])[:7000])
+                    crashes.append('\n'.join(lines[max(0, i-35):i+140])[:32000])
                 if re.search(r'Uncaught (?:TypeError|ReferenceError|SyntaxError|Error)|net::ERR_|Render process.*crash', line):
                     if len(console) < 20:
                         console.append(line[:1200])
@@ -41,7 +44,7 @@ def summarize(root):
                         'skipped': sum(t['status'] == 'skip' for t in tests),
                         'missingTestEvidence': not tests, 'parseErrors': errors,
                         'logFiles': len(logs), 'crashOrAnrContexts': crashes[:8],
-                        'consoleSamples': console})
+                        'consoleSamples': console, 'webViewProviders': engines})
     return {'scope': 'Historical anonymous emulator evidence only. Crash contexts may belong to emulator/system/test processes; attribution requires inspecting each context. Missing evidence is never a pass.',
             'jobs': results}
 
