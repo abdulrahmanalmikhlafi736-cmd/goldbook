@@ -1,7 +1,7 @@
 name: Reels viewer Android 13
 on:
   push:
-    paths: ['app/src/main/assets/site-engine.js', 'app/src/androidTest/java/com/almekhlafi/FPRO/ReelsViewerRegressionTest.kt', 'app/src/androidTest/assets/video-workload.mp4', '.github/workflows/reels-viewer.yml']
+    paths: ['app/src/main/assets/site-engine.js', 'app/src/androidTest/java/com/almekhlafi/FPRO/ReelsViewerRegressionTest.kt', 'app/src/androidTest/java/com/almekhlafi/FPRO/DisplaySurfaceRegressionTest.kt', 'app/src/androidTest/assets/video-workload.mp4', '.github/workflows/reels-viewer.yml']
   workflow_dispatch:
 jobs:
   verify:
@@ -28,7 +28,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
-            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.ReelsViewerRegressionTest --stacktrace
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.ReelsViewerRegressionTest,com.almekhlafi.FPRO.DisplaySurfaceRegressionTest --stacktrace
             adb logcat -d -v brief -s FPRO_REELS_VIEWER:I '*:S' > reels-viewer-device.log
       - name: Publish native assertions
         if: always()
@@ -39,7 +39,7 @@ jobs:
           seen=[]
           for p in Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'):
               for c in ET.parse(p).iter('testcase'):
-                  if c.get('name')!='openedReelIsNotBlankedByFeedFilter': continue
+                  if c.get('name') not in ('openedReelIsNotBlankedByFeedFilter','localSurfaceKeepsOriginalDocumentAndReleasesOnBackAndDestroy'): continue
                   ok=not any(c.find(k) is not None for k in ('failure','error','skipped'))
                   seen.append(ok)
                   print('::notice title=Reels viewer Android13::'+('PASS' if ok else 'FAIL'))
@@ -48,7 +48,7 @@ jobs:
           if log.exists():
               for line in log.read_text().splitlines():
                   if 'FPRO_REELS_VIEWER' in line: print('::notice title=Reels viewer counters::'+line.replace('%','%25'))
-          assert seen and all(seen), 'Missing/failed/skipped native evidence'
+          assert len(seen)==2 and all(seen), 'Missing/failed/skipped native evidence'
           PY
       - uses: actions/upload-artifact@v4
         if: always()

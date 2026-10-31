@@ -1,7 +1,7 @@
 const fs=require('node:fs'),assert=require('node:assert/strict'),{JSDOM}=require('jsdom');
 const settle=async()=>{for(let i=0;i<20;i++)await Promise.resolve();};
 (async()=>{
- for(const path of ['/', '/reel/42/', '/reels/42/', '/watch/?v=42']){
+ for(const path of ['/', '/reel/42/', '/reels/42/', '/watch/?v=42', '/user/videos/42/', '/video.php?v=42', '/?v=42']){
   const w=new JSDOM('<!doctype html><head></head><body><div id="clip" data-tracking-duration-id="42"><div class="fl ac"><span class="native-text">󲀠</span></div><video></video></div></body>',{url:'https://m.facebook.com'+path,runScripts:'outside-only',pretendToBeVisual:true}).window;
   const cfg={siteEngine:'upstream',enhance:true,reels:true,color:'طبيعي',referenceEngine:true,appBanner:true};
   try{
