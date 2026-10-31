@@ -1,4 +1,6 @@
-# Fullscreen rotation investigation — unresolved, no new APK delivered
+# Fullscreen rotation investigation — historical state at 447fdeb
+
+Subsequent tested build-67 work is documented in [FULLSCREEN-ROTATION-67.md](FULLSCREEN-ROTATION-67.md). The failed candidates below remain rejected.
 
 Date: 2026-11-01.
 
