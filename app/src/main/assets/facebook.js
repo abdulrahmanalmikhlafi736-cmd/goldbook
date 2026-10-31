@@ -1051,19 +1051,7 @@
  }
  // A document-level capture listener also sees touches on Facebook's player
  // cover layers. It is independent of download/progress overlay attachment.
- let touch=null,lastTap=null,lastFullscreen= -Infinity,managedFullscreen=false;
- // A responsive site's window-resize handler can replace the fullscreen video
- // on rotation, which Chromium correctly treats as an exit. Keep that handler
- // out of our double-tap session only; native rotation and CSS layout continue.
- // Capture runs before the site's normal window listeners, even older ones.
- function protectFullscreenResize(event){
-  if(managedFullscreen)event.stopImmediatePropagation();
- }
- window.addEventListener('resize',protectFullscreenResize,true);
- window.addEventListener('orientationchange',protectFullscreenResize,true);
- document.addEventListener('fullscreenchange',()=>{
-  if(!document.fullscreenElement&&!document.webkitFullscreenElement)managedFullscreen=false;
- });
+ let touch=null,lastTap=null,lastFullscreen= -Infinity;
  function gestureVideo(e) {
   if(cfg.doubleTapFullscreen===false || e.isPrimary===false || (window.getSelection()&&window.getSelection().isCollapsed===false))return null;
   const target=e.target.nodeType===1?e.target:e.target.parentElement;
@@ -1085,11 +1073,10 @@
   // Entry-only, including WebView's native custom-video fullscreen path.
   if(document.fullscreenElement||document.webkitFullscreenElement||window.__fproNativeFullscreen||video.webkitDisplayingFullscreen)return;
   const now=performance.now();if(now-lastFullscreen<450)return;lastFullscreen=now;
-  function failed(){managedFullscreen=false;location.href='fpro://fullscreen-error';}
+  function failed(){location.href='fpro://fullscreen-error';}
   try {
    const enter=video.requestFullscreen || video.webkitRequestFullscreen || video.webkitEnterFullscreen;
    if(!enter){failed();return;}
-   managedFullscreen=true;
    const result=enter.call(video);
    if(result&&typeof result.catch==='function')result.catch(failed);
   }catch(_){failed();}

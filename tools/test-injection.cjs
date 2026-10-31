@@ -419,10 +419,6 @@ function fixture(html,config={},captureDownload=false) {
   assert.equal(suppliedPrompts.doc.querySelector('#prompt button').style.display,'none');assert.equal(suppliedPrompts.doc.querySelector('#prompt').style.display,'');assert.equal(suppliedPrompts.doc.querySelector('#safeForm').style.display,'');
   suppliedPrompts.run({appBanner:false});assert.equal(suppliedPrompts.doc.querySelector('#cta').style.display,'');assert.equal(suppliedPrompts.doc.querySelector('#prompt').style.display,'');
   const gesture=fixture('<article><video id="player"></video><div id="cover"></div><button id="like" aria-label="Like">Like</button></article>',{enhance:false,doubleTapFullscreen:true,ads:true,downloads:false,rainbow:false});
-  let siteViewportEvents=0;
-  const sendViewportEvents=()=>{for(const name of ['resize','orientationchange'])gesture.window.dispatchEvent(new gesture.window.Event(name));};
-  for(const name of ['resize','orientationchange'])gesture.window.addEventListener(name,()=>siteViewportEvents++);
-  sendViewportEvents();assert.equal(siteViewportEvents,2,'Normal browsing resize events remain untouched');
   const player=gesture.doc.querySelector('video'),cover=gesture.doc.querySelector('#cover');
   player.getBoundingClientRect=()=>({left:0,top:0,right:320,bottom:500,width:320,height:500});
   let clock=0,entered=0,exited=0;
@@ -439,7 +435,6 @@ function fixture(html,config={},captureDownload=false) {
   function tap(time,target=cover){pointer('pointerdown',time,150,150,target);pointer('pointerup',time+20,150,150,target);}
   assert.equal(gesture.doc.querySelector('#fpro-style'),null,'Gesture-only mode must not install website CSS');
   tap(10);tap(210);assert.equal(entered,1,'Two actual touch sequences on a Facebook cover enter fullscreen without video tools');
-  sendViewportEvents();assert.equal(siteViewportEvents,2,'Only managed fullscreen defers site viewport-event handlers');
   cover.dispatchEvent(new gesture.window.MouseEvent('dblclick',{bubbles:true,cancelable:true,clientX:150,clientY:150}));
   assert.equal(exited,0,'Synthesized dblclick must not immediately undo touch fullscreen');
   tap(810);tap(1010);assert.equal(exited,0,'Second double tap must NOT exit fullscreen');
@@ -448,9 +443,6 @@ function fixture(html,config={},captureDownload=false) {
   gesture.doc.fullscreenElement=null; // Exit remains the system/player's responsibility.
   gesture.window.__fproNativeFullscreen=true;tap(1650);tap(1850);assert.equal(entered,1,'Native custom-view fullscreen cannot be re-entered');
   gesture.window.__fproNativeFullscreen=false;
-  gesture.doc.dispatchEvent(new gesture.window.Event('fullscreenchange'));
-  sendViewportEvents();assert.equal(siteViewportEvents,4,'Back/exit restores ordinary site viewport events');
-  gesture.doc.fullscreenElement=player;sendViewportEvents();assert.equal(siteViewportEvents,6,'Unmanaged site fullscreen events are not intercepted');gesture.doc.fullscreenElement=null;
   pointer('pointerdown',1800);pointer('pointermove',1850,190,150);pointer('pointerup',1870,190,150);tap(2000);
   assert.equal(entered,1,'Feed scrolling is not a double tap');
   gesture.run({enhance:false,doubleTapFullscreen:false});tap(2700);tap(2900);assert.equal(entered,1,'Independent fullscreen switch disables gesture');
