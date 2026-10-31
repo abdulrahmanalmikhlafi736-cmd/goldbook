@@ -43,4 +43,30 @@ for(const type of ['bloks','ft','feedunit']){const f=fixture(false,type);try{f.d
  const expired=JSON.parse(snapshot);expired.at=Date.now()-600001;
  const stale=fixture(false,'article',JSON.stringify(expired),'back_forward');try{stale.y=2700;stale.step(3000);assert.equal(stale.y,2700,'Expired checkpoints ignored');}finally{stale.close();}
 }
+// The source position must precede a pointer-activation layout shift.
+{
+ const f=fixture();try{
+  const button=f.w.document.getElementById('comments');
+  button.dispatchEvent(new f.w.MouseEvent('pointerdown',{bubbles:true,clientX:40,clientY:140}));
+  f.offset=1500; // Site activation shifts the source before the click handler.
+  f.depart();f.offset=1900;f.y=2400;f.back();
+  assert.equal(f.y,1800,'Use pre-activation offset100px, not click-time offset500px');
+ }finally{f.close();}
+}
+// A broad ancestor article can wrap multiple mobile feed cards.
+{
+ const f=fixture(false,'feedunit');try{
+  const d=f.w.document,post=d.querySelector('[data-pagelet]'),wrapper=d.createElement('article');
+  post.replaceWith(wrapper);wrapper.append(post);wrapper.getBoundingClientRect=()=>({top:800-f.y,bottom:4800-f.y,height:4000,width:400});
+  f.depart();f.offset=1900;f.y=2400;f.back();
+  assert.equal(f.y,1800,'Nearest identified card wins over the outer article');
+ }finally{f.close();}
+}
+// Facebook may rebuild the same post with different wrapper metadata.
+{
+ const f=fixture(false,'ft');try{
+  f.depart();const post=f.replace();post.removeAttribute('data-ft');post.setAttribute('data-pagelet','FeedUnit_42');
+  f.offset=1900;f.y=2400;f.back();assert.equal(f.y,1800,'Stable URL/post-ID aliases survive ft -> FeedUnit changes');
+ }finally{f.close();}
+}
 console.log('Feed return PASS: post identity/offset, late layout, nested scroller, re-render, missing post, explicit Home, same-URL dialog, user cancellation, OFF and bounded work; no history.state or event suppression.');

@@ -23,15 +23,15 @@ class FeedReturnRegressionTest {
    awaitBrowserReady(scenario);Thread.sleep(2300)
    fun js(code:String):String {val latch=CountDownLatch(1);val result=AtomicReference("");scenario.onActivity{a->find(a.window.decorView)!!.evaluateJavascript(code){result.set(it);latch.countDown()}};assertTrue("JS finished",latch.await(15,TimeUnit.SECONDS));return result.get()}
    scenario.onActivity{a->find(a.window.decorView)!!.loadDataWithBaseURL("https://m.facebook.com/","""
-    <!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>html,body{margin:0;overflow-anchor:none;scroll-behavior:auto}#spacer{height:700px}article{height:350px;background:#def}button{width:140px;height:50px}</style></head><body>
-    <div id='feed'><div id='spacer'></div><article id='post' data-tracking-duration-id='post42'><a href='/posts/42'>Post</a><br><button id='comments'>Comments</button></article><div style='height:3000px'></div></div><div id='detail' style='display:none;height:2500px'>Post detail</div>
+    <!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>html,body{margin:0;overflow-anchor:none;scroll-behavior:auto}#spacer{height:700px}#post{height:350px;background:#def}button{width:140px;height:50px}</style></head><body>
+    <article id='outer'><div id='feed'><div id='spacer'></div><div id='post' data-tracking-duration-id='post42' data-ft='{"top_level_post_id":"42"}'><a href='/posts/42'>Post</a><br><button id='comments'>Comments</button></div><div style='height:3000px'></div></div></article><div id='detail' style='display:none;height:2500px'>Post detail</div>
     </body></html>
    """.trimIndent(),"text/html","UTF-8",null)}
    Thread.sleep(1000)
    scenario.onActivity{a->find(a.window.decorView)!!.evaluateJavascript(a.assets.open("feed-return.js").bufferedReader().use{it.readText()}.replace("__CONFIG__","{rememberPosition:true}"),null)}
    js("""
-    window.siteClicks=0;comments.addEventListener('click',()=>{siteClicks++;history.pushState({site:'untouched'},'', '/posts/42');feed.style.display='none';detail.style.display='block';scrollTo(0,0);});
-    window.addEventListener('popstate',()=>{if(location.pathname==='/'){detail.style.display='none';spacer.style.height='1300px';feed.style.display='block';setTimeout(()=>spacer.style.height='1500px',450);}});
+    window.siteClicks=0;comments.addEventListener('pointerdown',()=>{siteClicks++;history.pushState({site:'untouched'},'', '/posts/42');feed.style.display='none';detail.style.display='block';scrollTo(0,0);});
+    window.addEventListener('popstate',()=>{if(location.pathname==='/'){detail.style.display='none';const rebuilt=post.cloneNode(true);post.replaceWith(rebuilt);rebuilt.removeAttribute('data-ft');rebuilt.removeAttribute('data-tracking-duration-id');rebuilt.setAttribute('data-pagelet','FeedUnit_42');spacer.style.height='1300px';feed.style.display='block';setTimeout(()=>spacer.style.height='1500px',450);}});
     scrollTo(0,600);true
    """.trimIndent());Thread.sleep(200)
    val initialTop=js("post.getBoundingClientRect().top").toDouble()
@@ -44,7 +44,7 @@ class FeedReturnRegressionTest {
    inst.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);Thread.sleep(900)
    assertEquals("true",js("location.pathname==='/'"))
    val restoredTop=js("post.getBoundingClientRect().top").toDouble()
-   assertEquals("Original post offset survives changed heights and late layout",initialTop,restoredTop,4.0)
+   assertEquals("Nearest source post survives early activation, new wrapper and late layout",initialTop,restoredTop,4.0)
    assertTrue(js("FproFeedReturn.report().corrections").toInt()>0)
    val y=js("scrollY").toDouble()
    down=android.os.SystemClock.uptimeMillis();touch(android.view.MotionEvent.ACTION_DOWN,down)

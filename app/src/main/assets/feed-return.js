@@ -6,7 +6,7 @@
   var STORAGE='fpro.feed-return.v1', TTL=600000;
   var ROOTS={article:'article,[role="article"]',feedunit:'[data-pagelet^="FeedUnit"]',tracking:'[data-tracking-duration-id]',ft:'[data-ft]',bloks:'div[data-dcm-id="1"][data-mcomponent="MContainer"]'};
   var POSTS=Object.keys(ROOTS).map(function(k){return ROOTS[k];}).join(',');
-  var enabled=false,pending=null,record=null,liveNode=null,job=null,serial=0;
+  var enabled=false,pending=null,record=null,liveNode=null,job=null,press=null,serial=0;
   var stats={captures:0,returns:0,corrections:0,cancelled:0,attempts:0};
   function home(){return /(^|\.)facebook\.com$/.test(location.hostname)&&(/^\/$|^\/home\.php$/).test(location.pathname);}
   function now(){return Date.now();}
@@ -19,22 +19,42 @@
    }catch(ignore){}
    return null;
   }
-  function identity(el){
-   var ft;try{ft=JSON.parse(el.getAttribute('data-ft')||'null');}catch(ignore){}
-   if(ft){var id=ft.top_level_post_id||ft.mf_story_key||ft.tl_objid;if(id)return {kind:'post',value:String(id)};}
+  function aliases(el){
+   var keys=[],ft;
+   function add(kind,value){if(!value)return;var k={kind:kind,value:String(value)};if(k.value.length<512&&!keys.some(function(x){return same(x,k);}))keys.push(k);}
+   try{ft=JSON.parse(el.getAttribute('data-ft')||'null');}catch(ignore){}
+   if(ft)add('post',ft.top_level_post_id||ft.mf_story_key||ft.tl_objid);
    var links=el.querySelectorAll('a[href]');
-   for(var i=0;i<links.length&&i<60;i++){var key=canonical(links[i].getAttribute('href'));if(key)return {kind:'url',value:key};}
-   var tracking=el.getAttribute('data-tracking-duration-id');
-   return tracking?{kind:'tracking',value:tracking}:null;
+   for(var i=0;i<links.length&&i<60;i++){
+    var key=canonical(links[i].getAttribute('href'));if(!key)continue;
+    add('url',key);
+    var path=key.match(/\/(?:posts|permalink)\/([^/?#]+)/),id=key.match(/[?&]story_fbid=([^&]+)/);
+    if(path)add('post',path[1]);else if(id)add('post',decodeURIComponent(id[1]));
+    // The first permalink is the source post; do not collect quoted-post IDs.
+    break;
+   }
+   // Do not weaken a stable post ID/URL with a possibly recycled tracking ID.
+   if(!keys.length)add('tracking',el.getAttribute('data-tracking-duration-id'));
+   return keys;
+  }
+  function matches(el,r){var keys=aliases(el),wanted=r.keys||[r.key];return keys.some(function(a){return wanted.some(function(b){return same(a,b);});});}
+  function locate(node,r){
+   // DOM proximity wins, not a fixed preference for article over Bloks/cards.
+   for(var p=node;p&&p!==document.body;p=p.parentElement){
+    if(!p.matches(POSTS)||!usable(p))continue;
+    if(r){if(matches(p,r))return p;}
+    else if(aliases(p).length)return p;
+   }
+   return null;
   }
   function same(a,b){return !!a&&!!b&&a.kind===b.kind&&a.value===b.value;}
   function usable(el){return el&&el.isConnected&&!el.closest('dialog,[role="dialog"],[aria-modal="true"],form,[id^="fpro"],.fpro-video-tools');}
-  function valid(r){return r&&r.v===1&&typeof r.url==='string'&&r.url.length<8192&&r.key&&['post','url','tracking'].indexOf(r.key.kind)>=0&&typeof r.key.value==='string'&&r.key.value.length<512&&(!r.root||Object.prototype.hasOwnProperty.call(ROOTS,r.root))&&Number.isFinite(r.top)&&Math.abs(r.top)<100000&&now()-r.at>=0&&now()-r.at<TTL;}
+  function valid(r){return r&&r.v===1&&typeof r.url==='string'&&r.url.length<8192&&r.key&&['post','url','tracking'].indexOf(r.key.kind)>=0&&typeof r.key.value==='string'&&r.key.value.length<512&&(!r.keys||(Array.isArray(r.keys)&&r.keys.length>0&&r.keys.length<=6&&r.keys.every(function(k){return k&&['post','url','tracking'].indexOf(k.kind)>=0&&typeof k.value==='string'&&k.value.length<512;})))&&(!r.root||Object.prototype.hasOwnProperty.call(ROOTS,r.root))&&Number.isFinite(r.top)&&Math.abs(r.top)<100000&&now()-r.at>=0&&now()-r.at<TTL;}
   function read(){try{var r=JSON.parse(sessionStorage.getItem(STORAGE));return valid(r)?r:null;}catch(ignore){return null;}}
   function persist(){try{if(record)sessionStorage.setItem(STORAGE,JSON.stringify(record));else sessionStorage.removeItem(STORAGE);}catch(ignore){}}
   function stop(clear){
    if(job){clearTimeout(job.timer);cancelAnimationFrame(job.frame);job=null;}
-   if(clear){record=null;pending=null;liveNode=null;persist();}
+   if(clear){record=null;pending=null;liveNode=null;press=null;persist();}
   }
   function scroller(el){
    for(var p=el.parentElement;p&&p!==document.body&&p!==document.documentElement;p=p.parentElement){
@@ -43,17 +63,17 @@
    return null;
   }
   function find(r){
-   if(usable(liveNode)&&same(identity(liveNode),r.key))return liveNode;
-   // Use the stored identifier to narrow discovery. No whole-feed loop on
-   // each settling tick, and no observer while ordinary browsing is idle.
-   var nodes,i,root;
-   if(r.key.kind==='url'){
-    nodes=document.querySelectorAll('a[href*='+JSON.stringify(r.key.value.split('?')[0])+']');
-    for(i=0;i<nodes.length;i++)if(canonical(nodes[i].getAttribute('href'))===r.key.value){root=nodes[i].closest(ROOTS[r.root]||POSTS);if(usable(root)){liveNode=root;return root;}}
-   }else{
-    var selector=r.key.kind==='tracking'?'[data-tracking-duration-id='+JSON.stringify(r.key.value)+']':'[data-ft*='+JSON.stringify(r.key.value)+']';
+   if(usable(liveNode)&&matches(liveNode,r))return liveNode;
+   // Preserve all stable ID/URL aliases when Facebook rebuilds a card with a
+   // different wrapper type. Search by identifier, never by saved pixel Y.
+   var keys=r.keys||[r.key],nodes,i,root;
+   for(var k=0;k<keys.length;k++){
+    var key=keys[k],selector=key.kind==='url'?'a[href*='+JSON.stringify(key.value.split('?')[0])+']':key.kind==='tracking'?'[data-tracking-duration-id='+JSON.stringify(key.value)+']':'[data-ft*='+JSON.stringify(key.value)+']';
     nodes=document.querySelectorAll(selector);
-    for(i=0;i<nodes.length;i++)if(usable(nodes[i])&&same(identity(nodes[i]),r.key)){liveNode=nodes[i];return nodes[i];}
+    for(i=0;i<nodes.length;i++){
+     if(key.kind==='url'&&canonical(nodes[i].getAttribute('href'))!==key.value)continue;
+     root=locate(nodes[i],r);if(root){liveNode=root;return root;}
+    }
    }
    return null;
   }
@@ -90,17 +110,36 @@
    }
    job.frame=requestAnimationFrame(tick);
   }
-  function capture(event){
-   if(!enabled||!home()||event.defaultPrevented||event.button>0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+  function sample(event){
+   if(!enabled||!home()||event.defaultPrevented||event.button>0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return null;
    var target=event.target&&event.target.nodeType===1?event.target:event.target&&event.target.parentElement;
-   if(!target||target.closest('dialog,[role="dialog"],[aria-modal="true"],form,input,textarea,select,[contenteditable="true"],[id^="fpro"],.fpro-video-tools'))return;
-   var link=target.closest('a[href]');if(link&&(link.target==='_blank'||link.hasAttribute('download')))return;
-   var post=null,rootKind=null;
-   for(var kind in ROOTS){post=target.closest(ROOTS[kind]);if(post){rootKind=kind;break;}}
-   if(!usable(post))return;
-   var key=identity(post),box=post.getBoundingClientRect();
-   if(!key||key.value.length>=512||box.height<=0||box.width<=0||box.bottom<=0||box.top>=innerHeight)return;
-   stop(false);liveNode=post;pending={v:1,url:location.href,key:key,root:rootKind,top:box.top,at:now()};stats.captures++;
+   if(!target||target.closest('dialog,[role="dialog"],[aria-modal="true"],form,input,textarea,select,[contenteditable="true"],[id^="fpro"],.fpro-video-tools'))return null;
+   var link=target.closest('a[href]');if(link&&(link.target==='_blank'||link.hasAttribute('download')))return null;
+   var post=locate(target);if(!post)return null;
+   var keys=aliases(post),box=post.getBoundingClientRect(),rootKind=null;
+   for(var kind in ROOTS)if(post.matches(ROOTS[kind])){rootKind=kind;break;}
+   if(!keys.length||box.height<=0||box.width<=0||box.bottom<=0||box.top>=innerHeight)return null;
+   return {node:post,snapshot:{v:1,url:location.href,key:keys[0],keys:keys,root:rootKind,top:box.top,at:now()}};
+  }
+  function remember(value){
+   if(pending!==value.snapshot)stats.captures++;
+   stop(false);liveNode=value.node;pending=value.snapshot;
+  }
+  function capturePress(event){
+   press=null;var value=sample(event);if(!value)return;
+   remember(value);press={node:value.node,snapshot:value.snapshot,x:event.clientX,y:event.clientY};
+  }
+  function discardPress(){
+   if(press&&pending===press.snapshot&&record!==pending)pending=null;
+   press=null;
+  }
+  function movePress(event){if(press&&(Math.abs(event.clientX-press.x)>12||Math.abs(event.clientY-press.y)>12))discardPress();}
+  function capture(event){
+   var value=sample(event);if(!value)return;
+   // A pointer activation can reflow the page or navigate before click fires.
+   // Reuse the early geometry only for the same post and a non-drag activation.
+   if(press&&now()-press.snapshot.at<2000&&press.snapshot.url===location.href&&matches(value.node,press.snapshot))value={node:value.node,snapshot:press.snapshot};
+   remember(value);press=null;
   }
   function commit(fresh){
    if(enabled&&valid(pending)&&pending.url===location.href&&(!fresh||now()-pending.at<2000)){record=pending;persist();return true;}return false;
@@ -121,6 +160,11 @@
   window.addEventListener('pageshow',function(e){if(e.persisted&&enabled){record=record||read();start();}});
   function gesture(){if(job){stats.cancelled++;stop(true);}}
   ['touchstart','pointerdown','wheel','keydown'].forEach(function(name){window.addEventListener(name,gesture,{capture:true,passive:true});});
+  // Registered after cancellation: a new press first stops old recovery, then
+  // checkpoints this activation. No preventDefault/stopPropagation or replay.
+  window.addEventListener('pointerdown',capturePress,{capture:true,passive:true});
+  window.addEventListener('pointermove',movePress,{capture:true,passive:true});
+  window.addEventListener('pointercancel',discardPress,{capture:true,passive:true});
   window.FproFeedReturn={
    setEnabled:function(value){var next=!!value;if(next===enabled)return;enabled=next;if(!next)stop(true);else{
     record=read();var nav=performance.getEntriesByType&&performance.getEntriesByType('navigation')[0];
