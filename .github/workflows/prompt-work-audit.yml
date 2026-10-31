@@ -6,7 +6,7 @@ on:
     inputs:
       optimized:
         description: Assert optimized workload bounds (false for baseline)
-        default: 'false'
+        default: 'true'
         type: choice
         options: ['false', 'true']
 jobs:
@@ -33,13 +33,15 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.PromptWorkAuditTest -Pandroid.testInstrumentationRunnerArguments.expectOptimized=${{ inputs.optimized || 'false' }} --stacktrace
+          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.PromptWorkAuditTest -Pandroid.testInstrumentationRunnerArguments.expectOptimized=${{ inputs.optimized || 'true' }} --stacktrace && adb exec-out run-as com.almekhlafi.FPRO cat files/prompt-work-audit.json > prompt-work-audit.json
       - name: Publish test evidence
         if: always()
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
+          evidence = Path('prompt-work-audit.json')
+          if evidence.exists(): print('::notice title=Prompt workload telemetry::' + evidence.read_text().strip())
           seen = []
           for p in Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'):
               root = ET.parse(p).getroot()
@@ -61,5 +63,6 @@ jobs:
         with:
           name: prompt-android13-evidence
           path: |
+            prompt-work-audit.json
             app/build/outputs/androidTest-results/
             app/build/reports/androidTests/

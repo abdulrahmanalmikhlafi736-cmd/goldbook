@@ -9,7 +9,6 @@
  const tools='.fpro-video-tools,[id^="fpro"]';
  const footer='.bottom.fixed-container,[data-testid*="open_app" i],[data-testid*="open-app" i],[data-sigil~="m-app-banner"],[data-sigil~="app-prompt"]';
  const discovery=semantic+',.native-text,[data-mcomponent="TextArea"],'+footer;
- const ariaSelector=labels.map(label=>':is('+semantic+')[aria-label='+JSON.stringify(label)+' i]').join(',');
  const owned=new Map(),rejected=new Set(),boxes=new WeakMap(),homePageRoots=new WeakSet();let enabled=false,css=null,rootOld=null;
  const stats={passes:0,checked:0,hidden:0,restored:0,maxMs:0};
  function text(el){let value='',count=0,node;const walk=document.createTreeWalker(el,4);while((node=walk.nextNode())){if(++count>64||node.nodeValue.length+value.length>200)return null;const decoration=node.parentElement.closest('svg,script,style,[aria-hidden="true"]');if(decoration&&decoration!==el&&el.contains(decoration))continue;value+=' '+node.nodeValue;}return norm(value);}
@@ -58,26 +57,62 @@
   if(candidate(control)){if(rejected.has(control)){control.removeAttribute('data-fpro-prompt59-reject');rejected.delete(control);}hide(surface(control),control);}
   else if(known(control.getAttribute('aria-label'))&&!rejected.has(control)&&rejected.size<2560){control.setAttribute('data-fpro-prompt59-reject','');rejected.add(control);}
  }
- function pass(roots){
-  if(!enabled)return;const start=performance.now();stats.passes++;
-  for(const node of rejected)if(!node.isConnected){node.removeAttribute('data-fpro-prompt59-reject');rejected.delete(node);}
-  rememberHomePage(roots);
-  const valid=roots.filter(r=>r&&r.nodeType===1);
-  const priority=valid.filter(r=>r.matches(semantic+','+footer));
-  const ordered=[...priority,...valid.filter(r=>!priority.includes(r))];
-  const scopes=[];for(const root of ordered){if(!root||root.nodeType!==1||!root.isConnected||root.closest(tools))continue;if(scopes.some(s=>s.contains(root)))continue;for(let i=scopes.length-1;i>=0;i--)if(root.contains(scopes[i]))scopes.splice(i,1);scopes.push(root);if(scopes.length>=8)break;}
-  for(const [el,old]of owned){if(!el.isConnected){restore(el);continue;}if(scopes.some(root=>root.contains(el)||el.contains(root))){if(!candidate(old.control)||blocked(el)||el!==old.control&&el.querySelector(excluded))restore(el);else hide(el,old.control);}}
-  for(const root of scopes){inspect(root);let n=0;for(const node of root.querySelectorAll(ariaSelector+',a[href^="intent://"],a[href^="fb://"],'+footer)){if(n++>=96)break;inspect(node);if(node.matches(footer))for(const c of Array.from(node.querySelectorAll(discovery)).slice(0,48))inspect(c);}
-   n=0;for(const node of root.querySelectorAll(discovery)){if(n++>=800)break;inspect(node);}
+ // Deduplicate mutation roots BEFORE any subtree query. Never drop the ninth root:
+ // a text-only CTA can be the last sibling in a large Facebook commit.
+ function scopesFor(roots){
+  const valid=new Set();
+  for(const root of roots)if(root&&root.nodeType===1&&root.isConnected&&!root.closest(tools))valid.add(root);
+  const scopes=[];
+  for(const root of valid){
+   let covered=false;
+   for(let p=root.parentElement;p;p=p.parentElement)if(valid.has(p)){covered=true;break;}
+   if(!covered)scopes.push(root);
   }
+  return scopes;
+ }
+ function pass(roots,subtrees=roots){
+  if(!enabled)return;
+  const scopes=scopesFor(roots),deep=scopesFor(subtrees);
+  if(!scopes.length&&!deep.length)return;
+  const start=performance.now();stats.passes++;
+  for(const node of rejected)if(!node.isConnected){node.removeAttribute('data-fpro-prompt59-reject');rejected.delete(node);}
+  // Landmarks need discovery only on insertion/initial mount, NOT on every
+  // opacity/class/style change of their ancestors.
+  rememberHomePage(deep);
+  for(const [el,old]of owned){
+   if(!el.isConnected){restore(el);continue;}
+   if(scopes.some(root=>root.contains(el)||el.contains(root))){
+    if(!candidate(old.control)||blocked(el)||el!==old.control&&el.querySelector(excluded))restore(el);
+    else hide(el,old.control);
+   }
+  }
+  const visited=new Set();
+  const visit=el=>{if(!el||visited.has(el)||!el.matches(discovery))return;visited.add(el);inspect(el);};
+  // Attribute/text changes inspect the changed cue and its semantic owner;
+  // existing children do not need another whole-feed discovery pass.
+  for(const root of scopes){visit(root);visit(root.closest(semantic));}
+  // New subtrees must still be discovered synchronously before paint. A single
+  // selector replaces the overlapping aria + generic scans and their late caps.
+  // No timer/rAF is allowed to postpone unknown text-only prompt hiding.
+  for(const root of deep){visit(root);for(const node of root.querySelectorAll(discovery))visit(node);}
   stats.maxMs=Math.max(stats.maxMs,Math.round((performance.now()-start)*10)/10);
  }
  const observer=new MutationObserver(records=>{
-  const roots=[];for(const r of records){const el=r.target.nodeType===1?r.target:r.target.parentElement;if(!el||el.closest(tools))continue;
+  const roots=[],subtrees=[];
+  for(const r of records){
+   const el=r.target.nodeType===1?r.target:r.target.parentElement;
+   if(!el||el.closest(tools))continue;
    if(r.type==='attributes'&&r.attributeName==='style'&&owned.has(el)&&el.style.getPropertyValue('display')==='none'&&el.style.getPropertyPriority('display')==='important')continue;
-   if(r.type==='childList'){for(const node of r.addedNodes)roots.push(node.nodeType===1?node:node.parentElement);roots.push(el.closest('[data-fpro-prompt59-target]'));}
-   else roots.push(el);
-  }pass(roots);
+   roots.push(el);
+   if(r.type==='childList'){
+    for(const node of r.addedNodes)if(node.nodeType===1){roots.push(node);subtrees.push(node);}
+   }else if(r.type==='attributes'&&['role','aria-modal','open'].includes(r.attributeName)){
+    // Dialog/page protection can change the meaning of an existing subtree.
+    subtrees.push(el);
+   }
+  }
+  if(enabled&&css&&!css.isConnected)install();
+  pass(roots,subtrees);
  });
  function install(){
   if(!css){css=document.createElement('style');css.id='fpro-prompt59-style';const nonce=document.querySelector('style[nonce],script[nonce]');if(nonce)css.nonce=nonce.nonce;
@@ -91,8 +126,8 @@
   const next=config.siteEngine==='upstream'&&config.enhance!==false&&!!config.appBanner;
   if(!next){if(!enabled)return;enabled=false;observer.disconnect();if(css)css.remove();for(const el of Array.from(owned.keys()))restore(el);for(const el of rejected)el.removeAttribute('data-fpro-prompt59-reject');rejected.clear();if(rootOld===null)document.documentElement.removeAttribute('data-fpro-prompt59');else document.documentElement.setAttribute('data-fpro-prompt59',rootOld);return;}
   if(!enabled){enabled=true;rootOld=document.documentElement.getAttribute('data-fpro-prompt59');document.documentElement.setAttribute('data-fpro-prompt59','on');install();observer.observe(document,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['style','class','role','aria-label','aria-modal','open','href','data-actual-height','data-shift-on-keyboard-shown']});}
-  else install();
+  else {install();return;}
   pass([document.body||document.documentElement]);
  }
- window.FproPrompt={update,report:()=>({version:60,enabled,retained:owned.size,...stats})};
+ window.FproPrompt={update,report:()=>({version:62,enabled,retained:owned.size,...stats})};
 })();
