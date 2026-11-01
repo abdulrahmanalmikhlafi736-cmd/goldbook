@@ -740,7 +740,6 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                   const dialog=document.querySelector('[role="dialog"]');
                   const close=dialog?.querySelector('[aria-label="Close"],[aria-label="إغلاق"]');
                   if(close){close.click();window.FproFeedReturn?.afterDialogBack();return 'closed';}
-                  if(window.scrollY>80&&!window.FproFeedReturn?.canReturn()){window.scrollTo({top:0,behavior:'smooth'});return 'scrolled';}
                   return 'back';
                 })()
             """.trimIndent()) { result ->

@@ -75,4 +75,38 @@ class FeedReturnRegressionTest {
   }
  }
 
+ @Test fun siteArrowRestoresPostWhenReplacingHomeTrackingRoute() {
+  val inst=InstrumentationRegistry.getInstrumentation()
+  ActivityScenario.launch<MainActivity>(android.content.Intent(inst.targetContext,MainActivity::class.java)).use { scenario ->
+   awaitBrowserReady(scenario);Thread.sleep(2300)
+   fun js(code:String):String {val done=CountDownLatch(1);val value=AtomicReference("");scenario.onActivity{a->find(a.window.decorView)!!.evaluateJavascript(code){value.set(it);done.countDown()}};assertTrue(done.await(10,TimeUnit.SECONDS));return value.get()}
+   scenario.onActivity{a->find(a.window.decorView)!!.loadDataWithBaseURL("https://m.facebook.com/?ref=feed","""
+    <!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'>
+    <style>body{margin:0;overflow-anchor:none}button{width:160px;height:50px}#spacer{height:700px}</style>
+    <main id='feed'><div id='spacer'></div><article id='post' data-ft='{"top_level_post_id":"42"}' style='height:350px'><a href='/posts/42'>Post</a><br><button id='comments'>Comments</button></article><div style='height:3000px'></div></main>
+    <section id='detail' style='display:none;height:2400px'><button id='arrow' aria-label='رجوع' style='position:fixed;left:0;top:0'>Back</button></section>
+    <script>
+    comments.onclick=()=>{history.pushState({site:'detail'},'', '/posts/42');feed.style.display='none';detail.style.display='block';scrollTo(0,0);};
+    arrow.onclick=()=>{detail.style.display='none';spacer.style.height='1300px';feed.style.display='block';history.replaceState({site:'arrow'},'', '/?ref=arrow');};
+    </script>
+   """.trimIndent(),"text/html","UTF-8",null)}
+   Thread.sleep(1200)
+   js("scrollTo(0,600);true");Thread.sleep(150)
+   val before=js("post.getBoundingClientRect().top").toDouble()
+   fun tap(id:String){
+    val r=org.json.JSONObject(js("(()=>{const r=document.getElementById('$id').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()"))
+    val point=FloatArray(2);scenario.onActivity{a->val w=find(a.window.decorView)!!;val loc=IntArray(2);w.getLocationOnScreen(loc);point[0]=loc[0]+r.getDouble("x").toFloat()*w.resources.displayMetrics.density;point[1]=loc[1]+r.getDouble("y").toFloat()*w.resources.displayMetrics.density}
+    val down=android.os.SystemClock.uptimeMillis()
+    for(kind in listOf(android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP)){val e=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),kind,point[0],point[1],0);e.source=android.view.InputDevice.SOURCE_TOUCHSCREEN;assertTrue(inst.uiAutomation.injectInputEvent(e,true));e.recycle()}
+   }
+   tap("comments");Thread.sleep(200);assertEquals("true",js("location.pathname==='/posts/42'&&FproFeedReturn.canReturn()"))
+   val started=android.os.SystemClock.elapsedRealtime();tap("arrow")
+   var correct=false
+   while(!correct&&android.os.SystemClock.elapsedRealtime()-started<1500){correct=js("location.search==='?ref=arrow'&&Math.abs(post.getBoundingClientRect().top-$before)<4")=="true";if(!correct)Thread.sleep(30)}
+   assertTrue("Trusted site arrow returns to source post despite replaceState and tracking change",correct)
+   assertEquals("arrow",js("history.state.site").trim('"'))
+   android.util.Log.i("FPRO_FEED_RETURN","siteArrowMs="+(android.os.SystemClock.elapsedRealtime()-started)+" top="+js("post.getBoundingClientRect().top"))
+  }
+ }
+
 }

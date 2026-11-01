@@ -6,9 +6,26 @@
   var STORAGE='fpro.feed-return.v1', TTL=600000;
   var ROOTS={article:'article,[role="article"]',feedunit:'[data-pagelet^="FeedUnit"]',tracking:'[data-tracking-duration-id]',ft:'[data-ft]',bloks:'div[data-dcm-id="1"][data-mcomponent="MContainer"]'};
   var POSTS=Object.keys(ROOTS).map(function(k){return ROOTS[k];}).join(',');
-  var enabled=false,pending=null,record=null,liveNode=null,job=null,press=null,serial=0;
+  var enabled=false,pending=null,record=null,liveNode=null,job=null,press=null,serial=0,backIntent=0;
   var stats={captures:0,returns:0,corrections:0,cancelled:0,attempts:0};
   function home(){return /(^|\.)facebook\.com$/.test(location.hostname)&&(/^\/$|^\/home\.php$/).test(location.pathname);}
+  function sameFeed(a,b){
+   try{
+    function key(raw){
+     var u=new URL(raw,location.href);
+     if(!/(^|\.)facebook\.com$/.test(u.hostname)||!(/^\/$|^\/home\.php$/).test(u.pathname))return null;
+     // Referral metadata is not feed identity. Keep filters such as sk intact.
+     ['ref','refid','mibextid'].forEach(function(k){u.searchParams.delete(k);});
+     u.searchParams.sort();return u.origin+'/?'+u.searchParams.toString()+u.hash;
+    }
+    var left=key(a);return left!==null&&left===key(b);
+   }catch(ignore){return false;}
+  }
+  function backControl(target){
+   var el=target&&target.nodeType===1?target:target&&target.parentElement;
+   var button=el&&el.closest('button,[role="button"],a');
+   return !!button&&/^(?:back|go back|رجوع|الرجوع|عودة|العودة)$/i.test((button.getAttribute('aria-label')||'').trim());
+  }
   function now(){return Date.now();}
   function canonical(raw){
    try{
@@ -79,12 +96,12 @@
   }
   function start(){
    if(!enabled)return;
-   var r=record||read();if(!valid(r)||r.url!==location.href)return;
+   var r=record||read();if(!valid(r)||!sameFeed(r.url,location.href))return;
    stop(false);record=r;var id=++serial;
    job={id:id,timer:0,frame:0,count:0};stats.returns++;
    function tick(){
     if(!job||job.id!==id)return;
-    if(!enabled||location.href!==r.url||!home()||!valid(r)){stop(true);return;}
+    if(!enabled||!sameFeed(r.url,location.href)||!home()||!valid(r)){stop(true);return;}
     stats.attempts++;job.count++;
     var anchor=find(r);
     if(anchor){
@@ -126,6 +143,7 @@
    stop(false);liveNode=value.node;pending=value.snapshot;
   }
   function capturePress(event){
+   backIntent=backControl(event.target)?now():0;
    press=null;var value=sample(event);if(!value)return;
    remember(value);press={node:value.node,snapshot:value.snapshot,x:event.clientX,y:event.clientY};
   }
@@ -147,14 +165,23 @@
   function route(method,original){return function(){
    var before=location.href,departure=enabled&&valid(pending)&&pending.url===before&&now()-pending.at<2000;
    var result=original.apply(this,arguments);
-   if(departure){record=pending;persist();}
-   // A deliberate new visit to Home is NOT history-back restoration.
-   else if(record&&location.href===record.url&&before!==location.href){stop(true);}
    if(job&&location.href!==before)stop(false);
+   if(departure){record=pending;persist();}
+   else if(record&&sameFeed(location.href,record.url)&&before!==location.href){
+    if(backIntent&&now()-backIntent<2000)start();
+    // An explicit Home push is not Back. A replace can precede popstate;
+    // retain its checkpoint until that event instead of erasing it early.
+    else if(method==='pushState')stop(true);
+   }
    return result;
   };}
   ['pushState','replaceState'].forEach(function(name){try{history[name]=route(name,history[name]);}catch(ignore){}});
   document.addEventListener('click',capture,true);
+  document.addEventListener('click',function(event){
+   if(!enabled||!backControl(event.target))return;
+   backIntent=now();
+   if(home()&&(record||commit(false)))start();
+  },true);
   window.addEventListener('popstate',function(){if(enabled){stop(false);record=record||read();start();}});
   window.addEventListener('pagehide',function(){commit(true);stop(false);});
   window.addEventListener('pageshow',function(e){if(e.persisted&&enabled){record=record||read();start();}});
