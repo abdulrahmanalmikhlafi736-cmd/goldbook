@@ -1,0 +1,31 @@
+{
+  "41337411002": [
+    {
+      "job": 124940045453,
+      "conclusion": "failure",
+      "assertions": [
+        "Process completed with exit code 1.",
+        "<testcase name=\"nativeBackDoesNotConsumeFirstPressScrollingDetailToTop\" classname=\"com.almekhlafi.FPRO.FeedReturnRegressionTest\" time=\"5.859\">\n    <failure>java.lang.AssertionError: One real Back must navigate, not consume a press with smooth scroll-to-top\nat org.junit.Assert.fail(Assert.java:89)\nat org.junit.Assert.assertTrue(Assert.java:42)\nat com.almekhlafi.FPRO.FeedReturnRegressionTest.nativeBackDoesNotConsumeFirstPressScrollingDetailToTop(FeedReturnRegressionTest.kt:73)\n</failure>\n  </testcase>\n",
+        "FAIL",
+        "PASS",
+        "The process '/usr/bin/sh' failed with exit code 1"
+      ]
+    }
+  ],
+  "41338009826": [
+    {
+      "job": 124941850900,
+      "conclusion": "success",
+      "assertions": [
+        "I/FPRO_FEED_RETURN( 2391): nativeBackMs=138",
+        "I/FPRO_FEED_RETURN( 2391): initialTop=100.0 firstReturnTop=100.0 restoredTop=100.0 y=1400.0 \"{\\\"enabled\\\":true,\\\"active\\\":false,\\\"pending\\\":false,\\\"retained\\\":0,\\\"captures\\\":2,\\\"returns\\\":1,\\\"corrections\\\":2,\\\"cancelled\\\":1,\\\"attempts\\\":8}\"",
+        "I/FPRO_FEED_RETURN( 2391): collapsedSourceTop=0.190476194024086",
+        "I/FPRO_FEED_RETURN( 2391): siteArrowMs=42 top=100",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    }
+  ]
+}
