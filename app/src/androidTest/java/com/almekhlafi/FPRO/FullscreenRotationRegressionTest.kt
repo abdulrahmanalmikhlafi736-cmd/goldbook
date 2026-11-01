@@ -62,7 +62,7 @@ class FullscreenRotationRegressionTest {
                     window.token='same-document';window.remounts=0;window.initialWide=innerWidth>innerHeight;
                     window.rotationTrace=[];
                     for(const name of ['resize','orientationchange','fullscreenchange'])addEventListener(name,()=>rotationTrace.push({event:name,w:innerWidth,h:innerHeight,fs:!!document.fullscreenElement,native:!!window.__fproNativeFullscreen}),true);
-                    document.addEventListener('pointerup',()=>player.play().catch(()=>{}),true);
+                    document.addEventListener('pointerup',()=>player.play().catch(e=>window.playError=e.name),true);
                     // Responsive SPA behaviour: crossing a layout breakpoint replaces its player.
                     addEventListener('resize',()=>{
                       if((innerWidth>innerHeight)!==initialWide){
@@ -106,7 +106,8 @@ class FullscreenRotationRegressionTest {
                 assertTrue("Fullscreen fills landscape", full!!.width > full.height)
             }
             assertEquals("No underlying responsive remount during fullscreen", "0", js("remounts"))
-            assertEquals("Same playing video survives", "true", js("token==='same-document'&&!player.paused&&player.readyState>=2"))
+            val mediaState=js("JSON.stringify({paused:player.paused,ready:player.readyState,time:player.currentTime,error:player.error&&player.error.code,playError:window.playError||null,visibility:document.visibilityState})")
+            assertEquals("Same playing video survives; "+mediaState, "true", js("token==='same-document'&&!player.paused&&player.readyState>=2"))
             val frames = js("player.getVideoPlaybackQuality().totalVideoFrames").toInt()
             Thread.sleep(700)
             assertTrue("Frames continue in landscape", js("player.getVideoPlaybackQuality().totalVideoFrames").toInt() > frames)
