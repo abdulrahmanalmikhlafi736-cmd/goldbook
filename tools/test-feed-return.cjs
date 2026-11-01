@@ -96,4 +96,20 @@ for(const activatedOffset of [700,1500]){
   assert.equal(f.y,1800,'History traversal survives home tracking normalization before popstate');
  }finally{f.close();}
 }
+{
+ const f=fixture();try{
+  f.depart();f.offset=1900;f.y=2400;
+  const b=f.w.document.createElement('button');b.setAttribute('aria-label','Back');f.w.document.body.appendChild(b);
+  b.dispatchEvent(new f.w.MouseEvent('pointerdown',{bubbles:true}));
+  f.w.history.replaceState({},'', '/?sk=h_chr');f.w.dispatchEvent(new f.w.PopStateEvent('popstate'));f.step(3000);
+  assert.equal(f.y,2400,'A different feed filter must not reuse the source anchor');
+ }finally{f.close();}
+}
+{
+ const f=fixture();try{
+  f.depart();f.offset=1900;f.y=2400;
+  f.w.history.replaceState({},'', '/home.php?ref=return');f.w.dispatchEvent(new f.w.PopStateEvent('popstate'));f.step(1);
+  assert.equal(f.y,1800,'Root/home.php aliases retain the same feed identity');
+ }finally{f.close();}
+}
 console.log('Feed return PASS: post identity/offset, late layout, nested scroller, re-render, missing post, explicit Home, same-URL dialog, user cancellation, OFF and bounded work; no history.state or event suppression.');
