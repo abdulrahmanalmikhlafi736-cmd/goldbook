@@ -57,4 +57,22 @@ class FeedReturnRegressionTest {
    android.util.Log.i("FPRO_FEED_RETURN","initialTop=$initialTop firstReturnTop=$firstReturnTop restoredTop=$restoredTop y=$y "+js("JSON.stringify(FproFeedReturn.report())"))
   }
  }
+ @Test fun nativeBackDoesNotConsumeFirstPressScrollingDetailToTop() {
+  val inst=InstrumentationRegistry.getInstrumentation()
+  ActivityScenario.launch<MainActivity>(android.content.Intent(inst.targetContext,MainActivity::class.java)).use { scenario ->
+   awaitBrowserReady(scenario);Thread.sleep(2300)
+   fun js(code:String):String {val done=CountDownLatch(1);val value=AtomicReference("");scenario.onActivity{a->find(a.window.decorView)!!.evaluateJavascript(code){value.set(it);done.countDown()}};assertTrue(done.await(10,TimeUnit.SECONDS));return value.get()}
+   scenario.onActivity{a->find(a.window.decorView)!!.loadDataWithBaseURL("https://m.facebook.com/","<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='height:6000px'>Opaque detail without a recognised post identifier</body></html>","text/html","UTF-8",null)}
+   Thread.sleep(1000)
+   js("history.pushState({site:true},'', '/posts/opaque');scrollTo(0,800);true")
+   Thread.sleep(200);assertTrue(js("scrollY").toDouble()>80)
+   val started=android.os.SystemClock.elapsedRealtime()
+   inst.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+   var returned=false
+   while(!returned&&android.os.SystemClock.elapsedRealtime()-started<1500){returned=js("location.pathname==='/'")=="true";if(!returned)Thread.sleep(30)}
+   assertTrue("One real Back must navigate, not consume a press with smooth scroll-to-top",returned)
+   android.util.Log.i("FPRO_FEED_RETURN","nativeBackMs="+(android.os.SystemClock.elapsedRealtime()-started))
+  }
+ }
+
 }

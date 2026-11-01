@@ -78,4 +78,22 @@ for(const activatedOffset of [700,1500]){
   f.offset=1900;f.y=2400;f.back();assert.equal(f.y,1800,'Stable URL/post-ID aliases survive ft -> FeedUnit changes');
  }finally{f.close();}
 }
+// Real site arrows can replace the route and change tracking parameters.
+{
+ const f=fixture();try{
+  f.depart();f.offset=1900;f.y=2400;
+  const b=f.w.document.createElement('button');b.setAttribute('aria-label','رجوع');f.w.document.body.appendChild(b);
+  b.dispatchEvent(new f.w.MouseEvent('pointerdown',{bubbles:true,clientX:5,clientY:5}));
+  f.w.history.replaceState({site:'retained'},'', '/?ref=return');f.step(1);
+  assert.equal(f.y,1800,'Site Back replaceState restores the source despite tracking changes');
+  assert.equal(f.w.history.state.site,'retained');
+ }finally{f.close();}
+}
+{
+ const f=fixture();try{
+  f.depart();f.offset=1900;f.y=2400;
+  f.w.history.replaceState({},'', '/?ref=history');f.w.dispatchEvent(new f.w.PopStateEvent('popstate'));f.step(1);
+  assert.equal(f.y,1800,'History traversal survives home tracking normalization before popstate');
+ }finally{f.close();}
+}
 console.log('Feed return PASS: post identity/offset, late layout, nested scroller, re-render, missing post, explicit Home, same-URL dialog, user cancellation, OFF and bounded work; no history.state or event suppression.');

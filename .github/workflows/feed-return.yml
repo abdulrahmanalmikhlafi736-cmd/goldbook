@@ -39,7 +39,7 @@ jobs:
           seen=[]
           for p in Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'):
               for c in ET.parse(p).iter('testcase'):
-                  if c.get('name')!='openedPostKeepsViewportOffsetAfterNativeBackAndLateLayout': continue
+                  if c.get('name') not in ('openedPostKeepsViewportOffsetAfterNativeBackAndLateLayout','nativeBackDoesNotConsumeFirstPressScrollingDetailToTop'): continue
                   ok=not any(c.find(k) is not None for k in ('failure','error','skipped'))
                   seen.append(ok)
                   print('::notice title=Feed return Android13::'+('PASS' if ok else 'FAIL'))
@@ -48,7 +48,7 @@ jobs:
           if log.exists():
               for line in log.read_text().splitlines():
                   if 'FPRO_FEED_RETURN' in line: print('::notice title=Feed return geometry::'+line.replace('%','%25'))
-          assert seen and all(seen), 'Missing/failed/skipped native evidence'
+          assert len(seen)==2 and all(seen), 'Missing/failed/skipped native evidence'
           PY
       - uses: actions/upload-artifact@v4
         if: always()
