@@ -4,6 +4,8 @@ Date: 2026-11-01. Version code 68, version name 0.0.1.
 
 ## Owner report and reproduced defects
 
+**Owner follow-up:** the return problem remains unresolved on the actual account. See `PROMPT-VIEWER-AUDIT-68.md` for the subsequent prompt-toggle investigation; fixture successes below are not owner acceptance.
+
 The owner confirms both Android Back and Facebook's own arrow return to the wrong feed location and can feel delayed. Builds 63/64 were not accepted as solving this on the account. This change does not retroactively claim they did.
 
 1. Native `smartBack` could consume Back by smoothly scrolling a detail page to its top whenever no recognised feed checkpoint existed. Baseline native run [41337411002](https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41337411002) reproduced a failure to return with one real Back; its original source-anchor test still passed. That scroll-to-top interception was removed. Fullscreen/settings/dialog branches remain intact.
