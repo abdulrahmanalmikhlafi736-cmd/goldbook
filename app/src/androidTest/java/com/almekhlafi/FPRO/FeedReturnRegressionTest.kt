@@ -109,4 +109,33 @@ class FeedReturnRegressionTest {
   }
  }
 
+ @Test fun collapsedSourcePostRemainsVisibleInsteadOfRestoringImpossibleOffset() {
+  val inst=InstrumentationRegistry.getInstrumentation()
+  ActivityScenario.launch<MainActivity>(android.content.Intent(inst.targetContext,MainActivity::class.java)).use { scenario ->
+   awaitBrowserReady(scenario);Thread.sleep(2300)
+   fun js(code:String):String {val done=CountDownLatch(1);val value=AtomicReference("");scenario.onActivity{a->find(a.window.decorView)!!.evaluateJavascript(code){value.set(it);done.countDown()}};assertTrue(done.await(10,TimeUnit.SECONDS));return value.get()}
+   scenario.onActivity{a->find(a.window.decorView)!!.loadDataWithBaseURL("https://m.facebook.com/","""
+    <!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'>
+    <style>body{margin:0;overflow-anchor:none}#post{position:relative;height:1800px}#comments{position:absolute;top:800px;left:0;width:160px;height:50px}</style>
+    <main id='feed'><div style='height:700px'></div><article id='post' data-ft='{"top_level_post_id":"42"}'><a href='/posts/42'>Source</a><button id='comments'>Comments</button></article><div style='height:3000px'>Later posts</div></main>
+    <div id='detail' style='height:2400px;display:none'>Detail</div>
+    <script>
+    comments.onclick=()=>{history.pushState({site:true},'', '/posts/42');feed.style.display='none';detail.style.display='block';scrollTo(0,0);};
+    addEventListener('popstate',()=>{detail.style.display='none';post.style.height='250px';comments.style.display='none';feed.style.display='block';});
+    </script>
+   """.trimIndent(),"text/html","UTF-8",null)}
+   Thread.sleep(1200);js("scrollTo(0,1400);true");Thread.sleep(150)
+   assertTrue("Source begins above viewport while comments are visible",js("post.getBoundingClientRect().top").toDouble()< -600)
+   val xy=FloatArray(2);scenario.onActivity{a->val w=find(a.window.decorView)!!;val loc=IntArray(2);w.getLocationOnScreen(loc);xy[0]=loc[0]+80*w.resources.displayMetrics.density;xy[1]=loc[1]+125*w.resources.displayMetrics.density}
+   val down=android.os.SystemClock.uptimeMillis()
+   for(kind in listOf(android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP)){val e=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),kind,xy[0],xy[1],0);e.source=android.view.InputDevice.SOURCE_TOUCHSCREEN;assertTrue(inst.uiAutomation.injectInputEvent(e,true));e.recycle()}
+   Thread.sleep(200);assertEquals("true",js("location.pathname==='/posts/42'&&FproFeedReturn.canReturn()"))
+   inst.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+   val started=android.os.SystemClock.elapsedRealtime();var visible=false
+   while(!visible&&android.os.SystemClock.elapsedRealtime()-started<1500){visible=js("location.pathname==='/'&&Math.abs(post.getBoundingClientRect().top)<4&&post.getBoundingClientRect().bottom>0")=="true";if(!visible)Thread.sleep(30)}
+   assertTrue("Return must show source, not later cards after its height shrank",visible)
+   android.util.Log.i("FPRO_FEED_RETURN","collapsedSourceTop="+js("post.getBoundingClientRect().top"))
+  }
+ }
+
 }

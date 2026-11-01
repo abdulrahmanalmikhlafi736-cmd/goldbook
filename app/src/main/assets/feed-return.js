@@ -107,7 +107,12 @@
     if(anchor){
      var box=anchor.getBoundingClientRect();
      if(box.height>0&&box.width>0){
-      var delta=box.top-r.top;
+      // A collapsed post cannot retain its old negative offset: doing so
+      // would put the entire source above the viewport and show later cards.
+      // Keep the exact old offset when feasible; otherwise show THIS post's start.
+      var wanted=r.top;
+      if(wanted+box.height<=0||wanted>=innerHeight)wanted=0;
+      var delta=box.top-wanted;
       if(Math.abs(delta)>2){
        var container=scroller(anchor);
        // Explicitly disable smooth CSS scrolling for this single correction.
