@@ -36,9 +36,15 @@ class VideoColorWorkloadTest {
    val cfg="{siteEngine:'upstream',enhance:true,appBanner:true,referenceEngine:true,color:'ذهبي',downloads:true,rainbow:true,textSelection:true,selectionScope:'posts'}"
    scenario.onActivity{a->val source=listOf("feed-return.js","app-prompt-engine.js","site-engine.js","reference-engines.js","audio-mode.js","facebook.js").joinToString("\n"){a.assets.open(it).bufferedReader().use{r->r.readText()}}.replace("__CONFIG__",cfg);find(a.window.decorView)!!.evaluateJavascript(source,null)}
    js("player.muted=true;player.play().catch(e=>window.playError=e.name+':'+e.message);true")
-   repeat(16){if(js("!player.paused&&player.readyState>=2")!="true")Thread.sleep(500)}
-   val playback=js("JSON.stringify({paused:player.paused,ready:player.readyState,network:player.networkState,error:player.error&&{code:player.error.code,message:player.error.message},playError:window.playError,canPlay:player.canPlayType('video/mp4')})")
-   assertEquals("Real playback must start: $playback","true",js("!player.paused&&player.readyState>=2"))
+   // Capture readiness/playback/frames atomically. Separate JS queries can straddle
+   // a looping clip boundary and disagree despite successful decoded playback.
+   val sample="JSON.stringify({paused:player.paused,ready:player.readyState,network:player.networkState,error:player.error&&{code:player.error.code,message:player.error.message},frames:player.getVideoPlaybackQuality().totalVideoFrames})"
+   fun samplePlayback()=org.json.JSONObject(org.json.JSONArray("["+js(sample)+"]").getString(0))
+   var playback=samplePlayback()
+   val playbackDeadline=android.os.SystemClock.elapsedRealtime()+10_000
+   while((playback.getBoolean("paused")||playback.getInt("ready")<2||playback.getInt("frames")==0)&&android.os.SystemClock.elapsedRealtime()<playbackDeadline){Thread.sleep(100);playback=samplePlayback()}
+   assertFalse("Real playback must start: $playback",playback.getBoolean("paused"))
+   assertTrue("Actual decoded playback required: $playback",playback.getInt("ready")>=2&&playback.getInt("frames")>0)
    assertEquals("true",js("getComputedStyle(document.querySelector('main p')).color!=='rgb(8, 102, 255)'"))
    js("""
     window.colorQueries=0;window.fullColorQueries=0;window.videoUpdates=0;window.clockUpdates=0;

@@ -58,7 +58,7 @@ class BackAndSessionRegressionTest {
         var ready = false
         while (!ready && android.os.SystemClock.elapsedRealtime() < deadline) {
             scenario.onActivity { a ->
-                ready = !MainActivity::class.java.getDeclaredField("splash").apply { isAccessible = true }.getBoolean(a)
+                ready = MainActivity::class.java.getDeclaredField("pageConfirmed").apply { isAccessible = true }.getBoolean(a)
             }
             if (!ready) Thread.sleep(50)
         }
