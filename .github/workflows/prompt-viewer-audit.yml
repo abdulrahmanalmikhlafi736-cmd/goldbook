@@ -39,7 +39,7 @@ jobs:
           seen=[]
           for p in Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'):
               for c in ET.parse(p).iter('testcase'):
-                  if c.get('name') not in ('promptFilterPreservesLargeShadowMediaOwnerAndHidesActualCta','messagesUsesExistingHistoryInsteadOfReloadingHome','blockedRendererBackTimesOutOnceAndLateCallbackCannotNavigateAgain','boundedStateRestoresHistoryWithoutChangingLiveHistory','openedPostKeepsViewportOffsetAfterNativeBackAndLateLayout','nativeBackDoesNotConsumeFirstPressScrollingDetailToTop','siteArrowRestoresPostWhenReplacingHomeTrackingRoute','collapsedSourcePostRemainsVisibleInsteadOfRestoringImpossibleOffset','decodedVideoAndClockDoNotRescanUnrelatedColors','zzPictureInPictureUsesRealPlaybackAndHome'): continue
+                  if c.get('name') not in ('promptFilterPreservesLargeShadowMediaOwnerAndHidesActualCta','messagesUsesExistingHistoryInsteadOfReloadingHome','blockedRendererBackTimesOutOnceAndLateCallbackCannotNavigateAgain','boundedStateRestoresHistoryWithoutChangingLiveHistory','nativeBackClosesSiteDialogWithoutNavigatingHistory','openedPostKeepsViewportOffsetAfterNativeBackAndLateLayout','nativeBackDoesNotConsumeFirstPressScrollingDetailToTop','siteArrowRestoresPostWhenReplacingHomeTrackingRoute','collapsedSourcePostRemainsVisibleInsteadOfRestoringImpossibleOffset','decodedVideoAndClockDoNotRescanUnrelatedColors','zzPictureInPictureUsesRealPlaybackAndHome'): continue
                   ok=not any(c.find(k) is not None for k in ('failure','error','skipped'))
                   seen.append(ok)
                   print('::notice title=Back and media regression::'+c.get('name')+': '+('SAFETY REGRESSION PASS (offline fixture)' if ok else 'AUDIT FAILED'))
@@ -48,7 +48,7 @@ jobs:
           if log.exists():
               for line in log.read_text().splitlines():
                   if 'FPRO_PROMPT_VIEWER' in line: print('::notice title=Prompt viewer evidence::'+line.replace('%','%25'))
-          assert len(seen)==10 and all(seen), 'Missing/failed/skipped native evidence'
+          assert len(seen)==11 and all(seen), 'Missing/failed/skipped native evidence'
           PY
       - uses: actions/upload-artifact@v4
         if: always()

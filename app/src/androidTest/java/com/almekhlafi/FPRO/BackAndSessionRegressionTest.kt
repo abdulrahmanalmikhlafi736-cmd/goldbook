@@ -126,6 +126,18 @@ class BackAndSessionRegressionTest {
         Thread.sleep(500)
         assertEquals("Late callback must not navigate again", "/middle", org.json.JSONArray("["+js("location.pathname")+"]").getString(0))
     }
+    @Test fun nativeBackClosesSiteDialogWithoutNavigatingHistory() = runCase { scenario, js ->
+        navigate(scenario, js, "/middle")
+        navigate(scenario, js, "/detail")
+        js("""window.fixtureClosed=0;const sheet=document.createElement('div');sheet.setAttribute('role','dialog');
+            sheet.innerHTML='<button aria-label="Close">Close local sheet</button>';
+            sheet.querySelector('button').onclick=()=>{window.fixtureClosed++;sheet.remove()};document.body.append(sheet);true""")
+        scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        val deadline = android.os.SystemClock.elapsedRealtime() + 6000
+        while (js("window.fixtureClosed===1") != "true" && android.os.SystemClock.elapsedRealtime() < deadline) Thread.sleep(50)
+        assertEquals("Site close handler ran exactly once", "1", js("window.fixtureClosed"))
+        assertEquals("Closing a dialog must not navigate", "/detail", org.json.JSONArray("["+js("location.pathname")+"]").getString(0))
+    }
     @Test fun boundedStateRestoresHistoryWithoutChangingLiveHistory() = runCase { scenario, js ->
         navigate(scenario, js, "/middle")
         navigate(scenario, js, "/detail")
