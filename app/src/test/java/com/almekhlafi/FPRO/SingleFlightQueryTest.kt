@@ -19,4 +19,13 @@ class SingleFlightQueryTest {
         val current=requireNotNull(gate.begin());assertFalse(gate.complete(old));assertNull(gate.begin())
         assertTrue(gate.complete(current));assertNotNull(gate.begin())
     }
+    @Test fun timeoutWinsOnceAndLateDecisionCannotTriggerAnotherBack() {
+        val gate = SingleFlightQuery()
+        val request = requireNotNull(gate.begin())
+        assertNull(gate.begin())
+        assertTrue(gate.complete(request)) // native timeout wins
+        val next = requireNotNull(gate.begin())
+        assertFalse(gate.complete(request)) // late renderer cannot release next request
+        assertTrue(gate.complete(next))
+    }
 }

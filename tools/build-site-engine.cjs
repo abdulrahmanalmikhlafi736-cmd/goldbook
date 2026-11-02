@@ -2,6 +2,7 @@ const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),dir=path.join(root,'app/src/main/assets/upstream');
 const factories=fs.readdirSync(dir).filter(f=>f.endsWith('.js')).sort().map(file=>{
  let text=fs.readFileSync(path.join(dir,file),'utf8');
+ if(file==='material_you.js')text=require('./scope-material-color.cjs')(text);
  // Lifecycle-only patches: journal CSSOM writes, scope the asynchronous banner callback.
  if(file==='amoled_black.js')text=text.replace(/rule\.style\.backgroundColor = ([^;]+);/g,'scope.cssRule(rule.style,"background-color", $1);');
  if(file==='sticky_navbar.js')text=text.replace('waitForBanner().then(banner => {','waitForBanner().then(scope.wrap(banner => {').replace('          });\n        })();\n        return;', '          }));\n        })();\n        return;');

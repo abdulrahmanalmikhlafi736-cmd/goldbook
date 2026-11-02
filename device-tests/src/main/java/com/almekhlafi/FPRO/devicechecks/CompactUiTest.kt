@@ -32,8 +32,15 @@ class CompactUiTest {
 
     private fun launch() {
         device.executeShellCommand("am force-stop com.almekhlafi.FPRO")
-        device.executeShellCommand("am start -W -n com.almekhlafi.FPRO/.MainActivity")
-        assertTrue("Actual compact app must open", waitObject(By.pkg("com.almekhlafi.FPRO"), 30_000) != null)
+        val launchOutput = device.executeShellCommand("am start -W -n com.almekhlafi.FPRO/.MainActivity")
+        val opened = waitObject(By.pkg("com.almekhlafi.FPRO"), 30_000) != null
+        val state = if (opened) "opened" else {
+            device.executeShellCommand("screencap -p /data/local/tmp/fpro-launch-failure.png")
+            val activity = device.executeShellCommand("dumpsys activity activities").lineSequence().filter { it.contains("Resumed") || it.contains("com.almekhlafi.FPRO") }.take(10).joinToString(" | ")
+            val window = device.executeShellCommand("dumpsys window").lineSequence().filter { it.contains("mCurrentFocus") || it.contains("mFocusedApp") || it.contains("Keyguard") }.take(10).joinToString(" | ")
+            "$activity; $window"
+        }
+        assertTrue("Actual compact app must open; am start=$launchOutput; state=$state", opened)
         Thread.sleep(2300) // custom splash, not a network wait
     }
     private fun screenshot(name: String): File {

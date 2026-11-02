@@ -1,0 +1,66 @@
+{
+  "versionCode": 64,
+  "productionCommit": "59bc9d9059784e8ce5315bdc4a95dbdd80ba345f",
+  "firstFrameTestCommit": "f791956ad64aee69e4f6de92a9b9130dd5a88835",
+  "nativeRun": 41209765709,
+  "nativeJob": 124562097704,
+  "nativeResult": "success",
+  "syntheticPageNotOwnerAccount": true,
+  "initialTopPx": 100,
+  "firstReturnFrameTopPx": 100,
+  "settledTopPx": 100,
+  "scrollYPx": 1400,
+  "corrections": 2,
+  "attempts": 9,
+  "trustedCancellations": 1,
+  "annotations": [
+    {
+      "path": ".github",
+      "blob_href": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/blob/f791956ad64aee69e4f6de92a9b9130dd5a88835/.github",
+      "start_line": 5,
+      "start_column": null,
+      "end_line": 5,
+      "end_column": null,
+      "annotation_level": "warning",
+      "title": "",
+      "message": "Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4, gradle/actions/setup-gradle@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/",
+      "raw_details": ""
+    },
+    {
+      "path": ".github",
+      "blob_href": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/blob/f791956ad64aee69e4f6de92a9b9130dd5a88835/.github",
+      "start_line": 34,
+      "start_column": null,
+      "end_line": 34,
+      "end_column": null,
+      "annotation_level": "notice",
+      "title": "Feed return geometry",
+      "message": "I/FPRO_FEED_RETURN( 2427): initialTop=100.0 firstReturnTop=100.0 restoredTop=100.0 y=1400.0 \"{\\\"enabled\\\":true,\\\"active\\\":false,\\\"pending\\\":false,\\\"retained\\\":0,\\\"captures\\\":2,\\\"returns\\\":1,\\\"corrections\\\":2,\\\"cancelled\\\":1,\\\"attempts\\\":9}\"",
+      "raw_details": ""
+    },
+    {
+      "path": ".github",
+      "blob_href": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/blob/f791956ad64aee69e4f6de92a9b9130dd5a88835/.github",
+      "start_line": 33,
+      "start_column": null,
+      "end_line": 33,
+      "end_column": null,
+      "annotation_level": "notice",
+      "title": "Feed return Android13",
+      "message": "PASS",
+      "raw_details": ""
+    }
+  ],
+  "compactArtifact": {
+    "run": 41209588843,
+    "job": 124561586683,
+    "jobConclusion": "success",
+    "artifactId": 13045608118,
+    "zipBytes": 1076364
+  },
+  "unchangedBuild62Assets": {
+    "app-prompt-engine.js": "ab7deec35a6fff5f074b466d38798bba5cc43779f02d48f9e27a3861b351be60",
+    "site-engine.js": "fed7dbe7d1a50adf71b77c32f766aedc6f2aea28d9347232b8ddc3474a2042fe",
+    "facebook.js": "e26a7def667b0695a70e2db3f4782e9df05724976880a45766e7143c82ac916e"
+  }
+}

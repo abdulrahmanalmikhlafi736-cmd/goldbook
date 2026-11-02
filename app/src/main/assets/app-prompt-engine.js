@@ -9,7 +9,6 @@
  const tools='.fpro-video-tools,[id^="fpro"]';
  const footer='.bottom.fixed-container,[data-testid*="open_app" i],[data-testid*="open-app" i],[data-sigil~="m-app-banner"],[data-sigil~="app-prompt"]';
  const discovery=semantic+',.native-text,[data-mcomponent="TextArea"],'+footer;
- const ariaSelector=labels.map(label=>':is('+semantic+')[aria-label='+JSON.stringify(label)+' i]').join(',');
  const owned=new Map(),rejected=new Set(),boxes=new WeakMap(),homePageRoots=new WeakSet();let enabled=false,css=null,rootOld=null;
  const stats={passes:0,checked:0,hidden:0,restored:0,maxMs:0};
  function text(el){let value='',count=0,node;const walk=document.createTreeWalker(el,4);while((node=walk.nextNode())){if(++count>64||node.nodeValue.length+value.length>200)return null;const decoration=node.parentElement.closest('svg,script,style,[aria-hidden="true"]');if(decoration&&decoration!==el&&el.contains(decoration))continue;value+=' '+node.nodeValue;}return norm(value);}
@@ -23,14 +22,29 @@
  }
  function transientHomeDialog(dialog){return location.pathname==='/'&&(homePageRoots.has(dialog)||dialog.matches('main')||Array.from(dialog.querySelectorAll('main,[role="main"],[role="feed"]')).some(el=>homePageRoots.has(el)));}
  function blocked(el){if(!el||!el.isConnected||el.matches('html,body,main,form,input,textarea,select,video,audio,iframe,canvas,article,[role="article"],header,nav,[role="main"],[role="feed"],[role="navigation"],[role="banner"]')||el.closest(tools+',form,[contenteditable="true"]'))return true;const dialog=el.closest('dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"]');return !!(dialog&&!transientHomeDialog(dialog)&&(!dialog.querySelector('video,[data-pagelet="Story"],.story_viewer')||dialog.querySelector('form,input,textarea,select')));}
+ // Validate only recognised cues. Never scan an entire feed for shadow/media.
+ // An opaque/custom host cannot be certified as a disposable app prompt.
+ function safeSurface(el){
+  if(el.querySelector(excluded))return false;
+  const height=Math.max(el.getBoundingClientRect().height||0,parseFloat(getComputedStyle(el).height)||0,Number(el.getAttribute('data-actual-height'))||0,boxes.get(el)||0);
+  if(height>160)return false;
+  const nodes=[el],walk=document.createTreeWalker(el,1);let child;
+  while((child=walk.nextNode())){nodes.push(child);if(nodes.length>32)return false;}
+  for(const node of nodes){
+   if(node.shadowRoot||node.localName.includes('-')||getComputedStyle(node).backgroundImage!=='none'&&getComputedStyle(node).backgroundImage!=='')return false;
+  }
+  if(height>0)boxes.set(el,height);
+  return true;
+ }
  function candidate(el){
-  if(blocked(el)||el.querySelector(excluded))return false;
+  if(blocked(el))return false;
   if(!el.matches(semantic)&&(!el.matches('.native-text,[data-mcomponent="TextArea"]')||el.querySelector(semantic)))return false;
   const value=text(el),aria=norm(el.getAttribute('aria-label'));
   if(value===null)return false;
   if(!el.matches(semantic)&&el.closest('article,[role="article"],[role="comment"],[data-commentid],[data-ad-preview="message"],[data-ad-comet-preview="message"]'))return false;
   const glyph=value.includes('󱥬');
-  return known(value)||known(aria)&&(value.length<120&&(value===''||known(value)||glyph))||glyph&&el.matches(semantic)&&value.length<100||appUrl(el)&&(known(aria)||known(value)||/^(?:open|فتح|facebook|فيسبوك|google play)$/.test(value));
+  const cue=known(value)||known(aria)&&(value.length<120&&(value===''||known(value)||glyph))||glyph&&el.matches(semantic)&&value.length<100||appUrl(el)&&(known(aria)||known(value)||/^(?:open|فتح|facebook|فيسبوك|google play)$/.test(value));
+  return cue&&safeSurface(el);
  }
  function surface(control){
   let target=control;
@@ -44,6 +58,7 @@
    const controls=parent.querySelectorAll(semantic);if(controls.length>4)break;
    if(Array.from(controls).some(el=>!candidate(el)&&!/^(close|dismiss|not now|إغلاق|اغلاق|ليس الان|ليس الآن)$/.test(text(el)||'')))break;
    const caption=text(parent);if(caption===null||caption.length>200)break;
+   if(!safeSurface(parent))break;
    boxes.set(parent,height);target=parent;
   }
   return target;
@@ -58,32 +73,73 @@
   if(candidate(control)){if(rejected.has(control)){control.removeAttribute('data-fpro-prompt59-reject');rejected.delete(control);}hide(surface(control),control);}
   else if(known(control.getAttribute('aria-label'))&&!rejected.has(control)&&rejected.size<2560){control.setAttribute('data-fpro-prompt59-reject','');rejected.add(control);}
  }
- function pass(roots){
-  if(!enabled)return;const start=performance.now();stats.passes++;
-  for(const node of rejected)if(!node.isConnected){node.removeAttribute('data-fpro-prompt59-reject');rejected.delete(node);}
-  rememberHomePage(roots);
-  const valid=roots.filter(r=>r&&r.nodeType===1);
-  const priority=valid.filter(r=>r.matches(semantic+','+footer));
-  const ordered=[...priority,...valid.filter(r=>!priority.includes(r))];
-  const scopes=[];for(const root of ordered){if(!root||root.nodeType!==1||!root.isConnected||root.closest(tools))continue;if(scopes.some(s=>s.contains(root)))continue;for(let i=scopes.length-1;i>=0;i--)if(root.contains(scopes[i]))scopes.splice(i,1);scopes.push(root);if(scopes.length>=8)break;}
-  for(const [el,old]of owned){if(!el.isConnected){restore(el);continue;}if(scopes.some(root=>root.contains(el)||el.contains(root))){if(!candidate(old.control)||blocked(el)||el!==old.control&&el.querySelector(excluded))restore(el);else hide(el,old.control);}}
-  for(const root of scopes){inspect(root);let n=0;for(const node of root.querySelectorAll(ariaSelector+',a[href^="intent://"],a[href^="fb://"],'+footer)){if(n++>=96)break;inspect(node);if(node.matches(footer))for(const c of Array.from(node.querySelectorAll(discovery)).slice(0,48))inspect(c);}
-   n=0;for(const node of root.querySelectorAll(discovery)){if(n++>=800)break;inspect(node);}
+ // Deduplicate mutation roots BEFORE any subtree query. Never drop the ninth root:
+ // a text-only CTA can be the last sibling in a large Facebook commit.
+ function scopesFor(roots){
+  const valid=new Set();
+  for(const root of roots)if(root&&root.nodeType===1&&root.isConnected&&!root.closest(tools))valid.add(root);
+  const scopes=[];
+  for(const root of valid){
+   let covered=false;
+   for(let p=root.parentElement;p;p=p.parentElement)if(valid.has(p)){covered=true;break;}
+   if(!covered)scopes.push(root);
   }
+  return scopes;
+ }
+ function pass(roots,subtrees=roots){
+  if(!enabled)return;
+  const scopes=scopesFor(roots),deep=scopesFor(subtrees);
+  if(!scopes.length&&!deep.length)return;
+  const start=performance.now();stats.passes++;
+  for(const node of rejected)if(!node.isConnected){node.removeAttribute('data-fpro-prompt59-reject');rejected.delete(node);}
+  // Landmarks need discovery only on insertion/initial mount, NOT on every
+  // opacity/class/style change of their ancestors.
+  rememberHomePage(deep);
+  for(const [el,old]of owned){
+   if(!el.isConnected){restore(el);continue;}
+   if(scopes.some(root=>root.contains(el)||el.contains(root))){
+    if(!candidate(old.control)||blocked(el)||el!==old.control&&!safeSurface(el))restore(el);
+    else {
+     hide(el,old.control);
+     // A previously ordinary wrapper may become a fixed footer after layout
+     // styles arrive. Re-evaluate only its known cue, not every feed child.
+     const target=surface(old.control);if(target!==el)hide(target,old.control);
+    }
+   }
+  }
+  const visited=new Set();
+  const visit=el=>{if(!el||visited.has(el)||!el.matches(discovery))return;visited.add(el);inspect(el);};
+  // Attribute/text changes inspect the changed cue and its semantic owner;
+  // existing children do not need another whole-feed discovery pass.
+  for(const root of scopes){visit(root);visit(root.closest(semantic));}
+  // New subtrees must still be discovered synchronously before paint. A single
+  // selector replaces the overlapping aria + generic scans and their late caps.
+  // No timer/rAF is allowed to postpone unknown text-only prompt hiding.
+  for(const root of deep){visit(root);for(const node of root.querySelectorAll(discovery))visit(node);}
   stats.maxMs=Math.max(stats.maxMs,Math.round((performance.now()-start)*10)/10);
  }
  const observer=new MutationObserver(records=>{
-  const roots=[];for(const r of records){const el=r.target.nodeType===1?r.target:r.target.parentElement;if(!el||el.closest(tools))continue;
-   if(r.type==='attributes'&&r.attributeName==='style'&&owned.has(el)&&el.style.getPropertyValue('display')==='none'&&el.style.getPropertyPriority('display')==='important')continue;
-   if(r.type==='childList'){for(const node of r.addedNodes)roots.push(node.nodeType===1?node:node.parentElement);roots.push(el.closest('[data-fpro-prompt59-target]'));}
-   else roots.push(el);
-  }pass(roots);
+  const roots=[],subtrees=[];
+  for(const r of records){
+   const el=r.target.nodeType===1?r.target:r.target.parentElement;
+   if(!el||el.closest(tools))continue;
+   roots.push(el);
+   if(r.type==='childList'){
+    for(const node of r.addedNodes)if(node.nodeType===1){roots.push(node);subtrees.push(node);}
+   }else if(r.type==='attributes'&&['role','aria-modal','open'].includes(r.attributeName)){
+    // Dialog/page protection can change the meaning of an existing subtree.
+    subtrees.push(el);
+   }
+  }
+  if(enabled&&css&&!css.isConnected)install();
+  pass(roots,subtrees);
  });
  function install(){
   if(!css){css=document.createElement('style');css.id='fpro-prompt59-style';const nonce=document.querySelector('style[nonce],script[nonce]');if(nonce)css.nonce=nonce.nonce;
-   // Accessible exact cues are declarative; all text-only candidates require JS.
-   const early=labels.map(label=>'html[data-fpro-prompt59="on"] :is('+semantic+')[aria-label='+JSON.stringify(label)+' i]:not([data-fpro-prompt59-reject]):not(html,body,main,form,input,textarea,select,video,audio,iframe,canvas,article,header,nav,[role="article"],[role="main"],[role="feed"],[role="navigation"],[role="banner"],[id^="fpro"]):not(form *,dialog *,[role="dialog"] *,[aria-modal="true"] *,.fpro-video-tools *):not(:has('+excluded+','+semantic+'))').join(',');
-   css.textContent='html[data-fpro-prompt59="on"] [data-fpro-prompt59-target]{display:none!important}'+early+'{display:none!important}';
+   // Only JS-validated ownership may hide a node. An aria-label alone must
+   // never declaratively blank a fullscreen/media owner before validation.
+   // Discovery remains synchronous in MutationObserver, before paint.
+   css.textContent='html[data-fpro-prompt59="on"] [data-fpro-prompt59-target]{display:none!important}';
   }
   if(!css.isConnected)(document.head||document.documentElement).append(css);
  }
@@ -91,8 +147,8 @@
   const next=config.siteEngine==='upstream'&&config.enhance!==false&&!!config.appBanner;
   if(!next){if(!enabled)return;enabled=false;observer.disconnect();if(css)css.remove();for(const el of Array.from(owned.keys()))restore(el);for(const el of rejected)el.removeAttribute('data-fpro-prompt59-reject');rejected.clear();if(rootOld===null)document.documentElement.removeAttribute('data-fpro-prompt59');else document.documentElement.setAttribute('data-fpro-prompt59',rootOld);return;}
   if(!enabled){enabled=true;rootOld=document.documentElement.getAttribute('data-fpro-prompt59');document.documentElement.setAttribute('data-fpro-prompt59','on');install();observer.observe(document,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['style','class','role','aria-label','aria-modal','open','href','data-actual-height','data-shift-on-keyboard-shown']});}
-  else install();
+  else {install();return;}
   pass([document.body||document.documentElement]);
  }
- window.FproPrompt={update,report:()=>({version:60,enabled,retained:owned.size,...stats})};
+ window.FproPrompt={update,report:()=>({version:69,enabled,retained:owned.size,...stats})};
 })();
