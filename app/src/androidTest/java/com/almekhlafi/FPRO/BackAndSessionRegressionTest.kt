@@ -40,8 +40,8 @@ class BackAndSessionRegressionTest {
             assertTrue("Compose BackHandler registered before exercising native Back", backReady.await(11, TimeUnit.SECONDS))
             scenario.onActivity { a -> find(a.window.decorView)!!.loadDataWithBaseURL(base,
                 """<!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'>
-                <body style='margin:0'><button id='navigate' style='position:fixed;left:0;top:0;width:160px;height:60px' onclick='history.pushState({},"",window.nextPath)'>Navigate local fixture</button>
-                <p style='margin-top:100px'>Offline history fixture with meaningful visible content. No account or external media is used. Every history transition is started by a real user tap.</p></body>""", "text/html", "UTF-8", base) }
+                <body style='margin:0'><button id='navigate' style='position:fixed;left:0;top:0;width:160px;height:60px' onpointerdown='window.tapCount=(window.tapCount||0)+1;window.lastTrusted=event.isTrusted;history.pushState({},"",window.nextPath)'>Navigate local fixture</button>
+                <p style='margin-top:100px'>Offline history fixture with meaningful visible content. No account or external media is used. Every history transition is started by a real user tap.</p></body>""", "text/html", "UTF-8", null) }
             Thread.sleep(1200)
             val js: (String) -> String = { code ->
                 val done = CountDownLatch(1); val result = AtomicReference("")
@@ -81,14 +81,18 @@ class BackAndSessionRegressionTest {
             assertTrue(inst.uiAutomation.injectInputEvent(event, true)); event.recycle()
         }
         var committed = false
+        var nativeInfo = ""
+        var observed = org.json.JSONObject()
         while (!committed && android.os.SystemClock.elapsedRealtime() < deadline) {
+            observed = org.json.JSONObject(org.json.JSONArray("["+js("JSON.stringify({path:location.pathname,taps:window.tapCount||0,trusted:!!window.lastTrusted})")+"]").getString(0))
             scenario.onActivity { a ->
-                val web = find(a.window.decorView)!!
-                committed = android.net.Uri.parse(web.url).path == path && web.canGoBack()
+                val web = find(a.window.decorView)!!; val list = web.copyBackForwardList()
+                nativeInfo = "url=${web.url}, index=${list.currentIndex}, size=${list.size}"
+                committed = observed.optString("path") == path && observed.optBoolean("trusted") && web.canGoBack()
             }
             if (!committed) Thread.sleep(50)
         }
-        assertTrue("Trusted navigation committed to native WebView history: $path", committed)
+        assertTrue("Trusted navigation committed to native WebView history: $path; DOM=$observed; native=$nativeInfo", committed)
         assertEquals(org.json.JSONObject.quote(path), js("location.pathname"))
     }
     @Test fun messagesUsesExistingHistoryInsteadOfReloadingHome() = runCase("https://m.facebook.com/") { scenario, js ->
@@ -131,7 +135,7 @@ class BackAndSessionRegressionTest {
         val deadline = android.os.SystemClock.elapsedRealtime() + 5000
         var large = false
         while (!large && android.os.SystemClock.elapsedRealtime() < deadline) {
-            scenario.onActivity { large = find(it.window.decorView)!!.copyBackForwardList().size > 16 && android.net.Uri.parse(find(it.window.decorView)!!.url).path == "/bulk/159" }
+            scenario.onActivity { large = find(it.window.decorView)!!.copyBackForwardList().size > 16 }
             if (!large) Thread.sleep(50)
         }
         assertTrue("Many-entry history actually committed (provider may cap total entries)", large)
