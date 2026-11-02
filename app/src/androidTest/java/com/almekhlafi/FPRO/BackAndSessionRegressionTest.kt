@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 /** Offline Android history/renderer/state tests; not Facebook account acceptance. */
 @RunWith(AndroidJUnit4::class)
+@androidx.test.filters.SdkSuppress(minSdkVersion = 26)
 class BackAndSessionRegressionTest {
     private fun find(v: View): WebView? {
         if (v is WebView) return v
@@ -38,10 +39,27 @@ class BackAndSessionRegressionTest {
                 handler.post(check)
             }
             assertTrue("Compose BackHandler registered before exercising native Back", backReady.await(11, TimeUnit.SECONDS))
-            scenario.onActivity { a -> find(a.window.decorView)!!.loadDataWithBaseURL(base,
-                """<!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'>
+            // Real HTTPS navigation served entirely in-process. loadDataWithBaseURL
+            // has virtual/history URL semantics unsuitable for multi-entry traversal.
+            val html = """<!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'>
                 <body style='margin:0'><button id='navigate' style='position:fixed;left:0;top:0;width:160px;height:60px' onpointerdown='window.tapCount=(window.tapCount||0)+1;window.lastTrusted=event.isTrusted;history.pushState({},"",window.nextPath)'>Navigate local fixture</button>
-                <p style='margin-top:100px'>Offline history fixture with meaningful visible content. No account or external media is used. Every history transition is started by a real user tap.</p></body>""", "text/html", "UTF-8", null) }
+                <p style='margin-top:100px'>Offline history fixture with meaningful visible content. No account or external media is used. Every history transition is started by a real user tap.</p></body>"""
+            scenario.onActivity { a ->
+                val web = find(a.window.decorView)!!
+                val original = web.webViewClient
+                web.webViewClient = object : android.webkit.WebViewClient() {
+                    override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? {
+                        if (request.url.host == android.net.Uri.parse(base).host) return android.webkit.WebResourceResponse("text/html", "UTF-8", html.byteInputStream())
+                        return original.shouldInterceptRequest(view, request)
+                    }
+                    override fun onPageStarted(view: WebView, url: String?, icon: android.graphics.Bitmap?) = original.onPageStarted(view, url, icon)
+                    override fun onPageCommitVisible(view: WebView, url: String?) = original.onPageCommitVisible(view, url)
+                    override fun onPageFinished(view: WebView, url: String?) = original.onPageFinished(view, url)
+                    override fun doUpdateVisitedHistory(view: WebView, url: String?, reload: Boolean) = original.doUpdateVisitedHistory(view, url, reload)
+                    override fun shouldOverrideUrlLoading(view: WebView, request: android.webkit.WebResourceRequest) = original.shouldOverrideUrlLoading(view, request)
+                }
+                web.loadUrl(base)
+            }
             Thread.sleep(1200)
             val js: (String) -> String = { code ->
                 val done = CountDownLatch(1); val result = AtomicReference("")
@@ -94,6 +112,10 @@ class BackAndSessionRegressionTest {
         }
         assertTrue("Trusted navigation committed to native WebView history: $path; DOM=$observed; native=$nativeInfo", committed)
         assertEquals(path, org.json.JSONArray("["+js("location.pathname")+"]").getString(0))
+        val committedFrame = CountDownLatch(1)
+        scenario.onActivity { a -> find(a.window.decorView)!!.postVisualStateCallback(701, object : WebView.VisualStateCallback() { override fun onComplete(requestId: Long) { committedFrame.countDown() } }) }
+        assertTrue("History frame committed before Back", committedFrame.await(10, TimeUnit.SECONDS))
+        inst.waitForIdleSync()
     }
     private fun expectPath(scenario: ActivityScenario<MainActivity>, js: (String) -> String, path: String) {
         val deadline = android.os.SystemClock.elapsedRealtime() + 6000
