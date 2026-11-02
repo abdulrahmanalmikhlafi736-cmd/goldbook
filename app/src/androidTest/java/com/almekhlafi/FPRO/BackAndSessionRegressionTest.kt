@@ -22,7 +22,7 @@ class BackAndSessionRegressionTest {
         if (v is ViewGroup) for (i in 0 until v.childCount) find(v.getChildAt(i))?.let { return it }
         return null
     }
-    private fun runCase(base: String = "https://fixture.invalid/", body: (ActivityScenario<MainActivity>, (String) -> String) -> Unit) {
+    private fun runCase(base: String = "https://m.facebook.com/", body: (ActivityScenario<MainActivity>, (String) -> String) -> Unit) {
         val inst = InstrumentationRegistry.getInstrumentation()
         ActivityScenario.launch<MainActivity>(android.content.Intent(inst.targetContext, MainActivity::class.java)).use { scenario ->
             awaitBrowserReady(scenario)
