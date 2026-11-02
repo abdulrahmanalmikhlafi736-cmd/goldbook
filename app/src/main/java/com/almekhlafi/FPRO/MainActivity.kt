@@ -277,7 +277,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                         LaunchedEffect(Unit) {
                             delay(1200)
                             while (true) {
-                                if (browsingResumed && !settings && !pip && !audioOnly && fullView == null && web.hasWindowFocus() && Navigation.isFacebook(web.url.orEmpty())) {
+                                if (browsingResumed && !settings && ((!pip && !audioOnly && fullView == null) || !messageBridgeInstalled) && web.hasWindowFocus() && Navigation.isFacebook(web.url.orEmpty())) {
                                     probePageInfo()
                                 } else homeControls = false
                                 // Player routes do not need frequent header-logo queries.

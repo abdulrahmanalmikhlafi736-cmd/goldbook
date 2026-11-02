@@ -25,8 +25,21 @@ class BackAndSessionRegressionTest {
         val inst = InstrumentationRegistry.getInstrumentation()
         ActivityScenario.launch<MainActivity>(android.content.Intent(inst.targetContext, MainActivity::class.java)).use { scenario ->
             awaitBrowserReady(scenario)
+            val backReady = CountDownLatch(1)
+            scenario.onActivity { a ->
+                val until = android.os.SystemClock.uptimeMillis() + 10_000
+                val handler = android.os.Handler(android.os.Looper.getMainLooper())
+                val check = object : Runnable {
+                    override fun run() {
+                        if (a.onBackPressedDispatcher.hasEnabledCallbacks()) backReady.countDown()
+                        else if (!a.isDestroyed && android.os.SystemClock.uptimeMillis() < until) handler.postDelayed(this, 50)
+                    }
+                }
+                handler.post(check)
+            }
+            assertTrue("Compose BackHandler registered before exercising native Back", backReady.await(11, TimeUnit.SECONDS))
             scenario.onActivity { a -> find(a.window.decorView)!!.loadDataWithBaseURL(base,
-                "<!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'><body>Offline history fixture</body>", "text/html", "UTF-8", null) }
+                "<!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'><body>Offline history fixture</body>", "text/html", "UTF-8", base) }
             Thread.sleep(1200)
             val js: (String) -> String = { code ->
                 val done = CountDownLatch(1); val result = AtomicReference("")
@@ -37,13 +50,15 @@ class BackAndSessionRegressionTest {
         }
     }
     @Test fun messagesUsesExistingHistoryInsteadOfReloadingHome() = runCase("https://m.facebook.com/") { scenario, js ->
-        js("history.pushState({},'', '/saved-post');history.pushState({},'', '/messages/thread');true")
+        assertEquals("true", js("history.pushState({},'', '/saved-post');history.pushState({},'', '/messages/thread');location.pathname==='/messages/thread'"))
+        scenario.onActivity { assertTrue("Real native back history exists", find(it.window.decorView)!!.canGoBack()) }
         scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         Thread.sleep(600)
         assertEquals("\"/saved-post\"", js("location.pathname"))
     }
     @Test fun blockedRendererBackTimesOutOnceAndLateCallbackCannotNavigateAgain() = runCase { scenario, js ->
-        js("history.pushState({},'', '/middle');history.pushState({},'', '/detail');true")
+        assertEquals("true", js("history.pushState({},'', '/middle');history.pushState({},'', '/detail');location.pathname==='/detail'"))
+        scenario.onActivity { assertTrue("Real native back history exists", find(it.window.decorView)!!.canGoBack()) }
         scenario.onActivity { a ->
             // Deliberately occupy the real renderer, not Android's UI thread.
             find(a.window.decorView)!!.evaluateJavascript("(()=>{const until=Date.now()+2400;while(Date.now()<until){};return true;})()", null)
@@ -54,7 +69,8 @@ class BackAndSessionRegressionTest {
         assertEquals("Only one Back despite timeout + late callback + repeated press", "\"/middle\"", js("location.pathname"))
     }
     @Test fun boundedStateRestoresHistoryWithoutChangingLiveHistory() = runCase { scenario, js ->
-        js("history.pushState({},'', '/middle');history.pushState({},'', '/detail');true")
+        assertEquals("true", js("history.pushState({},'', '/middle');history.pushState({},'', '/detail');location.pathname==='/detail'"))
+        scenario.onActivity { assertTrue("Real native back history exists", find(it.window.decorView)!!.canGoBack()) }
         scenario.onActivity { a ->
             val web = find(a.window.decorView)!!
             val before = web.copyBackForwardList()
