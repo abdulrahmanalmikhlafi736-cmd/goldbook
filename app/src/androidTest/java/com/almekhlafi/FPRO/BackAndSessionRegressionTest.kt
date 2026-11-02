@@ -93,14 +93,14 @@ class BackAndSessionRegressionTest {
             if (!committed) Thread.sleep(50)
         }
         assertTrue("Trusted navigation committed to native WebView history: $path; DOM=$observed; native=$nativeInfo", committed)
-        assertEquals(org.json.JSONObject.quote(path), js("location.pathname"))
+        assertEquals(path, org.json.JSONArray("["+js("location.pathname")+"]").getString(0))
     }
     @Test fun messagesUsesExistingHistoryInsteadOfReloadingHome() = runCase("https://m.facebook.com/") { scenario, js ->
         navigate(scenario, js, "/saved-post")
         navigate(scenario, js, "/messages/thread")
         scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         Thread.sleep(600)
-        assertEquals("\"/saved-post\"", js("location.pathname"))
+        assertEquals("/saved-post", org.json.JSONArray("["+js("location.pathname")+"]").getString(0))
     }
     @Test fun blockedRendererBackTimesOutOnceAndLateCallbackCannotNavigateAgain() = runCase { scenario, js ->
         navigate(scenario, js, "/middle")
@@ -112,7 +112,7 @@ class BackAndSessionRegressionTest {
             a.onBackPressedDispatcher.onBackPressed()
         }
         Thread.sleep(3400)
-        assertEquals("Only one Back despite timeout + late callback + repeated press", "\"/middle\"", js("location.pathname"))
+        assertEquals("Only one Back despite timeout + late callback + repeated press", "/middle", org.json.JSONArray("["+js("location.pathname")+"]").getString(0))
     }
     @Test fun boundedStateRestoresHistoryWithoutChangingLiveHistory() = runCase { scenario, js ->
         navigate(scenario, js, "/middle")
@@ -130,7 +130,7 @@ class BackAndSessionRegressionTest {
             try { assertNotNull(other.restoreState(saved)); assertTrue(other.canGoBack()) }
             finally { other.destroy() }
         }
-        assertEquals("\"/detail\"", js("location.pathname"))
+        assertEquals("/detail", org.json.JSONArray("["+js("location.pathname")+"]").getString(0))
         js("for(let i=0;i<160;i++)history.pushState({payload:'x'.repeat(16384)},'', '/bulk/'+i);true")
         val deadline = android.os.SystemClock.elapsedRealtime() + 5000
         var large = false
