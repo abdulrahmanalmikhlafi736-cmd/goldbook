@@ -95,12 +95,22 @@ class BackAndSessionRegressionTest {
         assertTrue("Trusted navigation committed to native WebView history: $path; DOM=$observed; native=$nativeInfo", committed)
         assertEquals(path, org.json.JSONArray("["+js("location.pathname")+"]").getString(0))
     }
+    private fun expectPath(scenario: ActivityScenario<MainActivity>, js: (String) -> String, path: String) {
+        val deadline = android.os.SystemClock.elapsedRealtime() + 6000
+        var actual = ""; var outcome = ""
+        do {
+            actual = org.json.JSONArray("["+js("location.pathname")+"]").getString(0)
+            if (actual == path) break
+            Thread.sleep(50)
+        } while (android.os.SystemClock.elapsedRealtime() < deadline)
+        scenario.onActivity { a -> outcome = MainActivity::class.java.getDeclaredField("lastBackOutcome").apply { isAccessible = true }.get(a).toString() }
+        assertEquals("Native Back outcome=$outcome", path, actual)
+    }
     @Test fun messagesUsesExistingHistoryInsteadOfReloadingHome() = runCase("https://m.facebook.com/") { scenario, js ->
         navigate(scenario, js, "/saved-post")
         navigate(scenario, js, "/messages/thread")
         scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-        Thread.sleep(600)
-        assertEquals("/saved-post", org.json.JSONArray("["+js("location.pathname")+"]").getString(0))
+        expectPath(scenario, js, "/saved-post")
     }
     @Test fun blockedRendererBackTimesOutOnceAndLateCallbackCannotNavigateAgain() = runCase { scenario, js ->
         navigate(scenario, js, "/middle")
@@ -112,7 +122,9 @@ class BackAndSessionRegressionTest {
             a.onBackPressedDispatcher.onBackPressed()
         }
         Thread.sleep(3400)
-        assertEquals("Only one Back despite timeout + late callback + repeated press", "/middle", org.json.JSONArray("["+js("location.pathname")+"]").getString(0))
+        expectPath(scenario, js, "/middle")
+        Thread.sleep(500)
+        assertEquals("Late callback must not navigate again", "/middle", org.json.JSONArray("["+js("location.pathname")+"]").getString(0))
     }
     @Test fun boundedStateRestoresHistoryWithoutChangingLiveHistory() = runCase { scenario, js ->
         navigate(scenario, js, "/middle")

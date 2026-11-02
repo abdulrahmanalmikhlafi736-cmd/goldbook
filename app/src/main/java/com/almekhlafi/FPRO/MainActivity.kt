@@ -75,6 +75,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private val backQueries = SingleFlightQuery()
     private val backHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var backTimeout: Runnable? = null
+    private var lastBackOutcome = "idle"
     private var browsingResumed = false
     private var lastCheckpointPosition: String? = null
     private var lastCheckpointHistory: Pair<Int, Int>? = null
@@ -752,13 +753,12 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         if (!::web.isInitialized || isDestroyed || isFinishing) return
         val ticket = backQueries.begin() ?: return // Coalesce rapid presses while deciding.
         val source = web
-        val sourceUrl = source.url
         val sequence = pageSequence
         fun valid() = !isDestroyed && !isFinishing && browsingResumed && web === source &&
-            pageSequence == sequence && web.url == sourceUrl && !settings && fullView == null
+            pageSequence == sequence && !settings && fullView == null
         val timeout = Runnable {
             backTimeout = null
-            if (backQueries.complete(ticket) && valid()) historyBack()
+            if (backQueries.complete(ticket) && valid()) { lastBackOutcome = "timeout-history"; historyBack() }
         }
         backTimeout = timeout
         backHandler.postDelayed(timeout, 1200)
@@ -766,18 +766,23 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         // after native timeout has already navigated. Exactly one winner acts.
         source.evaluateJavascript("""
             (()=>{
-              if(document.fullscreenElement)return 'fullscreen';
               const dialog=document.querySelector('[role="dialog"]');
-              return dialog?.querySelector('[aria-label="Close"],[aria-label="إغلاق"]')?'dialog':'back';
+              const action=document.fullscreenElement?'fullscreen':dialog?.querySelector('[aria-label="Close"],[aria-label="إغلاق"]')?'dialog':'back';
+              return {action,url:location.href};
             })()
         """.trimIndent()) { result ->
             if (!backQueries.complete(ticket)) return@evaluateJavascript
             backHandler.removeCallbacks(timeout); backTimeout = null
-            if (!valid()) return@evaluateJavascript
-            when (result) {
-                "\"fullscreen\"" -> source.evaluateJavascript("if(document.fullscreenElement)document.exitFullscreen()", null)
-                "\"dialog\"" -> source.evaluateJavascript("""
-                    (()=>{const close=document.querySelector('[role="dialog"]')?.querySelector('[aria-label="Close"],[aria-label="إغلاق"]');
+            if (!valid()) { lastBackOutcome = "cancelled-decision"; return@evaluateJavascript }
+            val decision = try { org.json.JSONObject(result) } catch (_: Exception) { org.json.JSONObject() }
+            val decisionUrl = org.json.JSONObject.quote(decision.optString("url"))
+            lastBackOutcome = "decision-" + decision.optString("action", "back")
+            // WebView.url can lag behind a just-committed SPA history update.
+            // Trust the renderer's URL for DOM actions, not a stale native URL.
+            when (decision.optString("action")) {
+                "fullscreen" -> source.evaluateJavascript("if(location.href===$decisionUrl&&document.fullscreenElement)document.exitFullscreen()", null)
+                "dialog" -> source.evaluateJavascript("""
+                    (()=>{if(location.href!==$decisionUrl)return;const close=document.querySelector('[role="dialog"]')?.querySelector('[aria-label="Close"],[aria-label="إغلاق"]');
                     if(close){close.click();window.FproFeedReturn?.afterDialogBack();}})()
                 """.trimIndent(), null)
                 else -> historyBack()
