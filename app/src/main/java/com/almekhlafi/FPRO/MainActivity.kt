@@ -72,6 +72,12 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
     private val headerQueries = SingleFlightQuery()
     private val readinessQueries = SingleFlightQuery()
     private val positionQueries = SingleFlightQuery()
+    private val backQueries = SingleFlightQuery()
+    private val backHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var backTimeout: Runnable? = null
+    private var browsingResumed = false
+    private var lastCheckpointPosition: String? = null
+    private var lastCheckpointHistory: Pair<Int, Int>? = null
     private lateinit var sessions: BrowsingSessionStore
     private var lastPosition: String? = null
     private var pendingPosition: String? = null
@@ -253,7 +259,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                                     failure = "تأخر ظهور محتوى فيسبوك. تحقق من الاتصال ثم اختر إعادة المحاولة؛ لم نعد تحميل الصفحة تلقائيًا."
                                     splash = false; break
                                 }
-                                val readyTicket = readinessQueries.begin()
+                                val readyTicket = if (browsingResumed) readinessQueries.begin() else null
                                 if (readyTicket != null) web.evaluateJavascript(readyScript) { ready ->
                                     if (!readinessQueries.complete(readyTicket)) return@evaluateJavascript
                                     if (ready == "true" && splash && !isDestroyed) {
@@ -271,7 +277,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                         LaunchedEffect(Unit) {
                             delay(1200)
                             while (true) {
-                                if (!settings && web.hasWindowFocus() && Navigation.isFacebook(web.url.orEmpty())) {
+                                if (browsingResumed && !settings && !pip && !audioOnly && fullView == null && web.hasWindowFocus() && Navigation.isFacebook(web.url.orEmpty())) {
                                     probePageInfo()
                                 } else homeControls = false
                                 // Player routes do not need frequent header-logo queries.
@@ -281,7 +287,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
                         LaunchedEffect(Unit) {
                             while (true) {
                                 delay(15_000)
-                                if (web.hasWindowFocus() && !splash) capturePosition(true)
+                                if (browsingResumed && !settings && !pip && !audioOnly && fullView == null && web.hasWindowFocus() && !splash) capturePosition(true)
                             }
                         }
                         // Native watchdog: it must NOT wait for a JavaScript callback to
@@ -357,12 +363,12 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
             @Deprecated("Required for Android 6")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = route(Uri.parse(url), true)
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
-                headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
+                headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate(); cancelBackDecision()
                 failure = null
                 if (url != null && url.length <= 8192 && BrowsingSessionStore.eligible(url)) lastNavigationUrl = url
                 pipRect = null; pipRatio = Rational(16, 9)
                 if (Navigation.isFacebook(url.orEmpty()) && !BrowsingSessionStore.eligible(url.orEmpty())) {
-                    lastPosition = null; pendingPosition = null; sessions.clear()
+                    lastPosition = null; pendingPosition = null; clearSessionCheckpoint()
                 } else if (resumeRestoreUntil > android.os.SystemClock.elapsedRealtime() && positionUrl(lastPosition) == url) {
                     pendingPosition = lastPosition
                 }
@@ -523,7 +529,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
 
     private fun applySettings(reloadDesktop: Boolean) {
         if (!prefs.flag("rememberPosition", true)) {
-            lastPosition = null; pendingPosition = null; resumeRestoreUntil = 0L; sessions.clear()
+            lastPosition = null; pendingPosition = null; resumeRestoreUntil = 0L; clearSessionCheckpoint()
             web.evaluateJavascript("window.__fproPosition && window.__fproPosition.cancel()", null)
         }
         web.setLayerType(if (prefs.flag("software")) View.LAYER_TYPE_SOFTWARE else View.LAYER_TYPE_NONE, null)
@@ -730,23 +736,51 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         }
     }
 
+    private fun cancelBackDecision() {
+        backQueries.invalidate()
+        backTimeout?.let { backHandler.removeCallbacks(it) }; backTimeout = null
+    }
+    private fun historyBack() {
+        // Preserve a real previous page before considering the old messages fallback.
+        if (web.canGoBack()) web.goBack()
+        else if (Navigation.isFacebook(web.url.orEmpty()) && android.net.Uri.parse(web.url).path?.startsWith("/messages") == true) web.loadUrl("https://m.facebook.com/")
+        else finish()
+    }
     private fun smartBack() {
-        when {
-            settings -> settings = false
-            fullView != null -> closeFullscreen()
-            else -> web.evaluateJavascript("""
-                (()=>{
-                  if(document.fullscreenElement){document.exitFullscreen();return 'closed';}
-                  const dialog=document.querySelector('[role="dialog"]');
-                  const close=dialog?.querySelector('[aria-label="Close"],[aria-label="إغلاق"]');
-                  if(close){close.click();window.FproFeedReturn?.afterDialogBack();return 'closed';}
-                  return 'back';
-                })()
-            """.trimIndent()) { result ->
-                if (result == "\"back\"") {
-                    if (web.url?.contains("/messages") == true) web.loadUrl("https://m.facebook.com/")
-                    else if (web.canGoBack()) web.goBack() else finish()
-                }
+        if (settings) { cancelBackDecision(); settings = false; return }
+        if (fullView != null) { cancelBackDecision(); closeFullscreen(); return }
+        if (!::web.isInitialized || isDestroyed || isFinishing) return
+        val ticket = backQueries.begin() ?: return // Coalesce rapid presses while deciding.
+        val source = web
+        val sourceUrl = source.url
+        val sequence = pageSequence
+        fun valid() = !isDestroyed && !isFinishing && browsingResumed && web === source &&
+            pageSequence == sequence && web.url == sourceUrl && !settings && fullView == null
+        val timeout = Runnable {
+            backTimeout = null
+            if (backQueries.complete(ticket) && valid()) historyBack()
+        }
+        backTimeout = timeout
+        backHandler.postDelayed(timeout, 1200)
+        // This query is READ ONLY. A late renderer result cannot close a dialog
+        // after native timeout has already navigated. Exactly one winner acts.
+        source.evaluateJavascript("""
+            (()=>{
+              if(document.fullscreenElement)return 'fullscreen';
+              const dialog=document.querySelector('[role="dialog"]');
+              return dialog?.querySelector('[aria-label="Close"],[aria-label="إغلاق"]')?'dialog':'back';
+            })()
+        """.trimIndent()) { result ->
+            if (!backQueries.complete(ticket)) return@evaluateJavascript
+            backHandler.removeCallbacks(timeout); backTimeout = null
+            if (!valid()) return@evaluateJavascript
+            when (result) {
+                "\"fullscreen\"" -> source.evaluateJavascript("if(document.fullscreenElement)document.exitFullscreen()", null)
+                "\"dialog\"" -> source.evaluateJavascript("""
+                    (()=>{const close=document.querySelector('[role="dialog"]')?.querySelector('[aria-label="Close"],[aria-label="إغلاق"]');
+                    if(close){close.click();window.FproFeedReturn?.afterDialogBack();}})()
+                """.trimIndent(), null)
+                else -> historyBack()
             }
         }
     }
@@ -852,13 +886,22 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         }
     }
     private fun positionUrl(value: String?): String? = try { value?.let { org.json.JSONObject(it).optString("url") } } catch (_: Exception) { null }
+    private fun clearSessionCheckpoint() {
+        lastCheckpointPosition = null; lastCheckpointHistory = null
+        sessions.clear()
+    }
     private fun persistPosition() {
         if (!::web.isInitialized) return
         val position = lastPosition ?: return
         val url = web.url.orEmpty()
         if (!prefs.flag("rememberPosition", true) || positionUrl(position) != url || !BrowsingSessionStore.eligible(url)) return
-        val history = Bundle()
-        if (web.saveState(history) != null) sessions.write(history, position, url)
+        val list = web.copyBackForwardList()
+        val signature = list.size to list.currentIndex
+        if (lastCheckpointPosition == position && lastCheckpointHistory == signature) return
+        val history = WebViewStateSnapshot.capture(web) ?: return
+        if (sessions.write(history, position, url) != null) {
+            lastCheckpointPosition = position; lastCheckpointHistory = signature
+        }
     }
     private fun probePageInfo() {
         val ticket = headerQueries.begin() ?: return
@@ -879,7 +922,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
             if (!sessionClosing && !isDestroyed && prefs.flag("rememberPosition", true)) try {
                 val position = JSONArray("[$encoded]").optString(0)
                 val data = org.json.JSONObject(position)
-                if (data.optBoolean("login")) { lastPosition = null; pendingPosition = null; sessions.clear() }
+                if (data.optBoolean("login")) { lastPosition = null; pendingPosition = null; clearSessionCheckpoint() }
                 else if (data.optString("url") == web.url && position.length <= 32768 && position != lastPosition) {
                     lastPosition = position
                     if (persist) persistPosition()
@@ -892,16 +935,19 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         if (!prefs.flag("rememberPosition", true) || positionUrl(position) != web.url) return
         pendingPosition = null
         web.evaluateJavascript(positionScript + "\nwindow.__fproPosition.restore(" + org.json.JSONObject.quote(position) + ")") { accepted ->
-            if (accepted == "false" && !sessionClosing) { lastPosition = null; sessions.clear() }
+            if (accepted == "false" && !sessionClosing) { lastPosition = null; clearSessionCheckpoint() }
         }
     }
     override fun onPause() {
+        browsingResumed = false
+        cancelBackDecision()
         fullscreenOrientationListener?.disable()
         capturePosition(true)
         super.onPause()
     }
     override fun onResume() {
         super.onResume()
+        browsingResumed = true
         fullscreenOrientationListener?.let { if (it.canDetectOrientation()) it.enable() }
         externalHandoff = false; pipRequested = false
         if (::web.isInitialized && prefs.flag("rememberPosition", true) && positionUrl(lastPosition) == web.url && lastPosition != null) {
@@ -918,12 +964,12 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         super.onStop()
     }
     override fun onSaveInstanceState(outState: Bundle) {
-        if (::web.isInitialized) web.saveState(outState)
+        if (::web.isInitialized) WebViewStateSnapshot.capture(web)?.let { outState.putAll(it) }
         if (prefs.flag("rememberPosition", true)) outState.putString("fpro.position", lastPosition)
         super.onSaveInstanceState(outState)
     }
     override fun onDestroy() {
-        headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
+        headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate(); cancelBackDecision()
         sessionClosing = true; sessions.close()
         displayTestDialog?.dismiss(); displayTestDialog = null
         earlyScript?.remove(); earlyScript = null
@@ -983,7 +1029,7 @@ class MainActivity : ComponentActivity(), AudioPlaybackService.Controls {
         if (!::web.isInitialized || dead !== web || isDestroyed) { disposeWebView(dead); return }
         // Never ask the dead renderer for URL/state/JS. Use only the last native checkpoint.
         val destination = positionUrl(lastPosition)?.takeIf { BrowsingSessionStore.eligible(it) } ?: lastNavigationUrl
-        headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate()
+        headerQueries.invalidate(); readinessQueries.invalidate(); positionQueries.invalidate(); cancelBackDecision()
         pageSequence++; pageConfirmed = false; homeControls = false; splash = true
         earlyScript?.remove(); earlyScript = null
         stopFullscreenRotation()

@@ -14,11 +14,11 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
-/** Confirms a defect in unchanged production. NOT a fix/acceptance test. */
+/** Regression for the previously confirmed owner-hiding defect. Offline, not account proof. */
 @RunWith(AndroidJUnit4::class)
 class PromptViewerAuditTest {
  private fun find(v:View):WebView?{if(v is WebView)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null}
- @Test fun unchangedPromptEngineCanBlankLargeMediaOwnerAndOffRestoresIt() {
+ @Test fun promptFilterPreservesLargeShadowMediaOwnerAndHidesActualCta() {
   val inst=InstrumentationRegistry.getInstrumentation()
   val clip=Base64.encodeToString(inst.context.assets.open("video-workload.mp4").use{it.readBytes()},Base64.NO_WRAP)
   ActivityScenario.launch<MainActivity>(android.content.Intent(inst.targetContext,MainActivity::class.java)).use { scenario ->
@@ -47,11 +47,11 @@ class PromptViewerAuditTest {
    val frames=js("savedPlayer.getVideoPlaybackQuality().totalVideoFrames")
    assertEquals("Visible media before filter", "true",js("viewer.getBoundingClientRect().height>160"))
    js("FproPrompt.update({siteEngine:'upstream',enhance:true,appBanner:true});true");Thread.sleep(200)
-   assertEquals("CONFIRMED DEFECT: ON hides the entire media owner", "true",js("getComputedStyle(viewer).display==='none'&&viewer.getBoundingClientRect().height===0"))
+   assertEquals("ON must preserve the media owner", "true",js("getComputedStyle(viewer).display!=='none'&&viewer.getBoundingClientRect().height>160"))
    assertEquals("Real CTA is hidden too", "none",js("getComputedStyle(cta).display").trim('"'))
    js("FproPrompt.update({siteEngine:'upstream',enhance:true,appBanner:false});true");Thread.sleep(200)
    assertEquals("OFF restores the same media owner without navigation", "true",js("viewer.getBoundingClientRect().height>160&&savedPlayer===host.shadowRoot.getElementById('actualPlayer')"))
-   android.util.Log.i("FPRO_PROMPT_VIEWER","KNOWN_DEFECT_CONFIRMED decodedFrames=$frames ON=owner-hidden OFF=owner-visible samePlayer=true; fixture not Facebook-account proof")
+   android.util.Log.i("FPRO_PROMPT_VIEWER","REGRESSION_PASS decodedFrames=$frames ON=owner-visible CTA=hidden OFF=owner-visible samePlayer=true; fixture not Facebook-account proof")
    js("savedPlayer.pause();true")
   }
  }

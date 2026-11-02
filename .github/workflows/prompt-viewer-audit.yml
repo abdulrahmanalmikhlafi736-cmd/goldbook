@@ -1,7 +1,7 @@
-name: Prompt viewer known-defect audit
+name: Prompt viewer safety regression
 on:
   push:
-    paths: ['app/src/androidTest/java/com/almekhlafi/FPRO/PromptViewerAuditTest.kt', '.github/workflows/prompt-viewer-audit.yml']
+    paths: ['app/src/main/assets/app-prompt-engine.js', 'app/src/main/java/com/almekhlafi/FPRO/MainActivity.kt', 'app/src/main/java/com/almekhlafi/FPRO/WebViewStateSnapshot.kt', 'app/src/androidTest/java/com/almekhlafi/FPRO/BackAndSessionRegressionTest.kt', 'app/src/androidTest/java/com/almekhlafi/FPRO/PromptViewerAuditTest.kt', '.github/workflows/prompt-viewer-audit.yml']
   workflow_dispatch:
 jobs:
   verify:
@@ -28,7 +28,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
-            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.PromptViewerAuditTest --stacktrace
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.PromptViewerAuditTest,com.almekhlafi.FPRO.BackAndSessionRegressionTest --stacktrace
             adb logcat -d -v brief -s FPRO_PROMPT_VIEWER:I '*:S' > prompt-viewer-audit-device.log
       - name: Publish native assertions
         if: always()
@@ -39,16 +39,16 @@ jobs:
           seen=[]
           for p in Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'):
               for c in ET.parse(p).iter('testcase'):
-                  if c.get('name')!='unchangedPromptEngineCanBlankLargeMediaOwnerAndOffRestoresIt': continue
+                  if c.get('name') not in ('promptFilterPreservesLargeShadowMediaOwnerAndHidesActualCta','messagesUsesExistingHistoryInsteadOfReloadingHome','blockedRendererBackTimesOutOnceAndLateCallbackCannotNavigateAgain','boundedStateRestoresHistoryWithoutChangingLiveHistory'): continue
                   ok=not any(c.find(k) is not None for k in ('failure','error','skipped'))
                   seen.append(ok)
-                  print('::notice title=Prompt viewer audit::'+('KNOWN DEFECT CONFIRMED (not fixed)' if ok else 'AUDIT FAILED'))
+                  print('::notice title=Back and media regression::'+c.get('name')+': '+('SAFETY REGRESSION PASS (offline fixture)' if ok else 'AUDIT FAILED'))
                   if not ok: print('::error::'+ET.tostring(c,encoding='unicode')[:6500].replace('%','%25').replace('\n','%0A'))
           log=Path('prompt-viewer-audit-device.log')
           if log.exists():
               for line in log.read_text().splitlines():
                   if 'FPRO_PROMPT_VIEWER' in line: print('::notice title=Prompt viewer evidence::'+line.replace('%','%25'))
-          assert len(seen)==1 and all(seen), 'Missing/failed/skipped native evidence'
+          assert len(seen)==4 and all(seen), 'Missing/failed/skipped native evidence'
           PY
       - uses: actions/upload-artifact@v4
         if: always()

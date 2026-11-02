@@ -22,14 +22,29 @@
  }
  function transientHomeDialog(dialog){return location.pathname==='/'&&(homePageRoots.has(dialog)||dialog.matches('main')||Array.from(dialog.querySelectorAll('main,[role="main"],[role="feed"]')).some(el=>homePageRoots.has(el)));}
  function blocked(el){if(!el||!el.isConnected||el.matches('html,body,main,form,input,textarea,select,video,audio,iframe,canvas,article,[role="article"],header,nav,[role="main"],[role="feed"],[role="navigation"],[role="banner"]')||el.closest(tools+',form,[contenteditable="true"]'))return true;const dialog=el.closest('dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"]');return !!(dialog&&!transientHomeDialog(dialog)&&(!dialog.querySelector('video,[data-pagelet="Story"],.story_viewer')||dialog.querySelector('form,input,textarea,select')));}
+ // Validate only recognised cues. Never scan an entire feed for shadow/media.
+ // An opaque/custom host cannot be certified as a disposable app prompt.
+ function safeSurface(el){
+  if(el.querySelector(excluded))return false;
+  const height=Math.max(el.getBoundingClientRect().height||0,parseFloat(getComputedStyle(el).height)||0,Number(el.getAttribute('data-actual-height'))||0,boxes.get(el)||0);
+  if(height>160)return false;
+  const nodes=[el],walk=document.createTreeWalker(el,1);let child;
+  while((child=walk.nextNode())){nodes.push(child);if(nodes.length>32)return false;}
+  for(const node of nodes){
+   if(node.shadowRoot||node.localName.includes('-')||getComputedStyle(node).backgroundImage!=='none'&&getComputedStyle(node).backgroundImage!=='')return false;
+  }
+  if(height>0)boxes.set(el,height);
+  return true;
+ }
  function candidate(el){
-  if(blocked(el)||el.querySelector(excluded))return false;
+  if(blocked(el))return false;
   if(!el.matches(semantic)&&(!el.matches('.native-text,[data-mcomponent="TextArea"]')||el.querySelector(semantic)))return false;
   const value=text(el),aria=norm(el.getAttribute('aria-label'));
   if(value===null)return false;
   if(!el.matches(semantic)&&el.closest('article,[role="article"],[role="comment"],[data-commentid],[data-ad-preview="message"],[data-ad-comet-preview="message"]'))return false;
   const glyph=value.includes('󱥬');
-  return known(value)||known(aria)&&(value.length<120&&(value===''||known(value)||glyph))||glyph&&el.matches(semantic)&&value.length<100||appUrl(el)&&(known(aria)||known(value)||/^(?:open|فتح|facebook|فيسبوك|google play)$/.test(value));
+  const cue=known(value)||known(aria)&&(value.length<120&&(value===''||known(value)||glyph))||glyph&&el.matches(semantic)&&value.length<100||appUrl(el)&&(known(aria)||known(value)||/^(?:open|فتح|facebook|فيسبوك|google play)$/.test(value));
+  return cue&&safeSurface(el);
  }
  function surface(control){
   let target=control;
@@ -43,6 +58,7 @@
    const controls=parent.querySelectorAll(semantic);if(controls.length>4)break;
    if(Array.from(controls).some(el=>!candidate(el)&&!/^(close|dismiss|not now|إغلاق|اغلاق|ليس الان|ليس الآن)$/.test(text(el)||'')))break;
    const caption=text(parent);if(caption===null||caption.length>200)break;
+   if(!safeSurface(parent))break;
    boxes.set(parent,height);target=parent;
   }
   return target;
@@ -82,7 +98,7 @@
   for(const [el,old]of owned){
    if(!el.isConnected){restore(el);continue;}
    if(scopes.some(root=>root.contains(el)||el.contains(root))){
-    if(!candidate(old.control)||blocked(el)||el!==old.control&&el.querySelector(excluded))restore(el);
+    if(!candidate(old.control)||blocked(el)||el!==old.control&&!safeSurface(el))restore(el);
     else {
      hide(el,old.control);
      // A previously ordinary wrapper may become a fixed footer after layout
@@ -107,7 +123,6 @@
   for(const r of records){
    const el=r.target.nodeType===1?r.target:r.target.parentElement;
    if(!el||el.closest(tools))continue;
-   if(r.type==='attributes'&&r.attributeName==='style'&&owned.has(el)&&el.style.getPropertyValue('display')==='none'&&el.style.getPropertyPriority('display')==='important')continue;
    roots.push(el);
    if(r.type==='childList'){
     for(const node of r.addedNodes)if(node.nodeType===1){roots.push(node);subtrees.push(node);}
@@ -121,9 +136,10 @@
  });
  function install(){
   if(!css){css=document.createElement('style');css.id='fpro-prompt59-style';const nonce=document.querySelector('style[nonce],script[nonce]');if(nonce)css.nonce=nonce.nonce;
-   // Accessible exact cues are declarative; all text-only candidates require JS.
-   const early=labels.map(label=>'html[data-fpro-prompt59="on"] :is('+semantic+')[aria-label='+JSON.stringify(label)+' i]:not([data-fpro-prompt59-reject]):not(html,body,main,form,input,textarea,select,video,audio,iframe,canvas,article,header,nav,[role="article"],[role="main"],[role="feed"],[role="navigation"],[role="banner"],[id^="fpro"]):not(form *,dialog *,[role="dialog"] *,[aria-modal="true"] *,.fpro-video-tools *):not(:has('+excluded+','+semantic+'))').join(',');
-   css.textContent='html[data-fpro-prompt59="on"] [data-fpro-prompt59-target]{display:none!important}'+early+'{display:none!important}';
+   // Only JS-validated ownership may hide a node. An aria-label alone must
+   // never declaratively blank a fullscreen/media owner before validation.
+   // Discovery remains synchronous in MutationObserver, before paint.
+   css.textContent='html[data-fpro-prompt59="on"] [data-fpro-prompt59-target]{display:none!important}';
   }
   if(!css.isConnected)(document.head||document.documentElement).append(css);
  }
@@ -134,5 +150,5 @@
   else {install();return;}
   pass([document.body||document.documentElement]);
  }
- window.FproPrompt={update,report:()=>({version:62,enabled,retained:owned.size,...stats})};
+ window.FproPrompt={update,report:()=>({version:69,enabled,retained:owned.size,...stats})};
 })();
