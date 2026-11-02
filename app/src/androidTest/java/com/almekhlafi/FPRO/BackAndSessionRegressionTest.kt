@@ -39,7 +39,9 @@ class BackAndSessionRegressionTest {
             }
             assertTrue("Compose BackHandler registered before exercising native Back", backReady.await(11, TimeUnit.SECONDS))
             scenario.onActivity { a -> find(a.window.decorView)!!.loadDataWithBaseURL(base,
-                "<!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'><body>Offline history fixture</body>", "text/html", "UTF-8", base) }
+                """<!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'>
+                <body style='margin:0'><button id='navigate' style='position:fixed;left:0;top:0;width:160px;height:60px' onclick='history.pushState({},"",window.nextPath)'>Navigate local fixture</button>
+                <p style='margin-top:100px'>Offline history fixture with meaningful visible content. No account or external media is used. Every history transition is started by a real user tap.</p></body>""", "text/html", "UTF-8", base) }
             Thread.sleep(1200)
             val js: (String) -> String = { code ->
                 val done = CountDownLatch(1); val result = AtomicReference("")
@@ -49,16 +51,56 @@ class BackAndSessionRegressionTest {
             body(scenario, js)
         }
     }
+    private fun navigate(scenario: ActivityScenario<MainActivity>, js: (String) -> String, path: String) {
+        val inst = InstrumentationRegistry.getInstrumentation()
+        js("window.nextPath=" + org.json.JSONObject.quote(path) + ";true")
+        val deadline = android.os.SystemClock.elapsedRealtime() + 10_000
+        var ready = false
+        while (!ready && android.os.SystemClock.elapsedRealtime() < deadline) {
+            scenario.onActivity { a ->
+                ready = !MainActivity::class.java.getDeclaredField("splash").apply { isAccessible = true }.getBoolean(a)
+            }
+            if (!ready) Thread.sleep(50)
+        }
+        assertTrue("Browser content shown before trusted touch", ready)
+        val scale = AtomicReference(1f)
+        val coordinates = org.json.JSONObject(js("JSON.stringify({width:innerWidth})").let { org.json.JSONArray("[$it]").getString(0) })
+        val xy = FloatArray(2)
+        val drawn = CountDownLatch(1)
+        scenario.onActivity { a ->
+            val web = find(a.window.decorView)!!; val loc = IntArray(2); web.getLocationOnScreen(loc)
+            scale.set((web.width / coordinates.getDouble("width")).toFloat())
+            xy[0] = loc[0] + 70 * scale.get(); xy[1] = loc[1] + 30 * scale.get()
+            web.postVisualStateCallback(700, object : WebView.VisualStateCallback() { override fun onComplete(requestId: Long) { drawn.countDown() } })
+        }
+        assertTrue(drawn.await(10, TimeUnit.SECONDS))
+        val down = android.os.SystemClock.uptimeMillis()
+        for (kind in listOf(android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_UP)) {
+            val event = android.view.MotionEvent.obtain(down, android.os.SystemClock.uptimeMillis(), kind, xy[0], xy[1], 0)
+            event.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+            assertTrue(inst.uiAutomation.injectInputEvent(event, true)); event.recycle()
+        }
+        var committed = false
+        while (!committed && android.os.SystemClock.elapsedRealtime() < deadline) {
+            scenario.onActivity { a ->
+                val web = find(a.window.decorView)!!
+                committed = android.net.Uri.parse(web.url).path == path && web.canGoBack()
+            }
+            if (!committed) Thread.sleep(50)
+        }
+        assertTrue("Trusted navigation committed to native WebView history: $path", committed)
+        assertEquals(org.json.JSONObject.quote(path), js("location.pathname"))
+    }
     @Test fun messagesUsesExistingHistoryInsteadOfReloadingHome() = runCase("https://m.facebook.com/") { scenario, js ->
-        assertEquals("true", js("history.pushState({},'', '/saved-post');history.pushState({},'', '/messages/thread');location.pathname==='/messages/thread'"))
-        scenario.onActivity { assertTrue("Real native back history exists", find(it.window.decorView)!!.canGoBack()) }
+        navigate(scenario, js, "/saved-post")
+        navigate(scenario, js, "/messages/thread")
         scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         Thread.sleep(600)
         assertEquals("\"/saved-post\"", js("location.pathname"))
     }
     @Test fun blockedRendererBackTimesOutOnceAndLateCallbackCannotNavigateAgain() = runCase { scenario, js ->
-        assertEquals("true", js("history.pushState({},'', '/middle');history.pushState({},'', '/detail');location.pathname==='/detail'"))
-        scenario.onActivity { assertTrue("Real native back history exists", find(it.window.decorView)!!.canGoBack()) }
+        navigate(scenario, js, "/middle")
+        navigate(scenario, js, "/detail")
         scenario.onActivity { a ->
             // Deliberately occupy the real renderer, not Android's UI thread.
             find(a.window.decorView)!!.evaluateJavascript("(()=>{const until=Date.now()+2400;while(Date.now()<until){};return true;})()", null)
@@ -69,8 +111,8 @@ class BackAndSessionRegressionTest {
         assertEquals("Only one Back despite timeout + late callback + repeated press", "\"/middle\"", js("location.pathname"))
     }
     @Test fun boundedStateRestoresHistoryWithoutChangingLiveHistory() = runCase { scenario, js ->
-        assertEquals("true", js("history.pushState({},'', '/middle');history.pushState({},'', '/detail');location.pathname==='/detail'"))
-        scenario.onActivity { assertTrue("Real native back history exists", find(it.window.decorView)!!.canGoBack()) }
+        navigate(scenario, js, "/middle")
+        navigate(scenario, js, "/detail")
         scenario.onActivity { a ->
             val web = find(a.window.decorView)!!
             val before = web.copyBackForwardList()
@@ -85,5 +127,26 @@ class BackAndSessionRegressionTest {
             finally { other.destroy() }
         }
         assertEquals("\"/detail\"", js("location.pathname"))
+        js("for(let i=0;i<160;i++)history.pushState({payload:'x'.repeat(16384)},'', '/bulk/'+i);true")
+        val deadline = android.os.SystemClock.elapsedRealtime() + 5000
+        var large = false
+        while (!large && android.os.SystemClock.elapsedRealtime() < deadline) {
+            scenario.onActivity { large = find(it.window.decorView)!!.copyBackForwardList().size > 128 }
+            if (!large) Thread.sleep(50)
+        }
+        assertTrue("Large-history branch actually exercised", large)
+        scenario.onActivity { a ->
+            val web = find(a.window.decorView)!!
+            val before = web.copyBackForwardList()
+            val bounded = WebViewStateSnapshot.capture(web)
+            if (bounded != null) {
+                val p = android.os.Parcel.obtain()
+                try { p.writeBundle(bounded); assertTrue(p.dataSize() <= WebViewStateSnapshot.MAX_BYTES) }
+                finally { p.recycle() }
+            }
+            if (!androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.SAVE_STATE)) assertNull("Old provider skips oversized history", bounded)
+            assertEquals(before.size, web.copyBackForwardList().size)
+            assertEquals(before.currentIndex, web.copyBackForwardList().currentIndex)
+        }
     }
 }
