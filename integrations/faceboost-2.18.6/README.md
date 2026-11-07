@@ -9,7 +9,9 @@ WebView boundary and the 32px seek target inside it. This is a conservative visu
 approximation of the requested half-fingertip, not a physical-size guarantee.
 No fullscreen or lower-gesture logic is changed relative to accepted 2.18.5.
 Like behavior is reviewed/tested only: existing animation is unconditional even
-when no official button was found or its state did not change; it is NOT fixed.
+when no official button was found or its state did not change; it is NOT fixed. A fast second tap also makes the existing window capture guard
+self-suppress b.click() while its first-tap swallowUntil is still active; a
+200ms second tap avoids that particular guard in the controlled fixture.
 
 The remaining text describes the inherited 2.18.5 scoped implementation:
 
@@ -65,7 +67,7 @@ production gesture scripts together; input events are synthetic.
 
 ## Evidence and acceptance
 
-19 local DOM/policy/integration/diagnostic tests pass. `dom-results.tap` is the local record.
+20 local DOM/policy/integration/diagnostic tests pass. `dom-results.tap` is the local record.
 Cloud workflow `Faceboost scoped media 2.18.6` builds release and fixture APKs,
 then requires all 4 Chromium fixture tests on Android 13 before publishing the
 candidate artifact. Workflow results must be checked separately; this README
