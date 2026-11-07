@@ -10,11 +10,11 @@
             if(success){const after=reactionState(b);pop(x,y,after.liked?'up':'down','',after.liked?-24:24);}
         };
         const valid=()=>video.isConnected&&b.isConnected&&inReel()&&activeVideo()===video&&identity===(video.currentSrc||video.getAttribute('src')||'')+'|'+location.href;
-        const check=()=>{if(!valid()){finish(false);return;}if(reactionState(b).key!==before.key)finish(true);};
+        const check=()=>{if(!valid()){finish(false);return;}if(reactionState(b).liked!==before.liked)finish(true);};
         const observer=new MutationObserver(check);
-        observer.observe(b,{subtree:true,childList:true,attributes:true,attributeFilter:['aria-pressed','aria-checked','aria-label','title','src','alt']});
+        observer.observe(b,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-pressed','aria-checked','aria-label','title','src','alt']});
         pendingLike={video,button:b};
-        timer=setTimeout(()=>{if(valid()&&reactionState(b).key!==before.key){finish(true);return;}finish(false);say('لم يتأكد تغيّر زر الإعجاب',1200,x,y);},1200);
+        timer=setTimeout(()=>{if(valid()&&reactionState(b).liked!==before.liked){finish(true);return;}finish(false);say('لم يتأكد تغيّر زر الإعجاب',1200,x,y);},1200);
         const event=new MouseEvent('click',{bubbles:true,cancelable:true,view:window});
         approvedLikeClick=event;
         try{b.dispatchEvent(event);}finally{approvedLikeClick=null;}

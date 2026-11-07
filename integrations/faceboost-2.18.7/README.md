@@ -37,7 +37,7 @@ claim is made without a real account/device test.
 
 ## Validation
 
-32 local DOM/policy/integrated production-script tests pass. The workflow then
+36 local DOM/policy/integrated production-script tests pass. The workflow then
 builds release/debug/test APKs and requires all 6 controlled real-WebView fixtures
 on Android 13 before publishing a candidate. Check actual run status separately.
 Fixtures use synthetic events and controlled geometry: not a signed-in account or
