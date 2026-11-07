@@ -6,11 +6,13 @@
  function selecting(){const s=window.getSelection&&window.getSelection();return s&&!s.isCollapsed;}
  function home(){
   if(!/(^|\.)facebook\.com$/i.test(location.hostname)||!['/','/home.php'].includes(location.pathname))return false;
-  const sk=new URL(location.href).searchParams.get('sk');
+  const query=new URL(location.href).searchParams;
+  if(['v','story_fbid','fbid','story_id','reel_id'].some(k=>query.has(k)))return false;
+  const sk=query.get('sk');
   if(sk&&!['h_chr','h_nor'].includes(sk))return false;
   return !Array.from(document.querySelectorAll('[role="dialog"],[aria-modal="true"]')).some(el=>{
    const r=el.getBoundingClientRect(),s=getComputedStyle(el);
-   return el.getAttribute('aria-hidden')!=='true'&&s.display!=='none'&&s.visibility!=='hidden'&&s.opacity!=='0'&&r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight;
+   return el.getAttribute('aria-hidden')!=='true'&&s.display!=='none'&&s.visibility!=='hidden'&&s.opacity!=='0'&&r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth;
   });
  }
  function exempt(target){
@@ -44,14 +46,14 @@
   if(e.touches.length!==1){touch=null;return;}
   const p=e.touches[0];if(touch&&touch.id===p.identifier)touch=move(e,p,touch);
  },{capture:true,passive:false});
- window.addEventListener('touchend',e=>{if(touch&&touch.mode==='blocked'&&touch.url===location.href&&home())consume(e);touch=null;},{capture:true,passive:false});
+ window.addEventListener('touchend',e=>{if(touch&&touch.mode==='blocked'&&touch.url===location.href&&home()&&!selecting())consume(e);touch=null;},{capture:true,passive:false});
  window.addEventListener('touchcancel',()=>{touch=null;},{capture:true,passive:true});
  window.addEventListener('pointerdown',e=>{
   if(e.pointerType!=='touch'||e.isPrimary===false){pointer=null;return;}
   pointer=begin(e,e,e.pointerId);
  },{capture:true,passive:true});
  window.addEventListener('pointermove',e=>{if(pointer&&pointer.id===e.pointerId)pointer=move(e,e,pointer);},{capture:true,passive:false});
- window.addEventListener('pointerup',e=>{if(pointer&&pointer.id===e.pointerId){if(pointer.mode==='blocked'&&pointer.url===location.href&&home())consume(e);pointer=null;}},{capture:true,passive:false});
+ window.addEventListener('pointerup',e=>{if(pointer&&pointer.id===e.pointerId){if(pointer.mode==='blocked'&&pointer.url===location.href&&home()&&!selecting())consume(e);pointer=null;}},{capture:true,passive:false});
  window.addEventListener('pointercancel',()=>{pointer=null;},{capture:true,passive:true});
  window.addEventListener('pagehide',()=>{touch=null;pointer=null;});
  window.__fproHomeSwipeGuard={report:()=>({blocked,home:home()})};

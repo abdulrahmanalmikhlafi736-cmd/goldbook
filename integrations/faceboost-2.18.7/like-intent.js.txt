@@ -3,13 +3,14 @@
         if(pendingLike)return;
         const video=activeVideo(),b=likeButton(video);
         if(!b){say('تعذّر تحديد زر الإعجاب لهذا الفيديو',1200,x,y);return;}
-        const before=reactionState(b),identity=(video.currentSrc||video.getAttribute('src')||'')+'|'+location.href;
+        const sourceKey=()=>[video.currentSrc||'',video.getAttribute('src')||'',...Array.from(video.querySelectorAll('source')).map(s=>s.getAttribute('src')||''),location.href].join('|');
+        const before=reactionState(b),identity=sourceKey();
         let done=false,timer=null;
         const finish=success=>{
             if(done)return;done=true;observer.disconnect();clearTimeout(timer);pendingLike=null;
             if(success){const after=reactionState(b);pop(x,y,after.liked?'up':'down','',after.liked?-24:24);}
         };
-        const valid=()=>video.isConnected&&b.isConnected&&inReel()&&activeVideo()===video&&identity===(video.currentSrc||video.getAttribute('src')||'')+'|'+location.href;
+        const valid=()=>video.isConnected&&b.isConnected&&inReel()&&activeVideo()===video&&identity===sourceKey();
         const check=()=>{if(!valid()){finish(false);return;}if(reactionState(b).liked!==before.liked)finish(true);};
         const observer=new MutationObserver(check);
         observer.observe(b,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-pressed','aria-checked','aria-label','title','src','alt']});
