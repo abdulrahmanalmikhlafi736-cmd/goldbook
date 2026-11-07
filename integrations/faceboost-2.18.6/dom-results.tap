@@ -1,0 +1,144 @@
+TAP version 13
+# Subtest: production gesture pair: top double tap enters once and does not seek
+ok 1 - production gesture pair: top double tap enters once and does not seek
+  ---
+  duration_ms: 199.869707
+  type: 'test'
+  ...
+# Subtest: production gesture pair: lower right double tap seeks and never enters fullscreen
+ok 2 - production gesture pair: lower right double tap seeks and never enters fullscreen
+  ---
+  duration_ms: 65.601656
+  type: 'test'
+  ...
+# Subtest: production gesture: swipe and cancelled touch never enter fullscreen
+ok 3 - production gesture: swipe and cancelled touch never enter fullscreen
+  ---
+  duration_ms: 37.455352
+  type: 'test'
+  ...
+# Subtest: existing-like diagnostic: animation appears even when no official button is found
+ok 4 - existing-like diagnostic: animation appears even when no official button is found
+  ---
+  duration_ms: 44.670638
+  type: 'test'
+  ...
+# Subtest: existing-like diagnostic: click dispatched but unchanged official state still animates
+not ok 5 - existing-like diagnostic: click dispatched but unchanged official state still animates
+  ---
+  duration_ms: 36.890994
+  type: 'test'
+  location: '/home/user/goldbook/integrations/faceboost-2.18.6/gesture-integration.test.cjs:27:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/home/user/goldbook/integrations/faceboost-2.18.6/gesture-integration.test.cjs:27:501)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: footer stays entirely above viewport/system boundary across viewport sizes
+ok 6 - footer stays entirely above viewport/system boundary across viewport sizes
+  ---
+  duration_ms: 1.310146
+  type: 'test'
+  ...
+# Subtest: native and visual viewport bounds use the smaller CSS area
+ok 7 - native and visual viewport bounds use the smaller CSS area
+  ---
+  duration_ms: 0.249955
+  type: 'test'
+  ...
+# Subtest: fullscreen region is upper 40 percent, lower region and offscreen points excluded
+ok 8 - fullscreen region is upper 40 percent, lower region and offscreen points excluded
+  ---
+  duration_ms: 0.31207
+  type: 'test'
+  ...
+# Subtest: one visible rail, no persistent animation loop at rest
+ok 9 - one visible rail, no persistent animation loop at rest
+  ---
+  duration_ms: 145.113264
+  type: 'test'
+  ...
+# Subtest: remount detached root and detached button host even when hidden=false
+ok 10 - remount detached root and detached button host even when hidden=false
+  ---
+  duration_ms: 54.265862
+  type: 'test'
+  ...
+# Subtest: moving a video retains identity; removal disposes; replacement/recycling attaches immediately
+ok 11 - moving a video retains identity; removal disposes; replacement/recycling attaches immediately
+  ---
+  duration_ms: 34.16273
+  type: 'test'
+  ...
+# Subtest: transparent/offscreen/aria-hidden dialogs do not suppress tools; covering modal does
+ok 12 - transparent/offscreen/aria-hidden dialogs do not suppress tools; covering modal does
+  ---
+  duration_ms: 43.832473
+  type: 'test'
+  ...
+# Subtest: download resolves current recycled source on click, not initial source
+ok 13 - download resolves current recycled source on click, not initial source
+  ---
+  duration_ms: 35.396436
+  type: 'test'
+  ...
+# Subtest: master off disposes, on rebuilds once; progress off releases legacy ownership
+ok 14 - master off disposes, on rebuilds once; progress off releases legacy ownership
+  ---
+  duration_ms: 39.605325
+  type: 'test'
+  ...
+# Subtest: one progress owner for overlapping players
+ok 15 - one progress owner for overlapping players
+  ---
+  duration_ms: 76.607853
+  type: 'test'
+  ...
+# Subtest: duration/live changes and seek affect only the bound video
+ok 16 - duration/live changes and seek affect only the bound video
+  ---
+  duration_ms: 31.485062
+  type: 'test'
+  ...
+# Subtest: top ownership can be disabled and never toggles existing fullscreen
+ok 17 - top ownership can be disabled and never toggles existing fullscreen
+  ---
+  duration_ms: 21.812059
+  type: 'test'
+  ...
+# Subtest: requested lower position: line drops 8 CSS px and ball remains above boundary
+ok 18 - requested lower position: line drops 8 CSS px and ball remains above boundary
+  ---
+  duration_ms: 0.458477
+  type: 'test'
+  ...
+# Subtest: painted fill receives the lower offset rather than inherited old CSS
+ok 19 - painted fill receives the lower offset rather than inherited old CSS
+  ---
+  duration_ms: 72.351026
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 18
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2110.620768
