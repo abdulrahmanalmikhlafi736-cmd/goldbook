@@ -1,0 +1,22 @@
+    // One intentional click; no blind retries and no success animation without a state change.
+    const likeReel = (x, y) => {
+        if(pendingLike)return;
+        const video=activeVideo(),b=likeButton(video);
+        if(!b){say('تعذّر تحديد زر الإعجاب لهذا الفيديو',1200,x,y);return;}
+        const before=reactionState(b),identity=(video.currentSrc||video.getAttribute('src')||'')+'|'+location.href;
+        let done=false,timer=null;
+        const finish=success=>{
+            if(done)return;done=true;observer.disconnect();clearTimeout(timer);pendingLike=null;
+            if(success){const after=reactionState(b);pop(x,y,after.liked?'up':'down','',after.liked?-24:24);}
+        };
+        const valid=()=>video.isConnected&&b.isConnected&&inReel()&&activeVideo()===video&&identity===(video.currentSrc||video.getAttribute('src')||'')+'|'+location.href;
+        const check=()=>{if(!valid()){finish(false);return;}if(reactionState(b).key!==before.key)finish(true);};
+        const observer=new MutationObserver(check);
+        observer.observe(b,{subtree:true,childList:true,attributes:true,attributeFilter:['aria-pressed','aria-checked','aria-label','title','src','alt']});
+        pendingLike={video,button:b};
+        timer=setTimeout(()=>{if(valid()&&reactionState(b).key!==before.key){finish(true);return;}finish(false);say('لم يتأكد تغيّر زر الإعجاب',1200,x,y);},1200);
+        const event=new MouseEvent('click',{bubbles:true,cancelable:true,view:window});
+        approvedLikeClick=event;
+        try{b.dispatchEvent(event);}finally{approvedLikeClick=null;}
+        check();
+    };
