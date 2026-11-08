@@ -12,7 +12,7 @@
  // (983930), distinct from Like U+F0378 and Comment U+F0379. Direct icon-font
  // text only; never infer Share from its position, counter, arbitrary text or pseudo CSS.
  function glyphShare(b){
-  if(!/^\/(?:home\.php)?$/.test(w.location.pathname)||!b.matches('[role="button"][data-action-id][data-mcomponent]')||b.matches('[data-long-click-action-id],[aria-pressed],[aria-checked]'))return false;
+  if(!/^\/(?:home\.php)?$/.test(w.location.pathname)||!b.matches('[role="button"][data-action-id][data-mcomponent]'))return false;
   const codes=new Set(),walker=d.createTreeWalker(b,w.NodeFilter.SHOW_ELEMENT);let node=b,visited=0;
   for(;node&&visited<32;node=walker.nextNode(),visited++){
    if(node.closest('[data-action-id][data-mcomponent]')!==b)continue;
