@@ -59,5 +59,10 @@
   ],
   "confirmedFix": "Remove playback/CDN fallback from video button and native video receiver; preserve separate explicit image action.",
   "notEstablished": "The same Useful Scripts-style videoFBID reader already existed in 2.18.15. Its absence/failure in owner mobile layout is not diagnosed or proven fixed by this change. No live account or installed Seal UI proof.",
-  "downloadVerification": "Artifact metadata/digests from GitHub API; archive digest is NOT APK checksum. APK bytes not independently downloaded here because sandbox excludes Azure artifact redirect host."
+  "downloadVerification": "Artifact metadata/digests from GitHub API; archive digest is NOT APK checksum. APK bytes not independently downloaded here because sandbox excludes Azure artifact redirect host.",
+  "subsequentOwnerFeedback": {
+    "outcome": "failed to obtain post link",
+    "evidence": "Owner screenshot shows Share-not-found / no URL sent.",
+    "followUp": "Owner explicitly approved local structural diagnostic 2.18.17; no returned report yet."
+  }
 }

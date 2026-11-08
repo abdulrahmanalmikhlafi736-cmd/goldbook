@@ -1,5 +1,7 @@
 # FPRO 🔥 2.18.16 — post-link-only video handoff
 
+> Subsequent owner screenshot: still fails with Share-not-found; no current post link obtained. Owner approved the local structural diagnostic build 2.18.17.
+
 ## Owner evidence and scope
 
 The owner confirms 2.18.15 did not solve the issue: it copied a signed scontent/fbcdn .mp4 playback URL instead of the post link. A .mp4 URL alone does not prove segmentation (progressive files can be complete), but it is not the requested post permalink. The signed owner URL is not reproduced here.
