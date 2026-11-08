@@ -1,0 +1,63 @@
+{
+  "version": "2.18.10",
+  "version_code": 2180010,
+  "application_id": "com.almekhlafi",
+  "visible_release_name": "FPRO 🔥",
+  "debug_launcher_name": "FPRO 🔥 Debug",
+  "tested_commit": "64e0626b13f7b60be0e5e7fe22a6d06fb7ab21c8",
+  "run_id": 42435953928,
+  "run_url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42435953928",
+  "conclusion": "success",
+  "local_tests": 52,
+  "android_13_tests": 12,
+  "ui_action": "Production SettingsContent row SemanticsActions.OnClick with category expanded and master OFF; persisted OFF/ON observed. Not physical finger hit testing.",
+  "jobs": [
+    {
+      "id": 128594701866,
+      "name": "build",
+      "conclusion": "success",
+      "started_at": "2026-11-08T01:50:13Z",
+      "completed_at": "2026-11-08T01:59:07Z"
+    },
+    {
+      "id": 128596531412,
+      "name": "chromium-fixtures",
+      "conclusion": "success",
+      "started_at": "2026-11-08T01:59:09Z",
+      "completed_at": "2026-11-08T02:02:15Z"
+    },
+    {
+      "id": 128597215961,
+      "name": "candidate",
+      "conclusion": "success",
+      "started_at": "2026-11-08T02:02:17Z",
+      "completed_at": "2026-11-08T02:02:25Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13600135918,
+      "name": "FPRO-2.18.10-media-candidate",
+      "archive_size_bytes": 3052834,
+      "expired": false
+    },
+    {
+      "id": 13600125646,
+      "name": "Faceboost-2.18.10-build-inputs",
+      "archive_size_bytes": 47026806,
+      "expired": false
+    },
+    {
+      "id": 13599663590,
+      "name": "Faceboost-2.18.10-Chromium-evidence",
+      "archive_size_bytes": 964,
+      "expired": false
+    }
+  ],
+  "limits": [
+    "No account acceptance or universal Create Story prevention claim.",
+    "UI semantics activation is verified, not trusted physical pointer hit testing. Earlier coordinate-based UI click timed out.",
+    "No full inherited unit/lint suite, heat measurement or local APK certificate/size inspection.",
+    "Original signing configuration and application ID retained."
+  ]
+}
