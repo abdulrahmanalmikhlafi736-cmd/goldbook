@@ -44,3 +44,6 @@ test('ordinary manual clipboard copying outside a download request is unchanged 
  f.env.navigator.clipboard.writeText('ordinary post text');assert.equal(ordinary,1);assert.equal(f.sent.length,0);
  f.share.onclick=()=>f.sheet({delayed:true});f.api.begin(f.v);f.env.navigator.clipboard.writeText('https://www.facebook.com/share/v/1HeYq17541/');assert.equal(ordinary,2);assert.equal(f.sent.length,1);
 }));
+
+test('video viewer dialog may contain its own official share control',()=>run(f=>{f.api.begin(f.v);assert.equal(f.shareClicks(),1);assert.equal(f.copyClicks(),1);assert.equal(f.sent.length,1);},{body:'<div role="dialog"><article><video></video><button aria-label="مشاركة">مشاركة</button></article></div>'}));
+test('icon font glyphs do not corrupt otherwise explicit Arabic Share and Copy labels',()=>run(f=>{f.share.removeAttribute('aria-label');f.share.textContent='\u{F3100} مشاركة';f.share.onclick=()=>{const root=f.sheet({delayed:true});const b=root.firstChild;b.removeAttribute('aria-label');b.textContent='\u{F310F} نسخ الرابط';b.onclick=()=>f.api.copied('https://www.facebook.com/share/v/1HeYq17541/');};f.api.begin(f.v);assert.equal(f.sent.length,1);assert.equal(new URL(f.sent[0]).hostname,'download');}));

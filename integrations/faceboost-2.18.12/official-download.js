@@ -2,7 +2,7 @@
 (function(w){
  'use strict';if(w.FproOfficialDownload)return;
  const d=w.document,selector='button,[role="button"],a[data-sigil~="share"]';let active=null;
- const normalize=s=>String(s||'').replace(/[\u064B-\u065F\u200E\u200F\u202A-\u202E]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
+ const normalize=s=>String(s||'').replace(/[\u064B-\u065F\u200E\u200F\u202A-\u202E]/g,'').replace(/[\uE000-\uF8FF\u{F0000}-\u{FFFFD}]/gu,' ').replace(/\s+/g,' ').trim().toLowerCase();
  const label=b=>normalize(b.getAttribute('aria-label')||b.getAttribute('title')||b.textContent);
  const isShare=b=>/^(?:share(?: (?:video|reel|post))?|مشاركة(?: (?:الفيديو|الريلز|المنشور))?|مشاركه|شارك)(?:\s*[\d٠-٩.,٬]+)?$/.test(label(b))||String(b.getAttribute('data-sigil')||'').split(/\s+/).includes('share');
  const visible=n=>{if(!n||!n.isConnected||n.closest('[aria-hidden="true"],[hidden]')||n.disabled||n.getAttribute('aria-disabled')==='true')return false;const r=n.getBoundingClientRect(),s=w.getComputedStyle(n);return r.width>0&&r.height>0&&r.bottom>0&&r.top<w.innerHeight&&r.right>0&&r.left<w.innerWidth&&s.display!=='none'&&s.visibility!=='hidden'&&s.opacity!=='0';};
@@ -15,13 +15,13 @@
   for(let n=v.parentElement,i=0;n&&i<12;n=n.parentElement,i++){
    if(n.matches('body,html,main,[role="feed"]'))break;
    if(Array.from(n.querySelectorAll('video')).some(x=>x!==v&&visible(x)))break;
-   const found=buttons(n).filter(b=>isShare(b)&&visible(b)&&inside(b)&&!b.closest('[role="dialog"],#mb-share-via,[data-fpro-owned]'));
+   const found=buttons(n).filter(b=>isShare(b)&&visible(b)&&inside(b)&&(!b.closest('[role="dialog"]')||b.closest('[role="dialog"]').contains(v))&&!b.closest('#mb-share-via,[data-fpro-owned]'));
    if(found.length)return found.length===1?found[0]:null;
    if(n.matches('article,[role="article"]'))break;
   }
   // A portal rail is only accepted in a dedicated Reel/video route with one visible player.
   if(/^\/(?:reels?|watch|videos)(?:\/|$)/.test(w.location.pathname)&&r.height>w.innerHeight*.5&&Array.from(d.querySelectorAll('video')).filter(visible).length===1){
-   const found=buttons(d).filter(b=>isShare(b)&&visible(b)&&inside(b)&&!b.closest('[role="dialog"],#mb-share-via'));
+   const found=buttons(d).filter(b=>isShare(b)&&visible(b)&&inside(b)&&(!b.closest('[role="dialog"]')||b.closest('[role="dialog"]').contains(v))&&!b.closest('#mb-share-via'));
    if(found.length===1)return found[0];
   }
   return null;
