@@ -70,5 +70,10 @@
     "Finite local and viewport sampling can miss controls; zero candidates does not establish absence.",
     "No automatic upload/copy/file storage or site-control clicking.",
     "Metadata/archive digests from GitHub API; artifact Azure redirect cannot be downloaded in sandbox. Archive digest is not APK checksum."
-  ]
+  ],
+  "subsequentOwnerReports": {
+    "received": 2,
+    "finding": "One broad aria-derived candidate in each: role/action/component, relation=0, ownerLevel=4, via=3, old selector/bounds pass, oldLabel=0. Actual label text not exported.",
+    "followUp": "2.18.19 restores guarded downloads with a descriptive accessible-name repair; no live success yet."
+  }
 }

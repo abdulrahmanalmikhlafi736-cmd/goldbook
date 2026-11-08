@@ -1,0 +1,72 @@
+{
+  "version": "2.18.19",
+  "versionCode": 2180019,
+  "package": "com.almekhlafi",
+  "mode": "Functional download route restored; numeric diagnostic only on failure",
+  "appCommit": "a033a62974548a0fde4fdf136b314d2828295e68",
+  "sourceCommit": "fe8a474b25414b38819b7cf927720899c8c89705",
+  "workflow": {
+    "id": 42462060984,
+    "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42462060984",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "build",
+        "id": 128673281955,
+        "conclusion": "success"
+      },
+      {
+        "name": "chromium-fixtures",
+        "id": 128674816591,
+        "conclusion": "success"
+      },
+      {
+        "name": "candidate",
+        "id": 128675473933,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "tests": {
+    "localPassed": 163,
+    "localFailed": 0,
+    "localSkipped": 0,
+    "android13Passed": 28,
+    "android13Failed": 0,
+    "nativeGate": "Exact OK (28 tests); failure/crash markers rejected",
+    "newNativeCoverage": "Production gesture guard + actual router + descriptive mobile Share/Copy + fresh selected Facebook URL exactly once, empty media; numeric attempt sanitization"
+  },
+  "artifacts": [
+    {
+      "id": 13610387802,
+      "name": "FPRO-2.18.19-media-candidate",
+      "size_in_bytes": 3076850,
+      "artifactArchiveDigest": "sha256:5902be7520d34bbd57cdf45df2669cc7e31be3f05c5fb0091865b425ef578683",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42462060984/artifacts/13610387802"
+    },
+    {
+      "id": 13610023504,
+      "name": "Faceboost-2.18.19-build-inputs",
+      "size_in_bytes": 47116414,
+      "artifactArchiveDigest": "sha256:d5c5d28360bd7491d1ff3cb66bcf166e901ba3ade49f8bbf2c48164b6ef8d153",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42462060984/artifacts/13610023504"
+    },
+    {
+      "id": 13609648620,
+      "name": "Faceboost-2.18.19-Chromium-evidence",
+      "size_in_bytes": 1752,
+      "artifactArchiveDigest": "sha256:ee978847f612ff9a167b7396cca1fb4826eca75b803b632c38213b7c33cbe085",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42462060984/artifacts/13609648620"
+    }
+  ],
+  "ownerEvidence": [
+    "Two V2 reports: unique broad aria-name candidate with role/button/action/component, relation=0, ownerLevel=4, via=3, oldSelector=oldBounds=portalBounds=1 but oldLabel=0.",
+    "Exact label text/prefix was not exported; descriptive test names are matching-class examples, not claimed owner text."
+  ],
+  "limits": [
+    "No live owner acceptance or installed Seal UI verification yet.",
+    "Repair targets observed accessible-name rejection; remaining action/menu/channel differences may still fail and yield local numeric report.",
+    "No CDN fallback, arbitrary IDs, clipboard-history reads, raw label/action/token export or automatic diagnostic upload/copy.",
+    "Artifact metadata/digests from GitHub API; sandbox excludes Azure artifact redirect. Archive digest is not APK checksum."
+  ]
+}
