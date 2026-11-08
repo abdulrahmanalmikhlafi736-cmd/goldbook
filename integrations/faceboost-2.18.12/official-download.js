@@ -21,7 +21,7 @@
   }
   // A portal rail is only accepted in a dedicated Reel/video route with one visible player.
   if(/^\/(?:reels?|watch|videos)(?:\/|$)/.test(w.location.pathname)&&r.height>w.innerHeight*.5&&Array.from(d.querySelectorAll('video')).filter(visible).length===1){
-   const found=buttons(d).filter(b=>isShare(b)&&visible(b)&&inside(b)&&(!b.closest('[role="dialog"]')||b.closest('[role="dialog"]').contains(v))&&!b.closest('#mb-share-via'));
+   const found=buttons(d).filter(b=>isShare(b)&&visible(b)&&inside(b)&&b.getBoundingClientRect().top>=Math.max(0,r.top)&&b.getBoundingClientRect().bottom<=Math.min(w.innerHeight,r.bottom)&&(!b.closest('[role="dialog"]')||b.closest('[role="dialog"]').contains(v))&&!b.closest('#mb-share-via'));
    if(found.length===1)return found[0];
   }
   return null;
