@@ -40,6 +40,9 @@ class HomeSwipeSettingUiTest {
         val model=SettingsViewModel(app)
         try {
             compose.setContent { MaterialTheme { SettingsContent(modifier=Modifier.fillMaxSize().verticalScroll(rememberScrollState()),viewModel=model) } }
+            // Production categories are collapsed by default: open the actual section first.
+            compose.onNodeWithText(app.getString(R.string.fpro_cat_engine)).performScrollTo().assertIsDisplayed().performClick()
+            compose.waitForIdle()
             val title=app.getString(R.string.fpro_home_swipe_block_title)
             compose.onNodeWithText(title).performScrollTo().assertIsDisplayed().performClick()
             runBlocking { withTimeout(5000) { prefs.fproHomeSwipeBlock.first { !it } } }
