@@ -103,13 +103,21 @@
   for(const n of d.querySelectorAll(statuses))oldStatus.set(n,normalize(n.textContent));
   let closed=false,timer=null;
   const hide=n=>{if(saved.has(n))return;saved.set(n,['filter','pointer-events'].map(key=>[key,n.style.getPropertyValue(key),n.style.getPropertyPriority(key)]));n.style.setProperty('filter','opacity(0)','important');n.style.setProperty('pointer-events','none','important');};
+  const restore=n=>{
+   const properties=saved.get(n);if(!properties)return;
+   for(const [key,value,priority]of properties)if(n.style.getPropertyValue(key)===(key==='filter'?'opacity(0)':'none')&&n.style.getPropertyPriority(key)==='important'){if(value)n.style.setProperty(key,value,priority);else n.style.removeProperty(key);}
+   saved.delete(n);
+  };
   const refresh=()=>{
    if(closed)return;
    if(!video.isConnected||fingerprint(video)!==source||identity(video)!==owner||w.location.href!==page){close();return;}
+   for(const n of saved.keys())if(n.contains(video))restore(n);
    for(const n of Array.from(d.querySelectorAll(menus)).slice(0,128))if(!oldMenus.has(n)&&!n.contains(video)&&!n.closest('[data-fpro-owned]'))hide(n);
    for(const n of Array.from(d.querySelectorAll(statuses)).slice(0,128)){
     const text=normalize(n.textContent);
-    if(!n.contains(video)&&oldStatus.get(n)!==text&&/^(?:تم النسخ|تم نسخ الرابط(?: إلى الحافظة)?|نسخ الرابط بنجاح|link copied(?: to clipboard)?|copied(?: to clipboard)?)$/.test(text))hide(n);
+    const success=/^(?:تم النسخ|تم نسخ الرابط(?: إلى الحافظة)?|نسخ الرابط بنجاح|link copied(?: to clipboard)?|copied(?: to clipboard)?)$/.test(text);
+    if(!n.contains(video)&&oldStatus.get(n)!==text&&success)hide(n);
+    else if(!n.matches(menus))restore(n);
    }
   };
   const observer=new MutationObserver(refresh);
@@ -118,7 +126,7 @@
    for(const name of ['pointerdown','keydown','touchmove','wheel'])d.removeEventListener(name,cancel,true);
    d.removeEventListener('visibilitychange',visibility,true);
    w.removeEventListener('pagehide',close);w.removeEventListener('popstate',close);
-   for(const [n,properties]of saved)for(const [key,value,priority]of properties)if(n.style.getPropertyValue(key)===(key==='filter'?'opacity(0)':'none')&&n.style.getPropertyPriority(key)==='important'){if(value)n.style.setProperty(key,value,priority);else n.style.removeProperty(key);}
+   for(const n of saved.keys())restore(n);
    saved.clear();if(veil===handle)veil=null;
   };
   const visibility=()=>{if(d.hidden)close();};

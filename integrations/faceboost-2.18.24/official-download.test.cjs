@@ -198,3 +198,6 @@ test('source recycling closes short post-copy veil without masking a new video U
 test('backgrounding closes veil without waiting for throttled background timers',()=>run(f=>{
  f.api.begin(f.v);Object.defineProperty(f.d,'hidden',{configurable:true,value:true});f.d.dispatchEvent(new f.w.Event('visibilitychange'));assert.equal(f.api.report().veiled,false);assert.equal(f.observers(),0);assert.equal(f.timers.size,0);
 }));
+test('a copied status reused for an error is immediately restored, not silently hidden',async()=>{
+ const f=fixture();try{f.api.begin(f.v);const status=f.d.createElement('div');status.setAttribute('role','alert');status.textContent='تم النسخ';f.d.body.append(status);await tick();assert.equal(status.style.filter,'opacity(0)');status.textContent='تعذر التنزيل';await tick();assert.equal(status.style.filter,'');assert.equal(status.style.pointerEvents,'');assert.equal(f.api.report().veiled,true);}finally{f.close();}
+});
