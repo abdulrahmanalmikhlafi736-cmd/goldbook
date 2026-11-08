@@ -55,3 +55,7 @@ print(f'Added persisted home gesture option; renamed {count} localized applicati
 debug_manifest=root/'app/src/debug/AndroidManifest.xml'
 if debug_manifest.exists():
     debug_manifest.write_text(debug_manifest.read_text().replace('Faceboost Debug','FPRO 🔥 Debug'))
+for p in (root/'app/src/debug/res').glob('values*/*.xml'):
+    s=p.read_text()
+    s=re.sub(r'(<string\b[^>]*\bname="app_name"[^>]*>).*?(</string>)',r'\g<1>FPRO 🔥\2',s,flags=re.S)
+    p.write_text(s)

@@ -10,5 +10,6 @@ test('golden-engine option is backed by its own persisted default-on key and liv
 });
 test('all localized app labels are FPRO flame while update package stays unchanged',()=>{
  let count=0;for(const dir of fs.readdirSync(path.join(base,'res')).filter(x=>x.startsWith('values'))){for(const file of fs.readdirSync(path.join(base,'res',dir)).filter(x=>x.endsWith('.xml'))){const text=read('res/'+dir+'/'+file);for(const match of text.matchAll(/<string\b[^>]*name="app_name"[^>]*>(.*?)<\/string>/gs)){count++;assert.equal(match[1],'FPRO 🔥');}}}
+ const debug=fs.readFileSync(path.join(root,'app/src/debug/res/values/strings.xml'),'utf8');assert.match(debug,/<string name="app_name">FPRO 🔥<\/string>/);
  assert.equal(count,12);assert.match(fs.readFileSync(path.join(root,'app/build.gradle.kts'),'utf8'),/applicationId = "com.almekhlafi"/);
 });
