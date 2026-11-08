@@ -1,0 +1,26 @@
+# FPRO 🔥 2.18.20 — internal download-link capture
+
+The owner confirmed 2.18.19 downloads correctly. This revision preserves that target selection, official Share/Copy resolution and explicit Seal handoff, while removing the automatic system-clipboard write.
+
+## Scoped changes
+
+- Current-player routes use `copy=0`; native downloader handoff no longer calls `copySource`, even for a stale route requesting `copy=1`.
+- Intercept automatic `navigator.clipboard.writeText`, ClipboardItem `write`, copy events/DataTransfer and `execCommand('copy')` before the real clipboard writer. Keep the captured link in transaction memory only.
+- Native ClipboardBridge asks the page interceptor before writing or showing the app's copied toast. Modern main-frame/origin-checked messages can supply the fresh link; legacy origin-unchecked messages can only be suppressed during the transaction, not route untrusted links.
+- A same-link in-memory receipt absorbs duplicate copy channels for at most two seconds; explicit cancellation or a trusted pointer/key gesture clears it. No clipboard read, restoration, sensitive-preview workaround or persistent clipboard disabling.
+- Ordinary manual post copying still uses the original writer. Comment selection restrictions remain. Explicit diagnostic-report copying is still manual and unchanged.
+- No changes to current-video targeting, source/identity validation, ambiguity handling, Like, seek, upper fullscreen gesture, homepage prevention, appearance, package or signing. No new idle polling, network interception, chooser or downloader.
+
+## Verification
+
+Apply once to fresh `fe8a474b25414b38819b7cf927720899c8c89705`. Version 2.18.20 / 2180020; original package/signing.
+
+172 local tests passed, zero failures/skips (`dom-results.tap`). Nine additional cases cover pre-write capture, duplicate channels, ClipboardItem, copy-event/DataTransfer, execCommand, invalid captures, cancellation/manual-copy preservation and native-hook source invariants.
+
+CI requires exactly 29 Android 13 tests. The new foreground test seeds a clipboard sentinel, checks zero clipboard-change callbacks and unchanged content during automatic native capture and handoff, then verifies a subsequent manual copy really writes. Native compilation/execution and owner-account acceptance are pending until CI and owner testing respectively; fixture success is not account proof.
+
+Run: `FACEBOOST_SOURCE=SOURCE JSDOM_PATH=/absolute/node_modules/jsdom node --test integrations/faceboost-2.18.20/*.test.cjs`
+
+The app no longer needs a system clipboard write for the download link. Facebook's own webpage feedback or Seal's independent behavior is not covered by this guarantee.
+
+Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar

@@ -1,0 +1,52 @@
+    // The last text the page put on the clipboard, however it did it.
+    // Automated download captures are intentionally NOT clipboard writes or clipboard history.
+    let lastCopied = null;
+    const remember = text => { if(text)lastCopied=String(text); };
+    const internalCopy = () => !!window.FproOfficialDownload?.isInternalCopy?.();
+    const captureCopy = text => window.FproOfficialDownload?.interceptCopy?.(String(text||'')) === true;
+    const blockedTransfers = new WeakSet();
+    document.addEventListener('copy', e => {
+        if(internalCopy()) { if(e.clipboardData)blockedTransfers.add(e.clipboardData);e.preventDefault(); }
+    },true);
+    if(navigator.clipboard?.writeText){
+        const original=navigator.clipboard.writeText.bind(navigator.clipboard);
+        navigator.clipboard.writeText=text=>{
+            if(captureCopy(text))return Promise.resolve();
+            remember(text);return original(text);
+        };
+    }
+    if(navigator.clipboard?.write){
+        const original=navigator.clipboard.write.bind(navigator.clipboard);
+        navigator.clipboard.write=items=>{
+            if(!internalCopy())return original(items);
+            return Promise.all(Array.from(items).slice(0,8).map(async item=>{
+                try { const blob=await item.getType('text/plain');const text=await blob.text();if(internalCopy())captureCopy(text); }catch(_){}
+            })).then(()=>undefined);
+        };
+    }
+    const setData=DataTransfer.prototype.setData;
+    DataTransfer.prototype.setData=function(type,data){
+        const plain=/^text(\/plain)?$/i.test(type);
+        if(blockedTransfers.has(this)||internalCopy()){
+            if(plain)captureCopy(data);return;
+        }
+        if(plain){if(captureCopy(data))return;remember(data);}
+        return setData.call(this,type,data);
+    };
+    const execCommand=document.execCommand.bind(document);
+    document.execCommand=(command,...args)=>{
+        if(String(command).toLowerCase()==='copy'){
+            const active=document.activeElement;
+            const text=active&&'value'in active?String(active.value):String(window.getSelection()||'');
+            if(internalCopy()){
+                if(window.FproPublicVideoLink?.parse(text)&&captureCopy(text))return true;
+                // Let an event-only producer supply its URL; capture listener prevents default,
+                // and DataTransfer interception blocks all formats on that same copy event.
+                return execCommand(command,...args);
+            }
+            if(captureCopy(text))return true;
+            remember(text);
+        }
+        return execCommand(command,...args);
+    };
+
