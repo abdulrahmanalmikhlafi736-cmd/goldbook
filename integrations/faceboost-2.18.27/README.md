@@ -16,6 +16,6 @@ The exact owner Save callback/MIME is not proven from the screenshot. If Faceboo
 
 Version2.18.27/code2180027/com.almekhlafi; original signing. Apply once to fresh fe8a474b25414b38819b7cf927720899c8c89705.
 
-233 local tests PASS (220 retained,13 new held-state cases). Native exact39-case gate adds real WebView MotionEvent cancellation/previous-rate restoration, image request validation negatives and actual system DownloadManager PNG byte roundtrip from an instrumentation-only loopback server to public image storage. Native result pending. Debug-only network config permits127.0.0.1 HTTP for that fixture; release and production image validation do not permit HTTP.
+233 local tests PASS (220 retained,13 new held-state cases). Native exact39-case gate adds real WebView MotionEvent cancellation/previous-rate restoration, image request validation negatives and actual system DownloadManager PNG byte roundtrip from an instrumentation-only loopback server to public image storage. All three jobs of run42513098596 passed, including exact39 Android13 cases at6ecce63bae6a8f2ac0a1c0b2a9ff795713c59648. Debug-only network config permits127.0.0.1 HTTP for that fixture; release and production image validation do not permit HTTP.
 
 Preserve circular video/Seal download, clipboard privacy, accepted Share/Copy concealment, progress/ball position/size, developer footer, Like/fullscreen/seek/home gestures, themes and identity. Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
