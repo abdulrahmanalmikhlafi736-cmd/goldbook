@@ -20,7 +20,7 @@ Native formatter independently reconstructs this allowlist, excludes normal Unic
 
 Version 2.18.21 / 2180021, com.almekhlafi, original signing. Apply once to fresh original fe8a474b25414b38819b7cf927720899c8c89705. Official/current-player extraction, Share/Copy targeting, internal capture and Seal Intent handoff are unchanged from owner-accepted 2.18.20. No icon is yet authorized as Share, no position/count fallback is introduced, and the home-feed issue remains unresolved pending real icon evidence. Viewer/Reel downloads stay enabled. All accepted UI/gesture/home prevention and manual-copy behavior remain.
 
-184 local tests / 0 failures / 0 skips. CI requires exactly 31 Android 13 tests, including original untouched-clipboard/manual-copy and new native icon sanitizer evidence. Native result pending before delivery. U+F310F in fixtures is the original upstream's known COPY glyph, used solely as a controlled public-icon example, NEVER assumed to be the home Share glyph.
+184 local tests / 0 failures / 0 skips. CI requires exactly 31 Android 13 tests, including original untouched-clipboard/manual-copy and new native icon sanitizer evidence. CI run 42490384756 passed all three jobs and the exact 31-test Android gate. Owner glyph evidence/home-feed resolution remain pending. U+F310F in fixtures is the original upstream's known COPY glyph, used solely as a controlled public-icon example, NEVER assumed to be the home Share glyph.
 
 User next step after verified installation: press the download button for a home-feed video, explicitly copy the resulting new V2 report and return it. It identifies the public icon code/font category corresponding to the shown action, without opening unknown actions automatically.
 

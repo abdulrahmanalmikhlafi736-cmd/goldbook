@@ -1,0 +1,231 @@
+{
+  "appCommit": "0f16a2b359656dd1834c48ff967b8ca007cd55e2",
+  "runId": 42490384756,
+  "status": "all_CI_jobs_success; diagnostic_only_increment; home_feed_unresolved",
+  "local": {
+    "total": 184,
+    "passed": 184,
+    "failed": 0,
+    "skipped": 0
+  },
+  "androidRequiredExactTests": 31,
+  "ownerStatus": "2.18.20 accepted except homepage. New public icon report needed; no guessed icon selection implemented.",
+  "runDetails": {
+    "conclusion": "success",
+    "headSha": "0f16a2b359656dd1834c48ff967b8ca007cd55e2",
+    "jobs": [
+      {
+        "completedAt": "2026-11-08T14:43:38Z",
+        "conclusion": "success",
+        "databaseId": 128761317029,
+        "name": "build",
+        "startedAt": "2026-11-08T14:33:42Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-node@v4",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-java@v4",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run gradle/actions/setup-gradle@v4",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download the pinned NEW project (not goldbook application sources)",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "DOM and production-gesture integration gate",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build release and fixture APKs with unchanged identity and signing",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package APK candidate and exact patched source",
+            "number": 9,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v4",
+            "number": 10,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run gradle/actions/setup-gradle@v4",
+            "number": 17,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-java@v4",
+            "number": 18,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@v4",
+            "number": 19,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 20,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 21,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42490384756/job/128761317029"
+      },
+      {
+        "completedAt": "2026-11-08T14:43:38Z",
+        "conclusion": "success",
+        "databaseId": 128762883165,
+        "name": "chromium-fixtures",
+        "startedAt": "2026-11-08T14:40:01Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/download-artifact@v4",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Enable KVM",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run thirty-one WebView and settings regressions on Android 13",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v4",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 6,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42490384756/job/128762883165"
+      },
+      {
+        "completedAt": "2026-11-08T14:43:38Z",
+        "conclusion": "success",
+        "databaseId": 128763755239,
+        "name": "candidate",
+        "startedAt": "2026-11-08T14:43:29Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/download-artifact@v4",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v4",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 4,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42490384756/job/128763755239"
+      }
+    ],
+    "status": "completed"
+  },
+  "artifacts": [
+    {
+      "id": 13621875948,
+      "name": "FPRO-2.18.21-media-candidate",
+      "archiveSizeBytes": 3082991,
+      "archiveDigest": "sha256:671f070c2ebb9713785dc0e2d342c2bafba5046771be3403cea8bfe69f02a5e1",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42490384756/artifacts/13621875948"
+    },
+    {
+      "id": 13621497412,
+      "name": "Faceboost-2.18.21-Chromium-evidence",
+      "archiveSizeBytes": 1900,
+      "archiveDigest": "sha256:9048897755b1d60253ed0a48d20c4669f57bef10c454cce76c62f63ea47d07dd",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42490384756/artifacts/13621497412"
+    },
+    {
+      "id": 13621089645,
+      "name": "Faceboost-2.18.21-build-inputs",
+      "archiveSizeBytes": 47134477,
+      "archiveDigest": "sha256:7f4c5dc0b701c5e22d7529dc62afb5745c34061530eb50f732a42b084dc307e0",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42490384756/artifacts/13621089645"
+    }
+  ],
+  "limitations": [
+    "CI gates and controlled fixtures are not owner-account success.",
+    "Archive size/digest are ZIP metadata, not APK bytes/SHA. No independent APK extraction/signature verification performed.",
+    "The actual Share glyph is unknown. F310F in tests is known Copy, not a Share mapping."
+  ]
+}
