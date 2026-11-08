@@ -22,10 +22,11 @@
  const privateUse=cp=>(cp>=0xE000&&cp<=0xF8FF)||(cp>=0xF0000&&cp<=0xFFFFD)||(cp>=0x100000&&cp<=0x10FFFD);
  function iconEvidence(target){
   const out=[],seen=new Set();let visited=0,unknown=0,kinds=0,truncated=false;
+  const actionOwner=target.closest('[data-action-id][data-mcomponent]');
   const walker=d.createTreeWalker(target,w.NodeFilter.SHOW_ELEMENT);let node=target;
   for(;node&&visited<32;node=walker.nextNode(),visited++){
    // Never borrow a glyph from another nested action.
-   if(node!==target&&node.closest('[data-action-id][data-mcomponent]')!==target)continue;
+   if(node!==target&&node.closest('[data-action-id][data-mcomponent]')!==actionOwner)continue;
    if(node.localName==='img')kinds|=2;if(node.localName==='svg')kinds|=4;if(node.localName==='canvas')kinds|=32;
    for(const [pseudo,via]of [[null,1],['::before',2],['::after',3]]){
     let style;try{style=pseudo?w.getComputedStyle(node,pseudo):w.getComputedStyle(node);}catch(_){continue;}
