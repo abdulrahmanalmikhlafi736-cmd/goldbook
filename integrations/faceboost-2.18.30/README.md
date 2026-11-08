@@ -12,6 +12,6 @@ Owner29 screenshot: local-image read abort, no saved file. This confirms the req
 
 Version2.18.30/code2180030/com.almekhlafi; original signing. Apply once to fresh fe8a474b25414b38819b7cf927720899c8c89705.
 
-243 local tests PASS. New cache/reader tests cover exact revoked source, single consume, eviction/byte/count/expiry/navigation bounds, video/oversize exclusion, blocked fetch and safe failure stages. An unchanged29 reader fails the retained-source/blocked-fetch regression. Native exact45-case gate retains43 (live fetch fallback explicitly retained) and adds actual revoked-blob/no-fetch PNG file roundtrip/publication and percent-encoded JPEG exact-byte roundtrip. Native result pending; owner cause/success remain pending.
+243 local tests PASS. New cache/reader tests cover exact revoked source, single consume, eviction/byte/count/expiry/navigation bounds, video/oversize exclusion, blocked fetch and safe failure stages. An unchanged29 reader fails the retained-source/blocked-fetch regression. Native exact45-case gate retains43 (live fetch fallback explicitly retained) and adds actual revoked-blob/no-fetch PNG file roundtrip/publication and percent-encoded JPEG exact-byte roundtrip. All three CI jobs SUCCESS; exact45 Android13 cases PASS (see VERIFICATION.md). Owner cause/success remain pending.
 
 All video/Seal, hold cleanup, accepted progress/ball, clipboard, Share concealment and developer footer code are unchanged. Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
