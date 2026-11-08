@@ -13,13 +13,14 @@
    const p=u.pathname.replace(/\/+$/,'');let m;
    if((m=p.match(/^\/(?:reels?|(?:[^/]+\/)?videos)\/(\d+)$/)))return {url:'https://www.facebook.com/watch/?v='+m[1],key:'video:'+m[1],kind:'video'};
    if(['/watch','/video.php',''].includes(p)&&numeric.test(u.searchParams.get('v')||'')){const id=u.searchParams.get('v');return {url:'https://www.facebook.com/watch/?v='+id,key:'video:'+id,kind:'video'};}
+   if((m=p.match(/^\/groups\/([^/]+)\/(?:posts|permalink)\/([A-Za-z0-9_-]+)$/))&&token.test(m[2]))return {url:'https://www.facebook.com/groups/'+m[1]+'/permalink/'+m[2]+'/',key:'post:'+m[2],kind:'post'};
    if((m=p.match(/^\/([^/]+)\/posts\/([A-Za-z0-9_-]+)$/))&&token.test(m[2]))return {url:'https://www.facebook.com/'+m[1]+'/posts/'+m[2]+'/',key:'post:'+m[2],kind:'post'};
    if(['/story.php','/permalink.php'].includes(p)&&token.test(u.searchParams.get('story_fbid')||'')){
     const id=u.searchParams.get('story_fbid'),owner=u.searchParams.get('id');
     return {url:'https://www.facebook.com'+p+'?story_fbid='+id+(numeric.test(owner||'')?'&id='+owner:''),key:'post:'+id,kind:'post'};
    }
    if((m=p.match(/^\/stories\/([^/]+)\/([^/]+)$/)))return {url:'https://www.facebook.com/stories/'+m[1]+'/'+m[2]+'/',key:'story:'+m[1]+':'+m[2],kind:'story'};
-   if((m=p.match(/^\/share\/([rv])\/([A-Za-z0-9_-]+)$/))&&token.test(m[2]))return {url:'https://www.facebook.com/share/'+m[1]+'/'+m[2]+'/',key:'share:'+m[2],kind:'share'};
+   if((m=p.match(/^\/share\/([rvp])\/([A-Za-z0-9_-]+)$/))&&token.test(m[2]))return {url:'https://www.facebook.com/share/'+m[1]+'/'+m[2]+'/',key:'share:'+m[2],kind:'share'};
    return null;
   }catch(_){return null;}
  }
@@ -49,6 +50,7 @@
  }
  function remember(v){if(baseline.has(v))return;const e=evidence(v);baseline.set(v,{source:source(v),keys:new Set([...e.links.keys(),...Array.from(e.ids,id=>'video:'+id)])});}
  function resolve(v){
+  if(!/(^|\.)facebook\.com$/.test(w.location.hostname))return {url:'',reason:'non-facebook-context'};
   if(!v||!v.isConnected)return {url:'',reason:'detached'};
   const e=evidence(v),old=baseline.get(v),s=source(v);
   const changed=old&&old.source!==s;

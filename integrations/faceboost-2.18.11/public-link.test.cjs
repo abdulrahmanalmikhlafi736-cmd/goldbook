@@ -24,3 +24,6 @@ test('duplicate representations of same video are unambiguous',()=>run('<article
 
 test('re-attaching controls never blesses stale metadata on a recycled element',()=>run('<article data-video-id="111"><video src="blob:first"></video></article>',({api,v})=>{api.remember(v);v.src='blob:second';api.remember(v);assert.equal(api.resolve(v).url,'');}));
 test('unproven initial browser address does not poison later scoped identity',()=>run(undefined,({api,v})=>{api.remember(v);v.src='blob:new';v.parentElement.setAttribute('data-video-id','111');assert.equal(api.resolve(v).url,'https://www.facebook.com/watch/?v=111');}));
+
+test('group video posts support both permalink and posts forms',()=>run('<article><a href="/groups/123/posts/456/?tracking=x">post</a><a href="/groups/123/permalink/456/">same</a><video></video></article>',({api,v})=>{api.remember(v);assert.equal(api.resolve(v).url,'https://www.facebook.com/groups/123/permalink/456/');}));
+test('Messenger attachment IDs cannot be reinterpreted as Facebook public video IDs',()=>run('<article data-video-id="123"><video></video></article>',({api,v})=>{api.remember(v);assert.equal(api.resolve(v).url,'');},'https://www.messenger.com/'));

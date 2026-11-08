@@ -101,8 +101,9 @@ s=s[:a]+'''    /** Public page URL first; no browser cookies or credentials are 
             Regex("/(?:reels?|(?:[^/]+/)?videos)/[0-9]+/?").matches(path) ||
             ((path=="/watch/" || path=="/watch" || path=="/video.php" || path=="/") && digits.matches(params["v"].orEmpty())) ||
             Regex("/[^/]+/posts/[A-Za-z0-9_-]{3,}/?").matches(path) ||
+            Regex("/groups/[^/]+/(?:posts|permalink)/[A-Za-z0-9_-]{3,}/?").matches(path) ||
             ((path=="/story.php" || path=="/permalink.php") && token.matches(params["story_fbid"].orEmpty())) ||
-            Regex("/share/[rv]/[A-Za-z0-9_-]{3,}/?").matches(path) ||
+            Regex("/share/[rvp]/[A-Za-z0-9_-]{3,}/?").matches(path) ||
             Regex("/stories/[^/]+/[^/]+/?").matches(path)
         )
         if(u.scheme=="https" && u.userInfo==null && (validPath || (host=="fb.watch" && Regex("/[A-Za-z0-9_-]{3,}/?").matches(path)))) value else null
