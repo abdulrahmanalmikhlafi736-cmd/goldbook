@@ -16,7 +16,7 @@ Known boundary: this targets existing semantic menu containers and semantic toas
 
 Version2.18.24/code2180024/package com.almekhlafi; original signing configuration. Apply once to fresh original fe8a474b25414b38819b7cf927720899c8c89705. 2.18.23 remains untouched.
 
-217 local DOM/gesture tests PASS (204 retained, 13 added). Existing cleanup expectations now explicitly account for and expire the bounded visual-only success tail; clipboard equality, zero native callbacks, manual copying, true ambiguity and exact link assertions remain intact. CI requires exactly34 Android13 tests, adding a real Chromium full home flow checking veiled menu, fresh link/copy0, late Copy status, visible error, expiry and visible manual feedback. Native result pending.
+217 local DOM/gesture tests PASS (204 retained, 13 added). Existing cleanup expectations now explicitly account for and expire the bounded visual-only success tail; clipboard equality, zero native callbacks, manual copying, true ambiguity and exact link assertions remain intact. CI requires exactly34 Android13 tests, adding a real Chromium full home flow checking veiled menu, fresh link/copy0, late Copy status, visible error, expiry and visible manual feedback. All three CI jobs of run42502983907 passed, including the exact34-test Android13 gate at f9b2ba2b50a93ec5c3c4334c5aa5d757b88b9f7f. Owner-account visual acceptance remains pending.
 
 No changes to native clipboard/download bridges, CTA, fullscreen, Like, seek, themes, home prevention, source extraction or package/signing.
 
