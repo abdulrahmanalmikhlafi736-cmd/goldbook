@@ -26,3 +26,7 @@ CI requires exactly33 Android13 tests. New case runs the accepted home glyph -> 
 Internal capture/Seal Intent handoff remains unchanged: no system clipboard read/write/restore for automated links. No source/CDN guessing, global-first selection, chooser, internal downloader, unrelated Like/fullscreen/seek/CTA/theme/home-guard changes.
 
 Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
+
+### Native verification history
+
+Run 42498141848 compiled successfully but native execution failed. Two foreground clipboard reads returned null (Android denies reads without actual window focus), and the old idle-frame assertion observed a real browser observer between two separate eval calls; the first3500-character CI annotation omitted the fourth failure. Fixture now waits for actual window focus before clipboard reads and checks flush/queue atomically in one JS task, preserving the perpetual-frame failure budget and all exact clipboard/content/callback assertions. CI diagnostics preserve failure headlines from all cases, not long framework stacks that hide later failures. No production app code was changed for these synchronization fixes. Full33-case green rerun remains required.

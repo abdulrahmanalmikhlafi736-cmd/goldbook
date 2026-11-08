@@ -116,6 +116,23 @@ class MediaSurfaceRegressionTest {
         }
         fun close(){if(!::web.isInitialized)return;InstrumentationRegistry.getInstrumentation().runOnMainSync{web.destroy()}}
     }
+    // Clipboard reads are denied on Android13 until this UID owns the focused window.
+    // ActivityScenario RESUMED / waitForIdleSync alone do not guarantee that, especially
+    // just after dismissing an AlertDialog or the system clipboard overlay.
+    private fun awaitActivityFocus(scenario:androidx.test.core.app.ActivityScenario<androidx.activity.ComponentActivity>){
+        val focused=CountDownLatch(1)
+        scenario.onActivity { activity ->
+            activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            val decor=activity.window.decorView
+            if(decor.hasWindowFocus())focused.countDown()
+            else decor.viewTreeObserver.addOnWindowFocusChangeListener(object:android.view.ViewTreeObserver.OnWindowFocusChangeListener{
+                override fun onWindowFocusChanged(hasFocus:Boolean){if(hasFocus){decor.viewTreeObserver.removeOnWindowFocusChangeListener(this);focused.countDown()}}
+            })
+        }
+        assertTrue("test Activity did not gain window focus",focused.await(15,TimeUnit.SECONDS))
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+    }
+
     @Test fun footerAndTopRegionUseCssViewportBounds(){val h=Harness();try{
         h.load()
         assertEquals("true",h.eval("(function(){var p=FproMediaSurface.dock({left:0,top:0,right:400,bottom:800});return p.top+p.height<=798 && FproMediaSurface.ownsTop(__v,100,100) && !FproMediaSurface.ownsTop(__v,100,600);})()"))
@@ -132,7 +149,7 @@ class MediaSurfaceRegressionTest {
         assertEquals("1",h.eval("__entries.size"))
     }finally{h.close()}}
     @Test fun idleHasNoPerpetualFrameAndMasterOffDisposes(){val h=Harness();try{
-        h.load();h.eval("__flush();");assertEquals("0",h.eval("__q.size"))
+        h.load();assertEquals("0",h.eval("(function(){__flush();return __q.size;})()"))
         h.eval("__cfg.enhance=false;__surface.layout();")
         assertEquals("0",h.eval("__entries.size"))
     }finally{h.close()}}
@@ -406,6 +423,7 @@ class MediaSurfaceRegressionTest {
         org.junit.Assert.assertNull(com.almekhlafi.materialbook.utils.PlayerDiagnostic.format("{\"schema\":99}"))
         // Exercise real Android dialog and its explicit copy button in a foreground Activity.
         androidx.test.core.app.ActivityScenario.launch(androidx.activity.ComponentActivity::class.java).use { scenario ->
+            awaitActivityFocus(scenario)
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             scenario.onActivity { activity ->
                 val field=com.almekhlafi.materialbook.utils.PlayerDiagnostic::class.java.getDeclaredField("dialog")
@@ -420,8 +438,9 @@ class MediaSurfaceRegressionTest {
                 assertTrue(popup.isShowing)
                 popup.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick()
             }
-            // AlertDialog dispatches its button callback through a Handler message.
+            // Wait for both the button callback and focused Activity window after dismissal.
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            awaitActivityFocus(scenario)
             scenario.onActivity { activity ->
                 val clipboard=activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 assertEquals(report,clipboard.primaryClip!!.getItemAt(0).text.toString())
@@ -510,6 +529,7 @@ class MediaSurfaceRegressionTest {
 
     @Test fun internalDownloadLeavesClipboardUnchangedButManualCopyStillWorks(){
         androidx.test.core.app.ActivityScenario.launch(androidx.activity.ComponentActivity::class.java).use { scenario ->
+            awaitActivityFocus(scenario)
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             val changed=java.util.concurrent.atomic.AtomicInteger(0)
             val manualReady=java.util.concurrent.CountDownLatch(1)
@@ -532,12 +552,14 @@ class MediaSurfaceRegressionTest {
                     if(classifying)Thread.sleep(50)
                 }
                 assertTrue("seed classification did not settle",!classifying)
+                awaitActivityFocus(scenario)
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 scenario.onActivity { clipboard.addPrimaryClipChangedListener(listener) }
                 h.eval("FproOfficialDownload.begin(__v);FaceboostPage.postMessage(JSON.stringify({call:'copyText',text:'https://www.facebook.com/share/v/1HeYq17541/'}));")
                 val uri=android.net.Uri.parse(h.awaitRoute())
                 assertEquals("0",uri.getQueryParameter("copy"))
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+                awaitActivityFocus(scenario)
                 scenario.onActivity { activity ->
                     assertEquals("FPRO_SENTINEL",clipboard.primaryClip!!.getItemAt(0).text.toString())
                     assertEquals(0,changed.get())
@@ -549,6 +571,7 @@ class MediaSurfaceRegressionTest {
                 assertEquals(0,changed.get())
                 h.eval("FaceboostPage.postMessage(JSON.stringify({call:'copyText',text:'FPRO_MANUAL_COPY'}));")
                 assertTrue(manualReady.await(10,TimeUnit.SECONDS))
+                awaitActivityFocus(scenario)
                 scenario.onActivity { assertEquals("FPRO_MANUAL_COPY",clipboard.primaryClip!!.getItemAt(0).text.toString()) }
             }finally{
                 scenario.onActivity { clipboard.removePrimaryClipChangedListener(listener) }

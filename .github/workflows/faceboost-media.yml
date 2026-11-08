@@ -98,7 +98,7 @@ jobs:
             adb install artifacts/fixture-app.apk
             adb install artifacts/fixture-tests.apk
             adb shell am instrument -w -r -e class com.almekhlafi.materialbook.ui.screens.MediaSurfaceRegressionTest,com.almekhlafi.materialbook.ui.screens.HomeSwipeSettingUiTest com.almekhlafi.test/androidx.test.runner.AndroidJUnitRunner | tee instrumentation.txt
-            if ! grep -F 'OK (33 tests)' instrumentation.txt; then python3 -c 'import pathlib; text=pathlib.Path("instrumentation.txt").read_text(); marker="INSTRUMENTATION_RESULT: stream="; text=(text[text.rfind(marker):] if marker in text else text[-3500:])[:3500]; print("::error title=FPRO fixture diagnostics::"+text.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'; exit 1; fi
+            if ! grep -F 'OK (33 tests)' instrumentation.txt; then python3 -c 'import pathlib; text=pathlib.Path("instrumentation.txt").read_text(); marker="INSTRUMENTATION_RESULT: stream="; text=(text[text.rfind(marker):] if marker in text else text[-8000:]); text="\n".join(line for line in text.splitlines() if not line.startswith("\tat ") or "MediaSurfaceRegressionTest.kt:" in line or "HomeSwipeSettingUiTest.kt:" in line)[:7000]; print("::error title=FPRO fixture diagnostics::"+text.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'; exit 1; fi
             if grep -E 'FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed' instrumentation.txt; then exit 1; fi
       - uses: actions/upload-artifact@v4
         if: always()
