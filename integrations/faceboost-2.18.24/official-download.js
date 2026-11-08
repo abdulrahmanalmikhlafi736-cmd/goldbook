@@ -98,9 +98,15 @@
   if(veil)veil.close();
   const menus='[role="presentation"],[role="dialog"],[role="menu"],.dialog-screen';
   const statuses='[role="status"],[role="alert"],[aria-live="polite"],[aria-live="assertive"],.toast,[data-sigil~="toast"]';
+  // Reject aggregate live regions without reading an entire feed's text on each mutation.
+  const statusText=n=>{
+   const walker=d.createTreeWalker(n,w.NodeFilter.SHOW_ELEMENT|w.NodeFilter.SHOW_TEXT);let text='',child,count=0;
+   while((child=walker.nextNode())&&count++<32)if(child.nodeType===3){const part=child.nodeValue||'';if(text.length+part.length>160)return '';text+=part;}
+   return child?'':normalize(text);
+  };
   const source=fingerprint(video),owner=identity(video),page=w.location.href;
   const oldMenus=new WeakSet(d.querySelectorAll(menus)),oldStatus=new WeakMap(),saved=new Map();
-  for(const n of d.querySelectorAll(statuses))oldStatus.set(n,normalize(n.textContent));
+  for(const n of d.querySelectorAll(statuses))oldStatus.set(n,statusText(n));
   let closed=false,timer=null;
   const hide=n=>{if(saved.has(n))return;saved.set(n,['filter','pointer-events'].map(key=>[key,n.style.getPropertyValue(key),n.style.getPropertyPriority(key)]));n.style.setProperty('filter','opacity(0)','important');n.style.setProperty('pointer-events','none','important');};
   const restore=n=>{
@@ -114,7 +120,7 @@
    for(const n of saved.keys())if(n.contains(video))restore(n);
    for(const n of Array.from(d.querySelectorAll(menus)).slice(0,128))if(!oldMenus.has(n)&&!n.contains(video)&&!n.closest('[data-fpro-owned]'))hide(n);
    for(const n of Array.from(d.querySelectorAll(statuses)).slice(0,128)){
-    const text=normalize(n.textContent);
+    const text=statusText(n);
     const success=/^(?:تم النسخ|تم نسخ الرابط(?: إلى الحافظة)?|نسخ الرابط بنجاح|link copied(?: to clipboard)?|copied(?: to clipboard)?)$/.test(text);
     if(!n.contains(video)&&oldStatus.get(n)!==text&&success)hide(n);
     else if(!n.matches(menus))restore(n);

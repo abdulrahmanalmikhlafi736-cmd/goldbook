@@ -201,3 +201,6 @@ test('backgrounding closes veil without waiting for throttled background timers'
 test('a copied status reused for an error is immediately restored, not silently hidden',async()=>{
  const f=fixture();try{f.api.begin(f.v);const status=f.d.createElement('div');status.setAttribute('role','alert');status.textContent='تم النسخ';f.d.body.append(status);await tick();assert.equal(status.style.filter,'opacity(0)');status.textContent='تعذر التنزيل';await tick();assert.equal(status.style.filter,'');assert.equal(status.style.pointerEvents,'');assert.equal(f.api.report().veiled,true);}finally{f.close();}
 });
+test('aggregate live regions are bounded and never read as whole-feed copied feedback',async()=>{
+ const f=fixture();try{const region=f.d.createElement('div');region.setAttribute('aria-live','polite');for(let i=0;i<80;i++){const span=f.d.createElement('span');span.textContent=i?'feed text':'تم النسخ';region.append(span);}Object.defineProperty(region,'textContent',{get(){throw Error('whole feed text read');}});f.d.body.append(region);f.api.begin(f.v);region.append(f.d.createElement('span'));await tick();assert.equal(region.style.filter,'');assert.equal(new URL(f.sent[0]).hostname,'download');}finally{f.close();}
+});

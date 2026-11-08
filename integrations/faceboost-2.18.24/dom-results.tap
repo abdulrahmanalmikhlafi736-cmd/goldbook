@@ -2,1305 +2,1311 @@ TAP version 13
 # Subtest: Frost inlinevideo data-store.src is extracted without clicking any Share control
 ok 1 - Frost inlinevideo data-store.src is extracted without clicking any Share control
   ---
-  duration_ms: 60.579487
+  duration_ms: 65.315926
   type: 'test'
   ...
 # Subtest: explicit player data-video-url is usable with a blob source
 ok 2 - explicit player data-video-url is usable with a blob source
   ---
-  duration_ms: 14.848915
+  duration_ms: 13.039392
   type: 'test'
   ...
 # Subtest: yt-dlp typed Video id becomes watch URL rather than an unrelated creator id
 ok 3 - yt-dlp typed Video id becomes watch URL rather than an unrelated creator id
   ---
-  duration_ms: 9.739525
+  duration_ms: 17.416607
   type: 'test'
   ...
 # Subtest: yt-dlp legacy video fields prefer HD within one video record
 ok 4 - yt-dlp legacy video fields prefer HD within one video record
   ---
-  duration_ms: 7.766721
+  duration_ms: 8.239787
   type: 'test'
   ...
 # Subtest: HTML currentSrc is a direct fallback, never the browser address
 ok 5 - HTML currentSrc is a direct fallback, never the browser address
   ---
-  duration_ms: 7.664847
+  duration_ms: 7.631723
   type: 'test'
   ...
 # Subtest: stale currentSrc while a new src is pending is rejected
 ok 6 - stale currentSrc while a new src is pending is rejected
   ---
-  duration_ms: 7.076818
+  duration_ms: 6.945417
   type: 'test'
   ...
 # Subtest: recycled blob cannot reuse the old inline-video metadata URL
 ok 7 - recycled blob cannot reuse the old inline-video metadata URL
   ---
-  duration_ms: 7.803269
+  duration_ms: 8.185051
   type: 'test'
   ...
 # Subtest: ambiguous typed videos do not choose the first record
 ok 8 - ambiguous typed videos do not choose the first record
   ---
-  duration_ms: 7.481491
+  duration_ms: 7.900277
   type: 'test'
   ...
 # Subtest: adjacent article source is not harvested
 ok 9 - adjacent article source is not harvested
   ---
-  duration_ms: 17.664999
+  duration_ms: 11.528964
   type: 'test'
   ...
 # Subtest: body-wide prefetched videos are not scraped for a first match
 ok 10 - body-wide prefetched videos are not scraped for a first match
   ---
-  duration_ms: 8.30115
+  duration_ms: 8.049539
   type: 'test'
   ...
 # Subtest: owner ids alone and page Reel route alone are not clip identity
 ok 11 - owner ids alone and page Reel route alone are not clip identity
   ---
-  duration_ms: 6.977866
+  duration_ms: 7.319733
   type: 'test'
   ...
 # Subtest: credential, http and malformed source URLs do not leave the app
 ok 12 - credential, http and malformed source URLs do not leave the app
   ---
-  duration_ms: 7.168739
+  duration_ms: 15.487941
   type: 'test'
   ...
 # Subtest: detached video is rejected
 ok 13 - detached video is rejected
   ---
-  duration_ms: 5.444612
+  duration_ms: 5.564857
   type: 'test'
   ...
 # Subtest: source initialization does not poison a valid typed video ID
 ok 14 - source initialization does not poison a valid typed video ID
   ---
-  duration_ms: 6.624435
+  duration_ms: 6.644829
   type: 'test'
   ...
 # Subtest: an empty player source cannot become the initial browser Reel address
 ok 15 - an empty player source cannot become the initial browser Reel address
   ---
-  duration_ms: 5.164197
+  duration_ms: 5.577836
   type: 'test'
   ...
 # Subtest: blank and relative metadata strings cannot become browser-page URLs
 ok 16 - blank and relative metadata strings cannot become browser-page URLs
   ---
-  duration_ms: 6.027741
+  duration_ms: 6.331705
   type: 'test'
   ...
 # Subtest: empty HD does not displace a valid SD URL in the same record
 ok 17 - empty HD does not displace a valid SD URL in the same record
   ---
-  duration_ms: 6.264254
+  duration_ms: 6.515251
   type: 'test'
   ...
 # Subtest: production gesture pair: top double tap enters once and does not seek
 ok 18 - production gesture pair: top double tap enters once and does not seek
   ---
-  duration_ms: 102.437591
+  duration_ms: 120.686113
   type: 'test'
   ...
 # Subtest: production gesture pair: lower right double tap seeks and never enters fullscreen
 ok 19 - production gesture pair: lower right double tap seeks and never enters fullscreen
   ---
-  duration_ms: 34.424606
+  duration_ms: 33.38864
   type: 'test'
   ...
 # Subtest: production gesture: swipe and cancelled touch never enter fullscreen
 ok 20 - production gesture: swipe and cancelled touch never enter fullscreen
   ---
-  duration_ms: 24.995812
+  duration_ms: 24.907434
   type: 'test'
   ...
 # Subtest: no official button means no fake success animation
 ok 21 - no official button means no fake success animation
   ---
-  duration_ms: 18.611582
+  duration_ms: 18.067286
   type: 'test'
   ...
 # Subtest: fast double tap reaches only the intended click and confirms changed state
 ok 22 - fast double tap reaches only the intended click and confirms changed state
   ---
-  duration_ms: 18.606814
+  duration_ms: 18.292556
   type: 'test'
   ...
 # Subtest: unconfirmed click gets no success and no duplicate retry
 ok 23 - unconfirmed click gets no success and no duplicate retry
   ---
-  duration_ms: 15.460398
+  duration_ms: 15.154438
   type: 'test'
   ...
 # Subtest: unlike also waits for official state transition
 ok 24 - unlike also waits for official state transition
   ---
-  duration_ms: 21.090656
+  duration_ms: 22.302919
   type: 'test'
   ...
 # Subtest: unrelated replay click remains blocked by capture guard
 ok 25 - unrelated replay click remains blocked by capture guard
   ---
-  duration_ms: 12.560576
+  duration_ms: 12.072813
   type: 'test'
   ...
 # Subtest: ambiguous portal rail is not clicked
 ok 26 - ambiguous portal rail is not clicked
   ---
-  duration_ms: 18.5922
+  duration_ms: 18.396724
   type: 'test'
   ...
 # Subtest: delayed state update confirms; recycled source never confirms stale action
 ok 27 - delayed state update confirms; recycled source never confirms stale action
   ---
-  duration_ms: 71.0845
+  duration_ms: 67.08904
   type: 'test'
   ...
 # Subtest: adding an explicit false state is not a successful reaction transition
 ok 28 - adding an explicit false state is not a successful reaction transition
   ---
-  duration_ms: 18.126991
+  duration_ms: 14.70552
   type: 'test'
   ...
 # Subtest: refreshing a reaction image cannot masquerade as changing Like state
 ok 29 - refreshing a reaction image cannot masquerade as changing Like state
   ---
-  duration_ms: 14.692811
+  duration_ms: 14.962513
   type: 'test'
   ...
 # Subtest: private video scope excludes another video rail even at identical bounds
 ok 30 - private video scope excludes another video rail even at identical bounds
   ---
-  duration_ms: 14.987549
+  duration_ms: 14.877587
   type: 'test'
   ...
 # Subtest: offscreen official button is refused
 ok 31 - offscreen official button is refused
   ---
-  duration_ms: 17.574813
+  duration_ms: 14.438808
   type: 'test'
   ...
 # Subtest: home left swipe is consumed before the page completion handler
 ok 32 - home left swipe is consumed before the page completion handler
   ---
-  duration_ms: 88.229384
+  duration_ms: 93.392404
   type: 'test'
   ...
 # Subtest: vertical scroll and tiny movement pass unchanged
 ok 33 - vertical scroll and tiny movement pass unchanged
   ---
-  duration_ms: 33.883039
+  duration_ms: 32.839756
   type: 'test'
   ...
 # Subtest: not active in reels, videos, story composer, messages or filtered root pages
 ok 34 - not active in reels, videos, story composer, messages or filtered root pages
   ---
-  duration_ms: 52.943771
+  duration_ms: 52.300369
   type: 'test'
   ...
 # Subtest: editable areas retain touch behavior
 ok 35 - editable areas retain touch behavior
   ---
-  duration_ms: 13.66476
+  duration_ms: 15.01138
   type: 'test'
   ...
 # Subtest: horizontal carousel and system gesture edge are not intercepted
 ok 36 - horizontal carousel and system gesture edge are not intercepted
   ---
-  duration_ms: 10.155864
+  duration_ms: 17.788143
   type: 'test'
   ...
 # Subtest: route change, multi-touch and active text selection cancel interception
 ok 37 - route change, multi-touch and active text selection cancel interception
   ---
-  duration_ms: 11.928484
+  duration_ms: 11.747171
   type: 'test'
   ...
 # Subtest: pointer-only touch path is blocked only after direction is established
 ok 38 - pointer-only touch path is blocked only after direction is established
   ---
-  duration_ms: 11.580965
+  duration_ms: 9.518838
   type: 'test'
   ...
 # Subtest: neutral home video surface is gated but video pages are not
 ok 39 - neutral home video surface is gated but video pages are not
   ---
-  duration_ms: 15.023625
+  duration_ms: 9.471951
   type: 'test'
   ...
 # Subtest: rightward home swipe is also gated in RTL layouts
 ok 40 - rightward home swipe is also gated in RTL layouts
   ---
-  duration_ms: 7.777636
+  duration_ms: 8.509729
   type: 'test'
   ...
 # Subtest: a button remains tappable but cannot exempt a whole home swipe
 ok 41 - a button remains tappable but cannot exempt a whole home swipe
   ---
-  duration_ms: 19.741418
+  duration_ms: 48.267904
   type: 'test'
   ...
 # Subtest: full-height paging shell does not masquerade as a carousel
 ok 42 - full-height paging shell does not masquerade as a carousel
   ---
-  duration_ms: 8.121057
+  duration_ms: 9.086616
   type: 'test'
   ...
 # Subtest: fullscreen on a home URL is not treated as ordinary home feed
 ok 43 - fullscreen on a home URL is not treated as ordinary home feed
   ---
-  duration_ms: 4.56002
+  duration_ms: 4.692436
   type: 'test'
   ...
 # Subtest: optional home block defaults on, can turn off and on without page reload
 ok 44 - optional home block defaults on, can turn off and on without page reload
   ---
-  duration_ms: 7.750481
+  duration_ms: 8.66744
   type: 'test'
   ...
 # Subtest: turning the option off resets a partially blocked page gesture
 ok 45 - turning the option off resets a partially blocked page gesture
   ---
-  duration_ms: 13.511109
+  duration_ms: 8.023244
   type: 'test'
   ...
 # Subtest: footer stays entirely above viewport/system boundary across viewport sizes
 ok 46 - footer stays entirely above viewport/system boundary across viewport sizes
   ---
-  duration_ms: 1.018796
+  duration_ms: 1.281765
   type: 'test'
   ...
 # Subtest: native and visual viewport bounds use the smaller CSS area
 ok 47 - native and visual viewport bounds use the smaller CSS area
   ---
-  duration_ms: 0.201234
+  duration_ms: 0.286144
   type: 'test'
   ...
 # Subtest: fullscreen region is upper 40 percent, lower region and offscreen points excluded
 ok 48 - fullscreen region is upper 40 percent, lower region and offscreen points excluded
   ---
-  duration_ms: 0.164865
+  duration_ms: 0.19731
   type: 'test'
   ...
 # Subtest: one visible rail, no persistent animation loop at rest
 ok 49 - one visible rail, no persistent animation loop at rest
   ---
-  duration_ms: 120.85374
+  duration_ms: 125.881667
   type: 'test'
   ...
 # Subtest: remount detached root and detached button host even when hidden=false
 ok 50 - remount detached root and detached button host even when hidden=false
   ---
-  duration_ms: 35.338227
+  duration_ms: 35.804291
   type: 'test'
   ...
 # Subtest: moving a video retains identity; removal disposes; replacement/recycling attaches immediately
 ok 51 - moving a video retains identity; removal disposes; replacement/recycling attaches immediately
   ---
-  duration_ms: 30.612422
+  duration_ms: 29.102547
   type: 'test'
   ...
 # Subtest: transparent/offscreen/aria-hidden dialogs do not suppress tools; covering modal does
 ok 52 - transparent/offscreen/aria-hidden dialogs do not suppress tools; covering modal does
   ---
-  duration_ms: 37.577261
+  duration_ms: 19.776591
   type: 'test'
   ...
 # Subtest: download resolves current recycled source on click, not initial source
 ok 53 - download resolves current recycled source on click, not initial source
   ---
-  duration_ms: 20.066411
+  duration_ms: 26.800524
   type: 'test'
   ...
 # Subtest: master off disposes, on rebuilds once; progress off releases legacy ownership
 ok 54 - master off disposes, on rebuilds once; progress off releases legacy ownership
   ---
-  duration_ms: 18.870795
+  duration_ms: 24.123083
   type: 'test'
   ...
 # Subtest: one progress owner for overlapping players
 ok 55 - one progress owner for overlapping players
   ---
-  duration_ms: 16.914994
+  duration_ms: 17.104982
   type: 'test'
   ...
 # Subtest: duration/live changes and seek affect only the bound video
 ok 56 - duration/live changes and seek affect only the bound video
   ---
-  duration_ms: 11.843284
+  duration_ms: 11.389731
   type: 'test'
   ...
 # Subtest: top ownership can be disabled and never toggles existing fullscreen
 ok 57 - top ownership can be disabled and never toggles existing fullscreen
   ---
-  duration_ms: 10.77798
+  duration_ms: 9.653231
   type: 'test'
   ...
 # Subtest: requested lower position: line drops 8 CSS px and ball remains above boundary
 ok 58 - requested lower position: line drops 8 CSS px and ball remains above boundary
   ---
-  duration_ms: 0.174265
+  duration_ms: 0.224493
   type: 'test'
   ...
 # Subtest: painted fill receives the lower offset rather than inherited old CSS
 ok 59 - painted fill receives the lower offset rather than inherited old CSS
   ---
-  duration_ms: 43.163205
+  duration_ms: 37.480353
   type: 'test'
   ...
 # Subtest: owned backward drag never leaks even its start to page capture and seeks the bound clip
 ok 60 - owned backward drag never leaks even its start to page capture and seeks the bound clip
   ---
-  duration_ms: 15.112119
+  duration_ms: 14.004404
   type: 'test'
   ...
 # Subtest: owned pointer stays isolated outside range bounds and clamps forward seek
 ok 61 - owned pointer stays isolated outside range bounds and clamps forward seek
   ---
-  duration_ms: 12.296003
+  duration_ms: 11.820884
   type: 'test'
   ...
 # Subtest: touch-only range fallback is isolated and cancels cleanly
 ok 62 - touch-only range fallback is isolated and cancels cleanly
   ---
-  duration_ms: 11.847988
+  duration_ms: 11.249823
   type: 'test'
   ...
 # Subtest: realistic dual pointer plus touch stream is one control intent
 ok 63 - realistic dual pointer plus touch stream is one control intent
   ---
-  duration_ms: 21.309982
+  duration_ms: 12.612639
   type: 'test'
   ...
 # Subtest: ordinary website ranges are not treated as app-owned controls
 ok 64 - ordinary website ranges are not treated as app-owned controls
   ---
-  duration_ms: 12.962484
+  duration_ms: 19.722921
   type: 'test'
   ...
 # Subtest: keyboard and accessibility input changes retain existing binding
 ok 65 - keyboard and accessibility input changes retain existing binding
   ---
-  duration_ms: 11.126981
+  duration_ms: 11.162452
   type: 'test'
   ...
 # Subtest: emoji thumb and track target also route to the owning seek input
 ok 66 - emoji thumb and track target also route to the owning seek input
   ---
-  duration_ms: 11.821699
+  duration_ms: 13.315014
   type: 'test'
   ...
 # Subtest: home option off does not disable owned seek isolation
 ok 67 - home option off does not disable owned seek isolation
   ---
-  duration_ms: 12.758727
+  duration_ms: 12.292515
   type: 'test'
   ...
 # Subtest: V2 finds the mobile action ancestor and explains old selector/bounds rejection without exporting labels or IDs
 ok 68 - V2 finds the mobile action ancestor and explains old selector/bounds rejection without exporting labels or IDs
   ---
-  duration_ms: 101.284769
+  duration_ms: 97.186903
   type: 'test'
   ...
 # Subtest: local-first search reaches the selected feed item after more than 500 preceding nodes
 ok 69 - local-first search reaches the selected feed item after more than 500 preceding nodes
   ---
-  duration_ms: 93.626527
+  duration_ms: 96.58332
   type: 'test'
   ...
 # Subtest: viewport hit testing finds portal action outside the single-video owner
 ok 70 - viewport hit testing finds portal action outside the single-video owner
   ---
-  duration_ms: 20.122869
+  duration_ms: 13.931441
   type: 'test'
   ...
 # Subtest: parent opacity hides a preloaded player rather than counting it as visible
 ok 71 - parent opacity hides a preloaded player rather than counting it as visible
   ---
-  duration_ms: 12.659206
+  duration_ms: 12.040318
   type: 'test'
   ...
 # Subtest: another visible post action is reported as foreign, never chosen or clicked
 ok 72 - another visible post action is reported as foreign, never chosen or clicked
   ---
-  duration_ms: 18.327815
+  duration_ms: 22.275235
   type: 'test'
   ...
 # Subtest: broad Share-like text is distinguished from the old exact label
 ok 73 - broad Share-like text is distinguished from the old exact label
   ---
-  duration_ms: 11.778429
+  duration_ms: 11.777598
   type: 'test'
   ...
 # Subtest: FPRO owned controls are excluded
 ok 74 - FPRO owned controls are excluded
   ---
-  duration_ms: 11.093409
+  duration_ms: 15.92824
   type: 'test'
   ...
 # Subtest: missing viewport API is an explicit limit reason, not proof of missing controls
 ok 75 - missing viewport API is an explicit limit reason, not proof of missing controls
   ---
-  duration_ms: 19.448179
+  duration_ms: 11.958242
   type: 'test'
   ...
 # Subtest: local tree budget and absent match are explicit; capture never triggers networking or clicks
 ok 76 - local tree budget and absent match are explicit; capture never triggers networking or clicks
   ---
-  duration_ms: 225.33217
+  duration_ms: 219.891293
   type: 'test'
   ...
 # Subtest: V2 invalid context remains rejected and production asset is injected after V1
 ok 77 - V2 invalid context remains rejected and production asset is injected after V1
   ---
-  duration_ms: 9.728083
+  duration_ms: 9.719171
   type: 'test'
   ...
 # Subtest: unlabelled mobile action is reported structurally, never mistaken for identified Share
 ok 78 - unlabelled mobile action is reported structurally, never mistaken for identified Share
   ---
-  duration_ms: 12.02966
+  duration_ms: 13.283866
   type: 'test'
   ...
 # Subtest: V2 categorizes isolated Arabic commands without exporting their strings
 ok 79 - V2 categorizes isolated Arabic commands without exporting their strings
   ---
-  duration_ms: 11.969693
+  duration_ms: 13.143846
   type: 'test'
   ...
 # Subtest: icon-only count action exports bounded public icon code, not count or normal text
 ok 80 - icon-only count action exports bounded public icon code, not count or normal text
   ---
-  duration_ms: 12.563921
+  duration_ms: 16.245886
   type: 'test'
   ...
 # Subtest: unknown font PUA and regular emoji/text never export codepoints
 ok 81 - unknown font PUA and regular emoji/text never export codepoints
   ---
-  duration_ms: 11.191386
+  duration_ms: 17.404356
   type: 'test'
   ...
 # Subtest: pseudo-element icon code is categorized without exporting font-family or CSS URL
 ok 82 - pseudo-element icon code is categorized without exporting font-family or CSS URL
   ---
-  duration_ms: 10.291592
+  duration_ms: 13.847923
   type: 'test'
   ...
 # Subtest: nested foreign action icons cannot identify their outer action; glyph work is bounded
 ok 83 - nested foreign action icons cannot identify their outer action; glyph work is bounded
   ---
-  duration_ms: 11.675639
+  duration_ms: 18.506671
   type: 'test'
   ...
 # Subtest: native HTML button without mobile action attributes still reports its own public icon
 ok 84 - native HTML button without mobile action attributes still reports its own public icon
   ---
-  duration_ms: 17.174021
+  duration_ms: 12.491407
   type: 'test'
   ...
 # Subtest: no observer/timer or clipboard reads while idle
 ok 85 - no observer/timer or clipboard reads while idle
   ---
-  duration_ms: 60.472972
+  duration_ms: 57.674181
   type: 'test'
   ...
 # Subtest: one click opens official share, clicks official copy and sends the supplied current share URL once
 ok 86 - one click opens official share, clicks official copy and sends the supplied current share URL once
   ---
-  duration_ms: 71.455223
+  duration_ms: 68.488589
   type: 'test'
   ...
 # Subtest: already-open share sheet is not consumed as if belonging to selected clip
 ok 87 - already-open share sheet is not consumed as if belonging to selected clip
   ---
-  duration_ms: 27.092449
+  duration_ms: 19.315243
   type: 'test'
   ...
 # Subtest: two official Copy link candidates are ambiguous
 ok 88 - two official Copy link candidates are ambiguous
   ---
-  duration_ms: 23.766463
+  duration_ms: 25.30421
   type: 'test'
   ...
 # Subtest: old copied value before copy phase cannot trigger download
 ok 89 - old copied value before copy phase cannot trigger download
   ---
-  duration_ms: 17.619477
+  duration_ms: 20.543105
   type: 'test'
   ...
 # Subtest: recycled source and detached target invalidate delayed copy result
 ok 90 - recycled source and detached target invalidate delayed copy result
   ---
-  duration_ms: 34.484704
+  duration_ms: 27.104206
   type: 'test'
   ...
 # Subtest: duplicate taps while waiting do not open a second share action
 ok 91 - duplicate taps while waiting do not open a second share action
   ---
-  duration_ms: 13.662868
+  duration_ms: 13.475036
   type: 'test'
   ...
 # Subtest: timeout removes observer, listeners and queued work
 ok 92 - timeout removes observer, listeners and queued work
   ---
-  duration_ms: 13.508693
+  duration_ms: 13.385496
   type: 'test'
   ...
 # Subtest: ordinary scroll/drag cancels pending work without navigation or fallback
 ok 93 - ordinary scroll/drag cancels pending work without navigation or fallback
   ---
-  duration_ms: 16.850047
+  duration_ms: 20.509106
   type: 'test'
   ...
 # Subtest: no current article button means no first-post share selection on feed
 ok 94 - no current article button means no first-post share selection on feed
   ---
-  duration_ms: 17.740255
+  duration_ms: 12.926268
   type: 'test'
   ...
 # Subtest: missing official share never falls back to a guessed or direct media URL
 ok 95 - missing official share never falls back to a guessed or direct media URL
   ---
-  duration_ms: 11.31571
+  duration_ms: 12.229499
   type: 'test'
   ...
 # Subtest: ordinary manual clipboard copying outside a download request is unchanged in production hook
 ok 96 - ordinary manual clipboard copying outside a download request is unchanged in production hook
   ---
-  duration_ms: 17.526746
+  duration_ms: 21.991766
   type: 'test'
   ...
 # Subtest: video viewer dialog may contain its own official share control
 ok 97 - video viewer dialog may contain its own official share control
   ---
-  duration_ms: 16.287248
+  duration_ms: 18.858214
   type: 'test'
   ...
 # Subtest: icon font glyphs do not corrupt otherwise explicit Arabic Share and Copy labels
 ok 98 - icon font glyphs do not corrupt otherwise explicit Arabic Share and Copy labels
   ---
-  duration_ms: 21.826538
+  duration_ms: 24.519161
   type: 'test'
   ...
 # Subtest: choosing another official share-sheet action cancels a delayed download
 ok 99 - choosing another official share-sheet action cancels a delayed download
   ---
-  duration_ms: 15.909492
+  duration_ms: 16.040602
   type: 'test'
   ...
 # Subtest: a portal Share control above the selected Reel cannot be mistaken for its own rail
 ok 100 - a portal Share control above the selected Reel cannot be mistaken for its own rail
   ---
-  duration_ms: 10.317665
+  duration_ms: 10.360809
   type: 'test'
   ...
 # Subtest: official modal hiding its background video does not cancel its own copy
 ok 101 - official modal hiding its background video does not cancel its own copy
   ---
-  duration_ms: 14.477796
+  duration_ms: 14.03535
   type: 'test'
   ...
 # Subtest: aria-labelledby is an official accessible name, not just a numeric button count
 ok 102 - aria-labelledby is an official accessible name, not just a numeric button count
   ---
-  duration_ms: 39.539952
+  duration_ms: 22.885933
   type: 'test'
   ...
 # Subtest: temporary sheet masking is active during copy and fully restored on cleanup
 ok 103 - temporary sheet masking is active during copy and fully restored on cleanup
   ---
-  duration_ms: 23.490426
+  duration_ms: 17.196183
   type: 'test'
   ...
 # Subtest: hidden controls from a long feed never exhaust the candidate budget before the current share sheet
 ok 104 - hidden controls from a long feed never exhaust the candidate budget before the current share sheet
   ---
-  duration_ms: 106.891991
+  duration_ms: 120.158211
   type: 'test'
   ...
 # Subtest: owner-shaped descriptive Arabic share works on Reel and non-Reel routes
 ok 105 - owner-shaped descriptive Arabic share works on Reel and non-Reel routes
   ---
-  duration_ms: 29.758577
+  duration_ms: 29.424232
   type: 'test'
   ...
 # Subtest: descriptive text alone is not a mobile Share command
 ok 106 - descriptive text alone is not a mobile Share command
   ---
-  duration_ms: 12.892265
+  duration_ms: 12.761282
   type: 'test'
   ...
 # Subtest: missing role/action/component rejects the descriptive-name extension
 ok 107 - missing role/action/component rejects the descriptive-name extension
   ---
-  duration_ms: 32.303807
+  duration_ms: 32.537505
   type: 'test'
   ...
 # Subtest: two owned descriptive share actions are ambiguous
 ok 108 - two owned descriptive share actions are ambiguous
   ---
-  duration_ms: 11.032656
+  duration_ms: 10.535602
   type: 'test'
   ...
 # Subtest: descriptive Share from another video or an unproven portal is never selected
 ok 109 - descriptive Share from another video or an unproven portal is never selected
   ---
-  duration_ms: 25.251396
+  duration_ms: 19.53447
   type: 'test'
   ...
 # Subtest: mobile roleless Copy-link action with descriptive aria is accepted only after Share
 ok 110 - mobile roleless Copy-link action with descriptive aria is accepted only after Share
   ---
-  duration_ms: 13.221987
+  duration_ms: 12.577028
   type: 'test'
   ...
 # Subtest: nested Copy wrappers dispatch once to the same action owner
 ok 111 - nested Copy wrappers dispatch once to the same action owner
   ---
-  duration_ms: 13.927474
+  duration_ms: 20.618536
   type: 'test'
   ...
 # Subtest: failure produces a numeric-only V2 attempt report when diagnostics are available
 ok 112 - failure produces a numeric-only V2 attempt report when diagnostics are available
   ---
-  duration_ms: 8.851728
+  duration_ms: 9.174426
   type: 'test'
   ...
 # Subtest: Send extension requires an explicit video/reel/post, never a message-to-author command
 ok 113 - Send extension requires an explicit video/reel/post, never a message-to-author command
   ---
-  duration_ms: 30.057352
+  duration_ms: 23.247045
   type: 'test'
   ...
 # Subtest: silent writeText routes URL once without invoking the real clipboard writer
 ok 114 - silent writeText routes URL once without invoking the real clipboard writer
   ---
-  duration_ms: 14.98337
+  duration_ms: 23.51454
   type: 'test'
   ...
 # Subtest: silent selected-URL execCommand never invokes browser copy
 ok 115 - silent selected-URL execCommand never invokes browser copy
   ---
-  duration_ms: 16.182132
+  duration_ms: 17.699718
   type: 'test'
   ...
 # Subtest: silent DataTransfer blocks both HTML and plain data for the same clipboard event
 ok 116 - silent DataTransfer blocks both HTML and plain data for the same clipboard event
   ---
-  duration_ms: 21.768165
+  duration_ms: 16.375102
   type: 'test'
   ...
 # Subtest: invalid intermediate automated data is not written and does not produce a download
 ok 117 - invalid intermediate automated data is not written and does not produce a download
   ---
-  duration_ms: 14.531686
+  duration_ms: 16.276479
   type: 'test'
   ...
 # Subtest: manual copying after a trusted user action retains normal clipboard behavior
 ok 118 - manual copying after a trusted user action retains normal clipboard behavior
   ---
-  duration_ms: 15.052407
+  duration_ms: 22.390451
   type: 'test'
   ...
 # Subtest: manual copy after explicit cancellation is unchanged
 ok 119 - manual copy after explicit cancellation is unchanged
   ---
-  duration_ms: 14.947016
+  duration_ms: 15.48142
   type: 'test'
   ...
 # Subtest: duplicate receipt is cleared by its one-shot expiry without global clipboard disabling
 ok 120 - duplicate receipt is cleared by its one-shot expiry without global clipboard disabling
   ---
-  duration_ms: 19.436016
+  duration_ms: 17.010275
   type: 'test'
   ...
 # Subtest: native handoff contains no clipboard write or restore; bridge interception precedes writing
 ok 121 - native handoff contains no clipboard write or restore; bridge interception precedes writing
   ---
-  duration_ms: 0.315626
+  duration_ms: 0.378542
   type: 'test'
   ...
 # Subtest: silent ClipboardItem write does not forward to real clipboard writer
 ok 122 - silent ClipboardItem write does not forward to real clipboard writer
   ---
-  duration_ms: 15.674767
+  duration_ms: 15.752339
   type: 'test'
   ...
 # Subtest: duplicate ClipboardItem channel after writeText capture stays internal; unrelated items remain manual
 ok 123 - duplicate ClipboardItem channel after writeText capture stays internal; unrelated items remain manual
   ---
-  duration_ms: 15.148473
+  duration_ms: 21.003226
   type: 'test'
   ...
 # Subtest: recycled player suppresses stale automated text and ClipboardItem without manual clipboard fallback
 ok 124 - recycled player suppresses stale automated text and ClipboardItem without manual clipboard fallback
   ---
-  duration_ms: 34.208257
+  duration_ms: 29.381696
   type: 'test'
   ...
 # Subtest: homepage explicit Arabic Share and Copy survive Unicode direction isolates
 ok 125 - homepage explicit Arabic Share and Copy survive Unicode direction isolates
   ---
-  duration_ms: 13.9698
+  duration_ms: 13.9157
   type: 'test'
   ...
 # Subtest: Unicode invisible formatting inside an explicit command is not an unknown button name
 ok 126 - Unicode invisible formatting inside an explicit command is not an unknown button name
   ---
-  duration_ms: 14.056726
+  duration_ms: 28.003351
   type: 'test'
   ...
 # Subtest: direction isolates do not turn unknown, Like, comment or send-message names into Share
 ok 127 - direction isolates do not turn unknown, Like, comment or send-message names into Share
   ---
-  duration_ms: 54.09938
+  duration_ms: 37.863902
   type: 'test'
   ...
 # Subtest: homepage isolated Share still cannot select another post or two owned actions
 ok 128 - homepage isolated Share still cannot select another post or two owned actions
   ---
-  duration_ms: 30.643858
+  duration_ms: 26.701461
   type: 'test'
   ...
 # Subtest: reported Share icon routes fresh current link internally despite unclassified aria
 ok 129 - reported Share icon routes fresh current link internally despite unclassified aria
   ---
-  duration_ms: 34.126448
+  duration_ms: 17.944156
   type: 'test'
   ...
 # Subtest: reported Like and Comment icons are not Share
 ok 130 - reported Like and Comment icons are not Share
   ---
-  duration_ms: 25.71486
+  duration_ms: 31.243176
   type: 'test'
   ...
 # Subtest: Share identification is independent of row order, coordinate side and count
 ok 131 - Share identification is independent of row order, coordinate side and count
   ---
-  duration_ms: 26.625411
+  duration_ms: 24.578764
   type: 'test'
   ...
 # Subtest: Share glyph alone in generic text or wrong font/footprint is not an action
 ok 132 - Share glyph alone in generic text or wrong font/footprint is not an action
   ---
-  duration_ms: 40.165498
+  duration_ms: 53.817385
   type: 'test'
   ...
 # Subtest: nested foreign icon, mixed icons and hidden icon cannot authorize their parent
 ok 133 - nested foreign icon, mixed icons and hidden icon cannot authorize their parent
   ---
-  duration_ms: 53.835264
+  duration_ms: 56.581182
   type: 'test'
   ...
 # Subtest: two owned Share glyph actions fail closed as ambiguous
 ok 134 - two owned Share glyph actions fail closed as ambiguous
   ---
-  duration_ms: 21.221783
+  duration_ms: 15.53509
   type: 'test'
   ...
 # Subtest: Share glyph from another video or no-video article cannot borrow selected player ownership
 ok 135 - Share glyph from another video or no-video article cannot borrow selected player ownership
   ---
-  duration_ms: 19.663589
+  duration_ms: 20.790689
   type: 'test'
   ...
 # Subtest: glyph recognition is homepage-only; portal and other route behavior are not widened
 ok 136 - glyph recognition is homepage-only; portal and other route behavior are not widened
   ---
-  duration_ms: 18.362773
+  duration_ms: 30.537996
   type: 'test'
   ...
 # Subtest: optional action metadata cannot override the observed icon identity
 ok 137 - optional action metadata cannot override the observed icon identity
   ---
-  duration_ms: 213.957148
+  duration_ms: 167.521459
   type: 'test'
   ...
 # Subtest: owned icon route still rejects recycled player before delayed fresh Copy
 ok 138 - owned icon route still rejects recycled player before delayed fresh Copy
   ---
-  duration_ms: 19.050651
+  duration_ms: 19.901089
   type: 'test'
   ...
 # Subtest: one Copy row inside actionable full-sheet/backdrop wrappers is not several copy actions
 ok 139 - one Copy row inside actionable full-sheet/backdrop wrappers is not several copy actions
   ---
-  duration_ms: 21.393076
+  duration_ms: 64.861853
   type: 'test'
   ...
 # Subtest: icon-only Copy row belongs to nearest action, not enclosing menu ancestors
 ok 140 - icon-only Copy row belongs to nearest action, not enclosing menu ancestors
   ---
-  duration_ms: 20.984106
+  duration_ms: 45.135452
   type: 'test'
   ...
 # Subtest: inherited Copy text is not an own name for an aggregate wrapper
 ok 141 - inherited Copy text is not an own name for an aggregate wrapper
   ---
-  duration_ms: 22.42528
+  duration_ms: 27.549215
   type: 'test'
   ...
 # Subtest: opaque-parent hidden duplicate is excluded while the visible Copy remains unique
 ok 142 - opaque-parent hidden duplicate is excluded while the visible Copy remains unique
   ---
-  duration_ms: 19.073055
+  duration_ms: 20.068886
   type: 'test'
   ...
 # Subtest: two genuinely distinct fresh Copy actions still fail closed, never pick the first
 ok 143 - two genuinely distinct fresh Copy actions still fail closed, never pick the first
   ---
-  duration_ms: 18.55194
+  duration_ms: 21.335399
   type: 'test'
   ...
 # Subtest: full-sheet preexisting Copy still blocks download before Share click
 ok 144 - full-sheet preexisting Copy still blocks download before Share click
   ---
-  duration_ms: 17.41431
+  duration_ms: 21.950059
   type: 'test'
   ...
 # Subtest: Share modal may hide its video background while unique owned Copy is completed
 ok 145 - Share modal may hide its video background while unique owned Copy is completed
   ---
-  duration_ms: 17.613389
+  duration_ms: 17.893685
   type: 'test'
   ...
 # Subtest: Copy diagnostics remain numeric counts with native allowlist caps
 ok 146 - Copy diagnostics remain numeric counts with native allowlist caps
   ---
-  duration_ms: 0.209746
+  duration_ms: 0.217025
   type: 'test'
   ...
 # Subtest: metadata on Copy icon is not an independent action from its nearest role-button row
 ok 147 - metadata on Copy icon is not an independent action from its nearest role-button row
   ---
-  duration_ms: 17.849378
+  duration_ms: 19.558107
   type: 'test'
   ...
 # Subtest: CSS-only sheet fade completion rechecks Copy without polling or ignoring visibility
 ok 148 - CSS-only sheet fade completion rechecks Copy without polling or ignoring visibility
   ---
-  duration_ms: 27.455954
+  duration_ms: 28.407195
   type: 'test'
   ...
 # Subtest: asynchronous fresh sheet is veiled before queued selection without CSS invisibility
 ok 149 - asynchronous fresh sheet is veiled before queued selection without CSS invisibility
   ---
-  duration_ms: 41.412191
+  duration_ms: 42.71718
   type: 'test'
   ...
 # Subtest: late copied status is veiled, error status and post content are untouched
 ok 150 - late copied status is veiled, error status and post content are untouched
   ---
-  duration_ms: 22.828789
+  duration_ms: 16.542022
   type: 'test'
   ...
 # Subtest: reused empty live region is veiled when copied text arrives after success
 ok 151 - reused empty live region is veiled when copied text arrives after success
   ---
-  duration_ms: 14.597674
+  duration_ms: 14.641542
   type: 'test'
   ...
 # Subtest: preexisting copied status and unrelated viewer dialog are never veiled
 ok 152 - preexisting copied status and unrelated viewer dialog are never veiled
   ---
-  duration_ms: 16.430305
+  duration_ms: 15.720159
   type: 'test'
   ...
 # Subtest: failure restores original important filter exactly without clicking ambiguous rows
 ok 153 - failure restores original important filter exactly without clicking ambiguous rows
   ---
-  duration_ms: 14.339165
+  duration_ms: 14.130106
   type: 'test'
   ...
 # Subtest: trusted interaction ends post-copy veil immediately and subsequent manual status is visible
 ok 154 - trusted interaction ends post-copy veil immediately and subsequent manual status is visible
   ---
-  duration_ms: 18.127603
+  duration_ms: 19.601807
   type: 'test'
   ...
 # Subtest: timeout while sheet is opening restores it and cancels both observers
 ok 155 - timeout while sheet is opening restores it and cancels both observers
   ---
-  duration_ms: 11.939067
+  duration_ms: 12.162224
   type: 'test'
   ...
 # Subtest: page navigation drops post-copy rendering veil and never retains idle observers
 ok 156 - page navigation drops post-copy rendering veil and never retains idle observers
   ---
-  duration_ms: 13.450791
+  duration_ms: 13.783536
   type: 'test'
   ...
 # Subtest: hidden menu cannot receive physical pointer hits but official programmatic copy still works
 ok 157 - hidden menu cannot receive physical pointer hits but official programmatic copy still works
   ---
-  duration_ms: 13.352124
+  duration_ms: 14.02508
   type: 'test'
   ...
 # Subtest: source recycling closes short post-copy veil without masking a new video UI
 ok 158 - source recycling closes short post-copy veil without masking a new video UI
   ---
-  duration_ms: 20.106575
+  duration_ms: 21.425331
   type: 'test'
   ...
 # Subtest: backgrounding closes veil without waiting for throttled background timers
 ok 159 - backgrounding closes veil without waiting for throttled background timers
   ---
-  duration_ms: 13.079875
+  duration_ms: 14.318347
   type: 'test'
   ...
 # Subtest: a copied status reused for an error is immediately restored, not silently hidden
 ok 160 - a copied status reused for an error is immediately restored, not silently hidden
   ---
-  duration_ms: 14.971276
+  duration_ms: 17.884905
+  type: 'test'
+  ...
+# Subtest: aggregate live regions are bounded and never read as whole-feed copied feedback
+ok 161 - aggregate live regions are bounded and never read as whole-feed copied feedback
+  ---
+  duration_ms: 25.295532
   type: 'test'
   ...
 # Subtest: diagnostic recognizes Useful Scripts field structure but never exports its ID or private strings
-ok 161 - diagnostic recognizes Useful Scripts field structure but never exports its ID or private strings
+ok 162 - diagnostic recognizes Useful Scripts field structure but never exports its ID or private strings
   ---
-  duration_ms: 55.588775
+  duration_ms: 58.669171
   type: 'test'
   ...
 # Subtest: diagnostic parses local JSON structure without exporting attribute values
-ok 162 - diagnostic parses local JSON structure without exporting attribute values
+ok 163 - diagnostic parses local JSON structure without exporting attribute values
   ---
-  duration_ms: 12.950956
+  duration_ms: 11.62274
   type: 'test'
   ...
 # Subtest: React and nested field getters are not invoked
-ok 163 - React and nested field getters are not invoked
+ok 164 - React and nested field getters are not invoked
   ---
-  duration_ms: 7.284356
+  duration_ms: 8.426147
   type: 'test'
   ...
 # Subtest: no cookies, account storage or networking is accessed
-ok 164 - no cookies, account storage or networking is accessed
+ok 165 - no cookies, account storage or networking is accessed
   ---
-  duration_ms: 6.746665
+  duration_ms: 7.374073
   type: 'test'
   ...
 # Subtest: selected second player excludes shared feed and neighbor metadata
-ok 165 - selected second player excludes shared feed and neighbor metadata
+ok 166 - selected second player excludes shared feed and neighbor metadata
   ---
-  duration_ms: 8.576475
+  duration_ms: 9.207337
   type: 'test'
   ...
 # Subtest: bounded cyclic props, oversized JSON and excessive hosts terminate with a limit marker
-ok 166 - bounded cyclic props, oversized JSON and excessive hosts terminate with a limit marker
+ok 167 - bounded cyclic props, oversized JSON and excessive hosts terminate with a limit marker
   ---
-  duration_ms: 7.733306
+  duration_ms: 14.111432
   type: 'test'
   ...
 # Subtest: source is classified without retaining signed media URL
-ok 167 - source is classified without retaining signed media URL
+ok 168 - source is classified without retaining signed media URL
   ---
-  duration_ms: 8.348692
+  duration_ms: 7.183358
   type: 'test'
   ...
 # Subtest: detached and foreign-host contexts produce no report
-ok 168 - detached and foreign-host contexts produce no report
+ok 169 - detached and foreign-host contexts produce no report
   ---
-  duration_ms: 14.573355
+  duration_ms: 13.994794
   type: 'test'
   ...
 # Subtest: nearby control counts do not export labels, action IDs or link destinations
-ok 169 - nearby control counts do not export labels, action IDs or link destinations
+ok 170 - nearby control counts do not export labels, action IDs or link destinations
   ---
-  duration_ms: 15.242715
+  duration_ms: 8.620811
   type: 'test'
   ...
 # Subtest: diagnostic production button and native allowlist/dialog are wired without a download call
-ok 170 - diagnostic production button and native allowlist/dialog are wired without a download call
+ok 171 - diagnostic production button and native allowlist/dialog are wired without a download call
   ---
-  duration_ms: 0.844592
+  duration_ms: 1.066147
   type: 'test'
   ...
 # Subtest: source transition mismatch is reported without either URL
-ok 171 - source transition mismatch is reported without either URL
+ok 172 - source transition mismatch is reported without either URL
   ---
-  duration_ms: 6.896971
+  duration_ms: 7.209847
   type: 'test'
   ...
 # Subtest: post-only: Useful Scripts identity sends only permalink, never the playback URL
-ok 172 - post-only: Useful Scripts identity sends only permalink, never the playback URL
+ok 173 - post-only: Useful Scripts identity sends only permalink, never the playback URL
   ---
-  duration_ms: 1.142191
+  duration_ms: 1.123776
   type: 'test'
   ...
 # Subtest: post-only rejects playback or missing URL: https://scontent-fra5-1.xx.fbcdn.net/sample.mp4?tag=sve_sd
-ok 173 - post-only rejects playback or missing URL: https://scontent-fra5-1.xx.fbcdn.net/sample.mp4?tag=sve_sd
+ok 174 - post-only rejects playback or missing URL: https://scontent-fra5-1.xx.fbcdn.net/sample.mp4?tag=sve_sd
   ---
-  duration_ms: 0.831571
+  duration_ms: 0.836614
   type: 'test'
   ...
 # Subtest: post-only rejects playback or missing URL: https://video.fbcdn.net/chunk.m4s
-ok 174 - post-only rejects playback or missing URL: https://video.fbcdn.net/chunk.m4s
+ok 175 - post-only rejects playback or missing URL: https://video.fbcdn.net/chunk.m4s
   ---
-  duration_ms: 0.120827
+  duration_ms: 0.124424
   type: 'test'
   ...
 # Subtest: post-only rejects playback or missing URL: blob:current
-ok 175 - post-only rejects playback or missing URL: blob:current
+ok 176 - post-only rejects playback or missing URL: blob:current
   ---
-  duration_ms: 0.140975
+  duration_ms: 0.101134
   type: 'test'
   ...
 # Subtest: post-only rejects playback or missing URL: 
-ok 176 - post-only rejects playback or missing URL: 
+ok 177 - post-only rejects playback or missing URL: 
   ---
-  duration_ms: 0.159973
+  duration_ms: 0.146043
   type: 'test'
   ...
 # Subtest: a CDN masquerading as a permalink is still rejected
-ok 177 - a CDN masquerading as a permalink is still rejected
+ok 178 - a CDN masquerading as a permalink is still rejected
   ---
-  duration_ms: 0.14999
+  duration_ms: 0.148531
   type: 'test'
   ...
 # Subtest: stale metadata cannot trigger a playback URL fallback
-ok 178 - stale metadata cannot trigger a playback URL fallback
+ok 179 - stale metadata cannot trigger a playback URL fallback
   ---
-  duration_ms: 0.173076
+  duration_ms: 0.176141
   type: 'test'
   ...
 # Subtest: actual Useful Scripts parent metadata resolves the selected second player with a CDN source
-ok 179 - actual Useful Scripts parent metadata resolves the selected second player with a CDN source
+ok 180 - actual Useful Scripts parent metadata resolves the selected second player with a CDN source
   ---
-  duration_ms: 56.844051
+  duration_ms: 56.973063
   type: 'test'
   ...
 # Subtest: diagnostic build button is separate while native download sink retains post-only policy
-ok 180 - diagnostic build button is separate while native download sink retains post-only policy
+ok 181 - diagnostic build button is separate while native download sink retains post-only policy
   ---
-  duration_ms: 0.93873
+  duration_ms: 0.955115
   type: 'test'
   ...
 # Subtest: deep article permalink works beyond old four ancestor limit and removes trackers
-ok 181 - deep article permalink works beyond old four ancestor limit and removes trackers
+ok 182 - deep article permalink works beyond old four ancestor limit and removes trackers
   ---
-  duration_ms: 66.291543
+  duration_ms: 64.084334
   type: 'test'
   ...
 # Subtest: scoped data-store video id is preferred over a random nearby anchor
-ok 182 - scoped data-store video id is preferred over a random nearby anchor
+ok 183 - scoped data-store video id is preferred over a random nearby anchor
   ---
-  duration_ms: 13.333419
+  duration_ms: 12.142644
   type: 'test'
   ...
 # Subtest: metadata permalink and post owner/id are supported
-ok 183 - metadata permalink and post owner/id are supported
+ok 184 - metadata permalink and post owner/id are supported
   ---
-  duration_ms: 8.627824
+  duration_ms: 7.97134
   type: 'test'
   ...
 # Subtest: share and short links canonicalize; unsafe/general/private routes do not
-ok 184 - share and short links canonicalize; unsafe/general/private routes do not
+ok 185 - share and short links canonicalize; unsafe/general/private routes do not
   ---
-  duration_ms: 13.017091
+  duration_ms: 12.323308
   type: 'test'
   ...
 # Subtest: URL alone is never proof, including newly attached player on stale first Reel route
-ok 185 - URL alone is never proof, including newly attached player on stale first Reel route
+ok 186 - URL alone is never proof, including newly attached player on stale first Reel route
   ---
-  duration_ms: 6.491772
+  duration_ms: 6.481386
   type: 'test'
   ...
 # Subtest: recycled player cannot export stale ID, anchor or old address; new scoped ID works
-ok 186 - recycled player cannot export stale ID, anchor or old address; new scoped ID works
+ok 187 - recycled player cannot export stale ID, anchor or old address; new scoped ID works
   ---
-  duration_ms: 9.474928
+  duration_ms: 9.294851
   type: 'test'
   ...
 # Subtest: ambiguous anchors fail closed rather than use first
-ok 187 - ambiguous anchors fail closed rather than use first
+ok 188 - ambiguous anchors fail closed rather than use first
   ---
-  duration_ms: 8.042948
+  duration_ms: 8.105701
   type: 'test'
   ...
 # Subtest: two scoped video ids fail closed
-ok 188 - two scoped video ids fail closed
+ok 189 - two scoped video ids fail closed
   ---
-  duration_ms: 5.711825
+  duration_ms: 5.845723
   type: 'test'
   ...
 # Subtest: adjacent post and outer multi-player container do not leak first link
-ok 189 - adjacent post and outer multi-player container do not leak first link
+ok 190 - adjacent post and outer multi-player container do not leak first link
   ---
-  duration_ms: 9.919365
+  duration_ms: 10.271352
   type: 'test'
   ...
 # Subtest: hidden dialog/comment anchors are not evidence
-ok 190 - hidden dialog/comment anchors are not evidence
+ok 191 - hidden dialog/comment anchors are not evidence
   ---
-  duration_ms: 7.630823
+  duration_ms: 7.829906
   type: 'test'
   ...
 # Subtest: detached players and divergent old currentSrc never export old media
-ok 191 - detached players and divergent old currentSrc never export old media
+ok 192 - detached players and divergent old currentSrc never export old media
   ---
-  duration_ms: 7.018433
+  duration_ms: 7.113167
   type: 'test'
   ...
 # Subtest: duplicate representations of same video are unambiguous
-ok 192 - duplicate representations of same video are unambiguous
+ok 193 - duplicate representations of same video are unambiguous
   ---
-  duration_ms: 7.526389
+  duration_ms: 14.116255
   type: 'test'
   ...
 # Subtest: re-attaching controls never blesses stale metadata on a recycled element
-ok 193 - re-attaching controls never blesses stale metadata on a recycled element
+ok 194 - re-attaching controls never blesses stale metadata on a recycled element
   ---
-  duration_ms: 12.448317
+  duration_ms: 5.624442
   type: 'test'
   ...
 # Subtest: unproven initial browser address does not poison later scoped identity
-ok 194 - unproven initial browser address does not poison later scoped identity
+ok 195 - unproven initial browser address does not poison later scoped identity
   ---
-  duration_ms: 6.096152
+  duration_ms: 5.827996
   type: 'test'
   ...
 # Subtest: group video posts support both permalink and posts forms
-ok 195 - group video posts support both permalink and posts forms
+ok 196 - group video posts support both permalink and posts forms
   ---
-  duration_ms: 6.69556
+  duration_ms: 6.753276
   type: 'test'
   ...
 # Subtest: Messenger attachment IDs cannot be reinterpreted as Facebook public video IDs
-ok 196 - Messenger attachment IDs cannot be reinterpreted as Facebook public video IDs
+ok 197 - Messenger attachment IDs cannot be reinterpreted as Facebook public video IDs
   ---
-  duration_ms: 4.858207
+  duration_ms: 4.877065
   type: 'test'
   ...
 # Subtest: Bluemaster parent children.props.videoFBID produces a Facebook permalink
-ok 197 - Bluemaster parent children.props.videoFBID produces a Facebook permalink
+ok 198 - Bluemaster parent children.props.videoFBID produces a Facebook permalink
   ---
-  duration_ms: 57.899062
+  duration_ms: 55.296721
   type: 'test'
   ...
 # Subtest: coreVideoPlayerMetaData is an alternate explicit ID source
-ok 198 - coreVideoPlayerMetaData is an alternate explicit ID source
+ok 199 - coreVideoPlayerMetaData is an alternate explicit ID source
   ---
-  duration_ms: 10.304796
+  duration_ms: 10.199451
   type: 'test'
   ...
 # Subtest: a passed second player is used, never the first playing video or current route
-ok 199 - a passed second player is used, never the first playing video or current route
+ok 200 - a passed second player is used, never the first playing video or current route
   ---
-  duration_ms: 8.674934
+  duration_ms: 8.448368
   type: 'test'
   ...
 # Subtest: bounded owning fiber.return chain locates known player metadata
-ok 200 - bounded owning fiber.return chain locates known player metadata
+ok 201 - bounded owning fiber.return chain locates known player metadata
   ---
-  duration_ms: 6.648464
+  duration_ms: 12.088053
   type: 'test'
   ...
 # Subtest: a shared multi-player ancestor cannot supply another player ID
-ok 201 - a shared multi-player ancestor cannot supply another player ID
+ok 202 - a shared multi-player ancestor cannot supply another player ID
   ---
-  duration_ms: 8.378742
+  duration_ms: 6.652685
   type: 'test'
   ...
 # Subtest: a feed host is an explicit fiber boundary
-ok 202 - a feed host is an explicit fiber boundary
+ok 203 - a feed host is an explicit fiber boundary
   ---
-  duration_ms: 6.308636
+  duration_ms: 5.492598
   type: 'test'
   ...
 # Subtest: conflicting explicit child IDs are rejected, not picked by order
-ok 203 - conflicting explicit child IDs are rejected, not picked by order
+ok 204 - conflicting explicit child IDs are rejected, not picked by order
   ---
-  duration_ms: 6.782268
+  duration_ms: 5.959852
   type: 'test'
   ...
 # Subtest: current/alternate fiber identity disagreement fails closed
-ok 204 - current/alternate fiber identity disagreement fails closed
+ok 205 - current/alternate fiber identity disagreement fails closed
   ---
-  duration_ms: 11.656894
+  duration_ms: 5.726561
   type: 'test'
   ...
 # Subtest: recycled source cannot reuse old React props; updated ID succeeds
-ok 205 - recycled source cannot reuse old React props; updated ID succeeds
+ok 206 - recycled source cannot reuse old React props; updated ID succeeds
   ---
-  duration_ms: 10.098283
+  duration_ms: 9.26374
   type: 'test'
   ...
 # Subtest: initial empty source is not confused with later source reuse
-ok 206 - initial empty source is not confused with later source reuse
+ok 207 - initial empty source is not confused with later source reuse
   ---
-  duration_ms: 7.729896
+  duration_ms: 6.867218
   type: 'test'
   ...
 # Subtest: stale still-loaded currentSrc is rejected during source transition
-ok 207 - stale still-loaded currentSrc is rejected during source transition
+ok 208 - stale still-loaded currentSrc is rejected during source transition
   ---
-  duration_ms: 6.667047
+  duration_ms: 6.99078
   type: 'test'
   ...
 # Subtest: unsafe numeric, arbitrary owner IDs and invalid FBIDs are not permalinks
-ok 208 - unsafe numeric, arbitrary owner IDs and invalid FBIDs are not permalinks
+ok 209 - unsafe numeric, arbitrary owner IDs and invalid FBIDs are not permalinks
   ---
-  duration_ms: 6.248993
+  duration_ms: 6.888602
   type: 'test'
   ...
 # Subtest: accessor properties are not executed while enumerating React keys
-ok 209 - accessor properties are not executed while enumerating React keys
+ok 210 - accessor properties are not executed while enumerating React keys
   ---
-  duration_ms: 5.403076
+  duration_ms: 12.176723
   type: 'test'
   ...
 # Subtest: cyclic props and fibers terminate within fixed work limits
-ok 210 - cyclic props and fibers terminate within fixed work limits
+ok 211 - cyclic props and fibers terminate within fixed work limits
   ---
-  duration_ms: 5.48051
+  duration_ms: 5.35104
   type: 'test'
   ...
 # Subtest: detached and non-Facebook contexts do not export IDs
-ok 211 - detached and non-Facebook contexts do not export IDs
+ok 212 - detached and non-Facebook contexts do not export IDs
   ---
-  duration_ms: 9.989775
+  duration_ms: 9.544191
   type: 'test'
   ...
 # Subtest: no matching React property means no browser-address fallback
-ok 212 - no matching React property means no browser-address fallback
+ok 213 - no matching React property means no browser-address fallback
   ---
-  duration_ms: 13.212705
+  duration_ms: 4.831044
   type: 'test'
   ...
 # Subtest: current parent React props take precedence over an older video fiber tree
-ok 213 - current parent React props take precedence over an older video fiber tree
+ok 214 - current parent React props take precedence over an older video fiber tree
   ---
-  duration_ms: 5.215023
+  duration_ms: 4.995618
   type: 'test'
   ...
 # Subtest: third source cannot reuse the second last verified clip identity
-ok 214 - third source cannot reuse the second last verified clip identity
+ok 215 - third source cannot reuse the second last verified clip identity
   ---
-  duration_ms: 5.481481
+  duration_ms: 5.458709
   type: 'test'
   ...
 # Subtest: golden-engine option is backed by its own persisted default-on key and live WebView delivery
-ok 215 - golden-engine option is backed by its own persisted default-on key and live WebView delivery
+ok 216 - golden-engine option is backed by its own persisted default-on key and live WebView delivery
   ---
-  duration_ms: 2.396837
+  duration_ms: 2.497486
   type: 'test'
   ...
 # Subtest: all localized app labels are FPRO flame while update package stays unchanged
-ok 216 - all localized app labels are FPRO flame while update package stays unchanged
+ok 217 - all localized app labels are FPRO flame while update package stays unchanged
   ---
-  duration_ms: 3.388346
+  duration_ms: 2.679831
   type: 'test'
   ...
-1..216
-# tests 216
+1..217
+# tests 217
 # suites 0
-# pass 216
+# pass 217
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 7730.609327
+# duration_ms 7994.780316
