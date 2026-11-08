@@ -1,0 +1,41 @@
+    // Bind the action to the current visible video, never an arbitrary feed button.
+    let approvedLikeClick = null, pendingLike = null;
+    const likeLabel = b => ((b.getAttribute('aria-label') || b.getAttribute('title') || b.textContent || '').trim()).toLowerCase();
+    const reactionState = b => {
+        for (const name of ['aria-pressed', 'aria-checked']) {
+            const v = b.getAttribute(name);
+            if (v === 'true' || v === 'false') return { key:name+':'+v, liked:v==='true' };
+        }
+        const label = likeLabel(b);
+        if (/^(unlike|remove like|liked|إلغاء الإعجاب|إلغاء إعجابي|لم يعد يعجبني|أعجبك|تم الإعجاب)$/.test(label)) return {key:'liked',liked:true};
+        if (/^(like|أعجبني|إعجاب|اعجبني)$/.test(label)) return {key:'unliked',liked:false};
+        // The mobile glyph -> reaction-image transition used by the original app.
+        const images=Array.from(b.querySelectorAll('img')).map(i=>i.getAttribute('src')||i.getAttribute('alt')||'image');
+        return {key:images.length?'reaction-image:'+images.join('|'):'reaction-glyph',liked:images.length>0};
+    };
+    const likeButton = video => {
+        if(!video || !video.isConnected)return null;
+        const vr=video.getBoundingClientRect();
+        const eligible=b=>{
+            const r=b.getBoundingClientRect(),s=getComputedStyle(b);
+            if(b.closest('[role="dialog"],[aria-hidden="true"]') || b.getAttribute('aria-disabled')==='true' || b.disabled)return false;
+            if(s.display==='none'||s.visibility==='hidden'||s.opacity==='0'||r.width<=0||r.height<=0)return false;
+            const cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;
+            return cx>=Math.max(0,vr.left)-8&&cx<=Math.min(innerWidth,vr.right)+8&&cy>=Math.max(0,vr.top)&&cy<=Math.min(innerHeight,vr.bottom);
+        };
+        const selector='[role="button"][data-long-click-action-id],button[aria-pressed],[role="button"][aria-pressed]';
+        let scope=video.parentElement;
+        for(let depth=0;scope&&depth<8;depth++,scope=scope.parentElement){
+            if(scope.matches('body,html,[role="feed"]'))break;
+            const other=Array.from(scope.querySelectorAll('video')).some(v=>{
+                if(v===video)return false;const r=v.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight;
+            });
+            if(other)break;
+            const buttons=Array.from(scope.querySelectorAll(selector)).filter(b=>eligible(b)&&(b.hasAttribute('data-long-click-action-id')||/like|إعجاب|اعجاب|أعجب|اعجب/.test(likeLabel(b))));
+            if(buttons.length===1)return buttons[0];
+            if(buttons.length>1)return null; // ambiguity is safer than reacting to a different action
+        }
+        // Some web versions portal the rail. Require an explicit reaction label there.
+        const portal=Array.from(document.querySelectorAll(selector)).filter(b=>eligible(b)&&/^(like|unlike|liked|remove like|أعجبني|إعجاب|اعجبني|إلغاء الإعجاب|إلغاء إعجابي|لم يعد يعجبني|أعجبك|تم الإعجاب)$/.test(likeLabel(b)));
+        return portal.length===1?portal[0]:null;
+    };
