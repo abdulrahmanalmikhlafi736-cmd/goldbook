@@ -24,7 +24,7 @@ Version2.18.22/code2180022/com.almekhlafi; original signing. Apply once to fresh
 
 194 local tests, zero failures/skips. Ten new local cases cover observed icon routing, Like/Comment rejection, reordered/relocated/count-changed actions, missing font/footprint, hidden/mixed/nested/truncated glyphs, ambiguity, foreign ownership/route/portal rejection, optional metadata and recycled player cancellation.
 
-CI requires exactly 32 Android 13 tests. New full production-guard/official-copy case distinguishes all three supplied glyphs and routes the fresh selected link once with copy=0. Existing foreground clipboard sentinel/zero callbacks/manual copy case now also selects home Share by the observed glyph before exercising the real origin-checked native copy bridge. Native result and owner-account acceptance are pending until verified; controlled glyph fixtures are not owner proof.
+CI requires exactly 32 Android 13 tests. New full production-guard/official-copy case distinguishes all three supplied glyphs and routes the fresh selected link once with copy=0. Existing foreground clipboard sentinel/zero callbacks/manual copy case now also selects home Share by the observed glyph before exercising the real origin-checked native copy bridge. All three jobs of CI run 42493654152 passed, including the exact 32-test Android gate. Owner-account/home-feed acceptance is still pending; controlled glyph fixtures are not owner proof.
 
 No change to Like/fullscreen/seek/home guard, UI/themes, source resolver, native download/clipboard bridges, privacy, package/signing, external downloader or generic chooser.
 
