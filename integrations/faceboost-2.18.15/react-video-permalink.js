@@ -83,7 +83,7 @@
   if(found.ids.size!==1)return {url:'',reason:found.ids.size>1?'ambiguous-react-id':found.via};
   const value=Array.from(found.ids)[0];
   if(changed&&previous.ids.has(value))return {url:'',reason:'stale-react-id'};
-  if(!previous||!previous.source.replace(/\|/g,''))base.set(v,{source,ids:found.ids});
+  base.set(v,{source,ids:found.ids}); // Keep the last verified clip, not just the first attached clip.
   return {url:'https://www.facebook.com/watch/?v='+value,kind:'permalink',reason:found.via};
  }
  w.FproReactVideoPermalink={remember,resolve};

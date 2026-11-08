@@ -21,3 +21,5 @@ test('detached and non-Facebook contexts do not export IDs',()=>{run(({api,v})=>
 test('no matching React property means no browser-address fallback',()=>run(({api,v})=>{api.remember(v);assert.equal(api.resolve(v).url,'');}));
 
 test('current parent React props take precedence over an older video fiber tree',()=>run(({api,v})=>{props(v.parentElement,'222222');v.__reactFiber$x={memoizedProps:{videoFBID:'111111'}};api.remember(v);assert.equal(api.resolve(v).url,'https://www.facebook.com/watch/?v=222222');}));
+
+test('third source cannot reuse the second last verified clip identity',()=>run(({api,v})=>{props(v.parentElement,'111111');api.remember(v);assert.ok(api.resolve(v).url);v.src='blob:second';props(v.parentElement,'222222');assert.ok(api.resolve(v).url);v.src='blob:third';assert.equal(api.resolve(v).reason,'stale-react-id');props(v.parentElement,'333333');assert.equal(api.resolve(v).url,'https://www.facebook.com/watch/?v=333333');}));

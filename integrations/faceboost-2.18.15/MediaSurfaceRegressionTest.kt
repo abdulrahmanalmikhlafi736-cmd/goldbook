@@ -352,6 +352,7 @@ class MediaSurfaceRegressionTest {
         """.trimIndent().replace("REACT_PROPS","__reactProps"+"$"+"fixture"))
         assertEquals("true",h.eval("__v.setAttribute('src','blob:second');FproReactVideoPermalink.resolve(__v).url===''"))
         assertEquals("true",h.eval("own.REACT_PROPS.children.props.videoFBID='222222';FproReactVideoPermalink.resolve(__v).url==='https://www.facebook.com/watch/?v=222222'".replace("REACT_PROPS","__reactProps"+"$"+"fixture")))
+        assertEquals("true",h.eval("__v.setAttribute('src','blob:third');FproReactVideoPermalink.resolve(__v).url===''"))
         assertEquals("true",h.eval("delete own.REACT_PROPS;__v.REACT_FIBER={memoizedProps:{coreVideoPlayerMetaData:{videoFBID:'333333'}}};FproReactVideoPermalink.resolve(__v).url==='https://www.facebook.com/watch/?v=333333'".replace("REACT_PROPS","__reactProps"+"$"+"fixture").replace("REACT_FIBER","__reactFiber"+"$"+"fixture")))
         assertEquals("true",h.eval("__v.REACT_FIBER.alternate={memoizedProps:{videoFBID:'444444'}};FproReactVideoPermalink.resolve(__v).url===''".replace("REACT_FIBER","__reactFiber"+"$"+"fixture")))
     }finally{h.close()}}
