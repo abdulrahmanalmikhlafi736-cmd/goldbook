@@ -104,5 +104,5 @@
    const p=w.FproPublicVideoLink.parse(data&&data.url||'');if(p){t.phase='copying';if(copied(p.url))return Promise.resolve();}
   }return original(data);};}catch(_){}
  }
- w.FproOfficialDownload={begin,copied,interceptCopy,isInternalCopy,shouldSuppressCopy,cancel:()=>{if(active)stop(active);clearReceipt();},report:()=>({active:!!active,phase:active?active.phase:null,scans:active?active.scans:0,last:{...last}})};
+ w.FproOfficialDownload={begin,copied,interceptCopy,isInternalCopy,hasCopyReceipt:()=>!!(receipt&&receiptMatches(receipt.value)),shouldSuppressCopy,cancel:()=>{if(active)stop(active);clearReceipt();},report:()=>({active:!!active,phase:active?active.phase:null,scans:active?active.scans:0,last:{...last}})};
 })(window);

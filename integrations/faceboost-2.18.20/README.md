@@ -15,7 +15,7 @@ The owner confirmed 2.18.19 downloads correctly. This revision preserves that ta
 
 Apply once to fresh `fe8a474b25414b38819b7cf927720899c8c89705`. Version 2.18.20 / 2180020; original package/signing.
 
-172 local tests passed, zero failures/skips (`dom-results.tap`). Nine additional cases cover pre-write capture, duplicate channels, ClipboardItem, copy-event/DataTransfer, execCommand, invalid captures, cancellation/manual-copy preservation and native-hook source invariants.
+173 local tests passed, zero failures/skips (`dom-results.tap`). Ten additional cases cover pre-write capture, duplicate channels, ClipboardItem, copy-event/DataTransfer, execCommand, invalid captures, cancellation/manual-copy preservation and native-hook source invariants.
 
 CI requires exactly 29 Android 13 tests. The new foreground test seeds a clipboard sentinel, checks zero clipboard-change callbacks and unchanged content during automatic native capture and handoff, then verifies a subsequent manual copy really writes. Native compilation/execution and owner-account acceptance are pending until CI and owner testing respectively; fixture success is not account proof.
 

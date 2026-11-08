@@ -18,10 +18,15 @@
     if(navigator.clipboard?.write){
         const original=navigator.clipboard.write.bind(navigator.clipboard);
         navigator.clipboard.write=items=>{
-            if(!internalCopy())return original(items);
+            const automated=internalCopy();
+            if(!automated&&!window.FproOfficialDownload?.hasCopyReceipt?.())return original(items);
             return Promise.all(Array.from(items).slice(0,8).map(async item=>{
-                try { const blob=await item.getType('text/plain');const text=await blob.text();if(internalCopy())captureCopy(text); }catch(_){}
-            })).then(()=>undefined);
+                try { const blob=await item.getType('text/plain');return await blob.text(); }catch(_){return null;}
+            })).then(values=>{
+                let captured=false;
+                for(const text of values)if(text!==null&&captureCopy(text))captured=true;
+                if(!automated&&!captured)return original(items);
+            });
         };
     }
     const setData=DataTransfer.prototype.setData;
