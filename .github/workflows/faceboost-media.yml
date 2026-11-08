@@ -95,6 +95,11 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
+            adb shell settings put system screen_off_timeout 1800000
+            adb shell svc power stayon true
+            adb shell input keyevent KEYCODE_WAKEUP
+            adb shell wm dismiss-keyguard
+            adb shell input keyevent KEYCODE_MENU
             adb install artifacts/fixture-app.apk
             adb install artifacts/fixture-tests.apk
             adb shell am instrument -w -r -e class com.almekhlafi.materialbook.ui.screens.MediaSurfaceRegressionTest,com.almekhlafi.materialbook.ui.screens.HomeSwipeSettingUiTest com.almekhlafi.test/androidx.test.runner.AndroidJUnitRunner | tee instrumentation.txt
