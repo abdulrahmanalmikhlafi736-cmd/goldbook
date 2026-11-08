@@ -14,6 +14,6 @@ Existing typed HTTPS image DownloadManager path remains. All accepted video/Seal
 
 Version2.18.29/code2180029/com.almekhlafi; original signing. Apply once to fresh fe8a474b25414b38819b7cf927720899c8c89705.
 
-237 local tests PASS (233 retained +4 chunk/ack/type/size tests). Native exact43-case gate retains40 and adds real data-JPEG save/byte roundtrip, actual WebView blob-PNG transfer/save/byte roundtrip, foreign-origin/video/HTML/format-spoof negatives. Native result pending. Owner exact scheme and account success remain pending; tests do not prove owner DOM.
+237 local tests PASS (233 retained +4 chunk/ack/type/size tests). Native exact43-case gate retains40 and adds real data-JPEG save/byte roundtrip, actual WebView blob-PNG transfer/save/byte roundtrip, foreign-origin/video/HTML/format-spoof negatives. All three jobs of run42518531713 passed, including exact43 Android13 cases atf67f2589c393c5c0cbe92f0dbf4855959d19e71e. Owner exact scheme and account success remain pending; tests do not prove owner DOM.
 
 Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
