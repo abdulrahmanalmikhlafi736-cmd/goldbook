@@ -545,10 +545,11 @@ class MediaSurfaceRegressionTest {
                 h.load(true,nativeCopyBridge=true);h.officialFixture(delayed=true);homeShareGlyph(h);wrapOfficialCopyMenu(h)
                 // Android asynchronously classifies the seeded clip and can notify listeners
                 // without another write. Wait for that setup work BEFORE measuring downloads.
+                awaitActivityFocus(scenario)
                 val deadline=android.os.SystemClock.uptimeMillis()+10000
                 var classifying=true
                 while(classifying&&android.os.SystemClock.uptimeMillis()<deadline){
-                    scenario.onActivity { classifying=clipboard.primaryClipDescription?.classificationStatus==android.content.ClipDescription.CLASSIFICATION_NOT_COMPLETE }
+                    scenario.onActivity { classifying=requireNotNull(clipboard.primaryClipDescription){"focused seed clipboard description missing"}.classificationStatus==android.content.ClipDescription.CLASSIFICATION_NOT_COMPLETE }
                     if(classifying)Thread.sleep(50)
                 }
                 assertTrue("seed classification did not settle",!classifying)
