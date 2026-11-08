@@ -38,7 +38,7 @@
   }return 3;}
   const rows=new Map(),seen=new WeakSet(),canonical=new WeakMap();
   function consider(n,via){if(!n)return;if(seen.has(n)){const old=rows.get(canonical.get(n));if(old)old.via|=via;return;}seen.add(n);if(n.closest(owned)||!visible(n))return;
-   const l=label(n),kind=classify(l.s);if(!kind)return;
+   const l=label(n),kind=classify(l.s);if(!kind){const r=box(n);if(!n.matches('button,[role="button"],[data-action-id]')||r.width*r.height>width*height*.25||r.height>height*.25||r.bottom<vb.top-120||r.top>vb.bottom+300)return;}
    let target=null,depth=0;for(let p=n,j=0;p&&j<6;p=p.parentElement,j++)if(p.matches(selector)){target=p;depth=j+1;break;}
    target=target||n;if(!visible(target)||target.closest(owned))return;
    if(rows.size>=96&&!rows.has(target)){reasons|=4;return;}
@@ -49,7 +49,7 @@
     oldSelector:target.matches('button,[role="button"],a[data-sigil~="share"]')?1:0,
     oldBounds:r.left>=vb.left-40&&r.right<=vb.right+40&&r.top>=vb.top-40&&r.bottom<=vb.bottom+110?1:0,
     portalBounds:r.top>=Math.max(0,vb.top)&&r.bottom<=Math.min(height,vb.bottom)?1:0,...geometry(target)};
-   if(!old||kind<old.label){rows.set(target,row);}else {old.members++;old.via|=via;}
+   if(!old||[3,0,2,1][kind]<[3,0,2,1][old.label]){rows.set(target,row);}else {old.members++;old.via|=via;}
   }
   // Start from the selected player's single-video owner, never document's first N nodes.
   const walker=d.createTreeWalker(root,w.NodeFilter.SHOW_ELEMENT);let node=root;
@@ -65,7 +65,7 @@
    if(visible(p))visibleVideos++;
    const r=box(p),s=w.getComputedStyle(p);if(p.isConnected&&!p.closest('[hidden],[aria-hidden="true"]')&&r.width>0&&r.height>0&&r.bottom>0&&r.top<height&&r.right>0&&r.left<width&&s.display!=='none'&&s.visibility!=='hidden'&&s.opacity!=='0')oldVisibleVideos++;
   }if(videos.length>200)reasons|=32;
-  const candidates=Array.from(rows.values()).sort((a,b)=>(a.label===1?0:a.label===3?1:2)-(b.label===1?0:b.label===3?1:2)||a.relation-b.relation||Math.abs(a.y-vb.bottom/height*1000)-Math.abs(b.y-vb.bottom/height*1000));
+  const candidates=Array.from(rows.values()).sort((a,b)=>[3,0,2,1][a.label]-[3,0,2,1][b.label]||a.relation-b.relation||Math.abs(a.y-vb.bottom/height*1000)-Math.abs(b.y-vb.bottom/height*1000));
   if(candidates.length>12)reasons|=4;
   return {stop,ownerDepth:ancestors.length,visibleVideos,oldVisibleVideos,selectedVisible:visible(v)?1:0,localVisited,pointChecks,limitReasons:reasons,video:geometry(v),candidates:candidates.slice(0,12)};
  }
