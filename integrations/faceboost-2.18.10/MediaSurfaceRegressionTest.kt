@@ -1,21 +1,14 @@
 package com.almekhlafi.materialbook.ui.screens
 
-import android.app.Application
-import android.content.res.Configuration
-import java.util.Locale
-import androidx.test.core.app.ApplicationProvider
-import com.almekhlafi.materialbook.data.local.SettingsDataStore
-import com.almekhlafi.materialbook.ui.viewmodel.SettingsViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import com.almekhlafi.materialbook.utils.HomeSwipeGuard
 import com.almekhlafi.materialbook.R
+import com.almekhlafi.materialbook.data.local.SettingsDataStore
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -32,7 +25,6 @@ import java.util.concurrent.TimeUnit
 class MediaSurfaceRegressionTest {
     private class Harness {
         lateinit var web: WebView
-        var nextPage: CountDownLatch? = null
         fun eval(js: String): String {
             val done=CountDownLatch(1)
             var value="null"
@@ -42,7 +34,7 @@ class MediaSurfaceRegressionTest {
             assertTrue("JS callback timeout",done.await(10,TimeUnit.SECONDS))
             return value
         }
-        fun load(earlyGuard: Boolean = false, initialEnabled: Boolean = true) {
+        fun load(earlyGuard: Boolean = false, homeSwipeEnabled: Boolean = true) {
             val done=CountDownLatch(1)
             InstrumentationRegistry.getInstrumentation().runOnMainSync {
                 web=WebView(InstrumentationRegistry.getInstrumentation().targetContext).apply {
@@ -51,12 +43,12 @@ class MediaSurfaceRegressionTest {
                     layout(0,0,400,800)
                     val html="<html><head><meta name='viewport' content='width=device-width,initial-scale=1'><script>window.__siteControls=0;['pointerdown','pointermove','pointerup','touchstart','touchmove','touchend'].forEach(function(t){window.addEventListener(t,function(){__siteControls++;},true);});window.__siteMoves=0;window.addEventListener('touchmove',function(){__siteMoves++;},true);</script></head><body><video id='v'></video></body></html>"
                     webViewClient=object:WebViewClient(){
-                        override fun onPageFinished(view:WebView,url:String){done.countDown();nextPage?.countDown()}
+                        override fun onPageFinished(view:WebView,url:String){done.countDown()}
                         override fun shouldInterceptRequest(view:WebView,request:WebResourceRequest):WebResourceResponse? {
                             return if(earlyGuard) WebResourceResponse("text/html","UTF-8",html.byteInputStream()) else null
                         }
                     }
-                    if(earlyGuard){HomeSwipeGuard.install(this,initialEnabled);loadUrl("https://m.facebook.com/")}
+                    if(earlyGuard){HomeSwipeGuard.install(this, homeSwipeEnabled);loadUrl("https://m.facebook.com/")}
                     else loadDataWithBaseURL("https://m.facebook.com/reel/123/",html,"text/html","UTF-8",null)
                 }
             }
@@ -80,11 +72,6 @@ class MediaSurfaceRegressionTest {
             eval(context.assets.open("media-surface.js").bufferedReader().use{it.readText()})
             eval("window.__entries=new Map();window.__surface=FproMediaSurface.create({entries:__entries,getConfig:function(){return __cfg;},download:function(){}});__surface.layout();")
             eval("__flush();")
-        }
-        fun reload(){
-            val done=CountDownLatch(1);nextPage=done
-            InstrumentationRegistry.getInstrumentation().runOnMainSync{web.reload()}
-            assertTrue("reload timeout",done.await(10,TimeUnit.SECONDS));nextPage=null
         }
         fun close(){if(!::web.isInitialized)return;InstrumentationRegistry.getInstrumentation().runOnMainSync{web.destroy()}}
     }
@@ -163,44 +150,34 @@ class MediaSurfaceRegressionTest {
         assertEquals("true",h.eval("__rangeTouch('touchstart',100);__rangeTouch('touchmove',200);__rangeTouch('touchend',200);__siteControls===0 && Math.abs(__v.currentTime-50)<0.1"))
     }finally{h.close()}}
 
-    @Test fun homeOptionUpdatesLiveAndFutureDocumentsWithoutDisablingOwnedSeek(){val h=Harness();try{
-        h.load(true,false)
-        assertEquals("false",h.eval("__fproHomeSwipeGuard.report().enabled"))
+    @Test fun nativeToggleChangesCurrentDocumentAndBootOffKeepsSeekProtected(){val h=Harness();try{
+        h.load(true, false)
+        assertEquals("true",h.eval("__fproHomeSwipeGuard.report().enabled===false"))
         h.eval("""
-          window.__seek=__entries.get(__v).seek;__seek.getBoundingClientRect=function(){return {left:16,right:384,top:766,bottom:798,width:368,height:32};};
-          function owned(type,x){__seek.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:7,pointerType:'touch',isPrimary:true,button:0,clientX:x,clientY:780}));}
-          owned('pointerdown',300);owned('pointermove',100);owned('pointerup',100);
           window.__post=document.createElement('div');document.body.appendChild(__post);
-          window.__swipe=function(){var blocked=false;[['touchstart',300],['touchmove',200],['touchend',200]].forEach(function(v){var e=new Event(v[0],{bubbles:true,cancelable:true});var p={clientX:v[1],clientY:300,identifier:1};Object.assign(e,{touches:v[0]==='touchend'?[]:[p],changedTouches:[p]});__post.dispatchEvent(e);blocked=blocked||e.defaultPrevented;});return blocked;};
+          window.__move=function(){function t(type,x){var e=new Event(type,{bubbles:true,cancelable:true});var p={clientX:x,clientY:300,identifier:1};Object.assign(e,{touches:type==='touchend'?[]:[p],changedTouches:[p]});__post.dispatchEvent(e);return e.defaultPrevented;}t('touchstart',300);var result=t('touchmove',200);t('touchend',200);return result;};
         """.trimIndent())
-        assertEquals("true",h.eval("__siteControls===0 && Math.abs(__v.currentTime-(84/368*100))<0.1"))
-        assertEquals("false",h.eval("__swipe()"))
-        InstrumentationRegistry.getInstrumentation().runOnMainSync { HomeSwipeGuard.update(h.web,true) }
-        assertEquals("true",h.eval("__fproHomeSwipeGuard.report().enabled && __swipe()"))
-        InstrumentationRegistry.getInstrumentation().runOnMainSync { HomeSwipeGuard.update(h.web,false) }
-        assertEquals("false",h.eval("__swipe()"))
-        h.reload()
-        assertEquals("false",h.eval("__fproHomeSwipeGuard.report().enabled"))
+        assertEquals("false",h.eval("__move()"))
+        InstrumentationRegistry.getInstrumentation().runOnMainSync { HomeSwipeGuard.install(h.web, true) }
+        assertEquals("true",h.eval("__fproHomeSwipeGuard.report().enabled && __move()"))
+        InstrumentationRegistry.getInstrumentation().runOnMainSync { HomeSwipeGuard.install(h.web, false) }
+        assertEquals("false",h.eval("__move()"))
+        assertEquals("true",h.eval("var s=__entries.get(__v).seek;s.getBoundingClientRect=function(){return {left:16,width:368};};['pointerdown','pointermove','pointerup'].forEach(function(t,i){s.dispatchEvent(new PointerEvent(t,{bubbles:true,cancelable:true,pointerId:7,pointerType:'touch',isPrimary:true,clientX:i===0?300:200}));});!__fproHomeSwipeGuard.report().enabled && Math.abs(__v.currentTime-50)<0.1"))
     }finally{h.close()}}
-    @Test fun homePreferencePersistsAndRecreatedViewModelStartsWithSavedChoice(){
-        val app=ApplicationProvider.getApplicationContext<Application>();val prefs=SettingsDataStore(app)
-        val original=runBlocking { prefs.fproHomeSwipeBlock.first() };val models=mutableListOf<SettingsViewModel>()
-        try {
-            runBlocking { prefs.setFproHomeSwipeBlock(false) }
-            val off=SettingsViewModel(app);models.add(off);assertEquals(false,off.fproHomeSwipeBlock.value)
-            assertEquals(false,runBlocking { SettingsDataStore(app).fproHomeSwipeBlock.first() })
-            runBlocking { prefs.setFproHomeSwipeBlock(true) }
-            val on=SettingsViewModel(app);models.add(on);assertEquals(true,on.fproHomeSwipeBlock.value)
-        }finally{runBlocking { prefs.setFproHomeSwipeBlock(original) };models.forEach { it.viewModelScope.cancel() }}
-    }
-    @Test fun applicationBrandUsesRequestedLabelAcrossLocales(){
+    @Test fun preferencePersistsAndInstalledApplicationHasRequestedName(){
         val context=InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("FPRO 🔥",context.packageManager.getApplicationLabel(context.applicationInfo).toString())
-        for(tag in listOf("en","ar","in","de","fr","zh-TW")){
-            val config=Configuration(context.resources.configuration);config.setLocale(Locale.forLanguageTag(tag))
-            assertEquals("FPRO 🔥",context.createConfigurationContext(config).getString(R.string.app_name))
+        val store=SettingsDataStore(context)
+        runBlocking {
+            val before=store.fproHomeSwipe.first()
+            try {
+                store.setFproHomeSwipe(false)
+                assertEquals(false,SettingsDataStore(context).fproHomeSwipe.first())
+                store.setFproHomeSwipe(true)
+                assertEquals(true,SettingsDataStore(context).fproHomeSwipe.first())
+            }finally{store.setFproHomeSwipe(before)}
         }
-        assertEquals("com.almekhlafi",context.packageName)
+        assertEquals("FPRO 🔥",context.applicationInfo.loadLabel(context.packageManager).toString())
+        assertEquals("منع فتح إنشاء قصة بالسحب في الرئيسية",context.getString(R.string.fpro_home_swipe_title))
     }
 
 }

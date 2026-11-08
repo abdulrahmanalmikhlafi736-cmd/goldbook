@@ -70,10 +70,61 @@ test_path=root/'app/src/androidTest/java/com/almekhlafi/materialbook/ui/screens/
 test_path.parent.mkdir(parents=True,exist_ok=True)
 shutil.copyfile(here/'MediaSurfaceRegressionTest.kt',test_path)
 print('Applied scoped media surface update: 2.18.10 / 2180010; identity/signing preserved.')
+# Optional home swipe policy; owned seek isolation remains unconditional.
+def replace_file(relative,old,new):
+    p=base/relative;s=p.read_text();assert old in s,(relative,old);p.write_text(s.replace(old,new))
+replace_file('java/com/almekhlafi/materialbook/data/local/SettingsDataStore.kt',
+ '        val FPRO_DOUBLE_TAP = booleanPreferencesKey("fpro_double_tap")',
+ '        val FPRO_DOUBLE_TAP = booleanPreferencesKey("fpro_double_tap")\n        val FPRO_HOME_SWIPE = booleanPreferencesKey("fpro_home_swipe")')
+replace_file('java/com/almekhlafi/materialbook/data/local/SettingsDataStore.kt',
+ '    val fproDoubleTap =',
+ '    val fproHomeSwipe = context.dataStore.data.map { it[FPRO_HOME_SWIPE] ?: true }\n    suspend fun setFproHomeSwipe(v: Boolean) { context.dataStore.edit { it[FPRO_HOME_SWIPE] = v } }\n\n    val fproDoubleTap =')
+replace_file('java/com/almekhlafi/materialbook/ui/viewmodel/SettingsViewModel.kt',
+ 'import com.almekhlafi.materialbook.data.local.SettingsDataStore.Companion.FPRO_DOUBLE_TAP',
+ 'import com.almekhlafi.materialbook.data.local.SettingsDataStore.Companion.FPRO_DOUBLE_TAP\nimport com.almekhlafi.materialbook.data.local.SettingsDataStore.Companion.FPRO_HOME_SWIPE')
+replace_file('java/com/almekhlafi/materialbook/ui/viewmodel/SettingsViewModel.kt',
+ '    val fproDoubleTap =',
+ '    val fproHomeSwipe = dataStore.fproHomeSwipe.stateIn(scope = viewModelScope, initialValue = initialPrefs[FPRO_HOME_SWIPE] ?: true, started = SharingStarted.WhileSubscribed())\n    fun setFproHomeSwipe(v: Boolean) { viewModelScope.launch { dataStore.setFproHomeSwipe(v) } }\n    val fproDoubleTap =')
+replace_file('java/com/almekhlafi/materialbook/ui/components/settings/SettingsContent.kt',
+ '    val fproDoubleTap =',
+ '    val fproHomeSwipe = viewModel.fproHomeSwipe.collectAsState()\n    val fproDoubleTap =')
+# Place directly in the golden-engine section, not hidden under its master switch.
+p=base/'java/com/almekhlafi/materialbook/ui/components/settings/SettingsContent.kt';s=p.read_text()
+a=s.index('title = stringResource(R.string.fpro_cat_engine),');b=s.index('items = listOfNotNull(',a)+len('items = listOfNotNull(')
+s=s[:b]+'''
+                SettingsItem(
+                    icon = Icons.Outlined.SwapHoriz,
+                    title = stringResource(R.string.fpro_home_swipe_title),
+                    supportingText = stringResource(R.string.fpro_home_swipe_desc),
+                    isActive = fproHomeSwipe.value,
+                    onClick = { viewModel.setFproHomeSwipe(!fproHomeSwipe.value) }
+                ),'''+s[b:];p.write_text(s)
+replace_file('java/com/almekhlafi/materialbook/ui/viewmodel/MainViewModel.kt',
+ '                append("\\\"homeStories\\\":${settings.fproHomeStories.value},")',
+ '                append("\\\"homeSwipeGuard\\\":${settings.fproHomeSwipe.value},")\n                append("\\\"homeStories\\\":${settings.fproHomeStories.value},")')
+replace_file('java/com/almekhlafi/materialbook/utils/FproAssets.kt',
+ '        val parts = listOf(',
+ '        val homeSwipe = org.json.JSONObject(configJson).optBoolean("homeSwipeGuard", true)\n        val parts = listOf(\n            "if(!window.__fproHomeSwipeNative)window.__fproHomeSwipeEnabled=$homeSwipe;if(window.__fproHomeSwipeGuard)window.__fproHomeSwipeGuard.setEnabled(window.__fproHomeSwipeEnabled);",')
+replace_file('java/com/almekhlafi/materialbook/ui/screens/MaterialbookWV.kt',
+ '    var mainWebView by remember { mutableStateOf<android.webkit.WebView?>(null) }',
+ '    val fproHomeSwipe by settingsVM.fproHomeSwipe.collectAsState()\n    var mainWebView by remember { mutableStateOf<android.webkit.WebView?>(null) }\n    LaunchedEffect(mainWebView, fproHomeSwipe) { mainWebView?.let { HomeSwipeGuard.install(it, fproHomeSwipe) } }')
+replace_file('java/com/almekhlafi/materialbook/ui/screens/MaterialbookWV.kt',
+ 'HomeSwipeGuard.install(webView)', 'HomeSwipeGuard.install(webView, fproHomeSwipe)')
+(base/'res/values/fpro_home_swipe.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="id" name="fpro_home_swipe_registration" />
+    <string name="fpro_home_swipe_title">منع فتح إنشاء قصة بالسحب في الرئيسية</string>
+    <string name="fpro_home_swipe_desc">يمنع السحب الأفقي في الرئيسية من فتح إنشاء قصة. إيقافه يعيد سلوك الصفحة؛ حماية سحب شريط التقدّم تبقى مفعّلة.</string>
+</resources>
+''')
+# Localized app-name overrides must not retain an older launcher label.
+import re
+for p in (base/'res').glob('values*/*.xml'):
+    s=p.read_text()
+    s=re.sub(r'(<string\b[^>]*\bname="app_name"[^>]*>).*?(</string>)',lambda m:m[1]+'FPRO 🔥'+m[2],s,flags=re.S)
+    s=re.sub(r'(<string\b[^>]*\bname="materialbook_settings"[^>]*>)(.*?)(</string>)',lambda m:m[1]+m[2].replace('Faceboost','FPRO 🔥').replace('Materialbook','FPRO 🔥')+m[3],s,flags=re.S)
+    p.write_text(s)
 
-# Native persisted option and visible branding; no package/signing changes.
-import runpy
-args=sys.argv
-sys.argv=[str(here/"settings.py"),str(root)]
-try: runpy.run_path(str(here/"settings.py"),run_name="__main__")
-finally: sys.argv=args
+replace_file('java/com/almekhlafi/materialbook/ui/screens/MaterialbookWV.kt',
+ '    LaunchedEffect(loadingState, userScripts) {\n        if (loadingState is LoadingState.Finished) {',
+ '    LaunchedEffect(loadingState, userScripts) {\n        if (loadingState is LoadingState.Finished) {\n            mainWebView?.let { HomeSwipeGuard.install(it, fproHomeSwipe) }')
