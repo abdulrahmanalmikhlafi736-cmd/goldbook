@@ -19,4 +19,4 @@ test('source initialization does not poison a valid typed video ID',()=>run('<ar
 
 test('an empty player source cannot become the initial browser Reel address',()=>run('<video></video>',({api,v})=>assert.equal(api.resolve(v).url,'')));
 test('blank and relative metadata strings cannot become browser-page URLs',()=>run('<article data-video-url=" "><video></video></article>',({api,v})=>{assert.equal(api.resolve(v).url,'');v.parentElement.dataset.videoUrl='placeholder';assert.equal(api.resolve(v).url,'');}));
-test('empty HD does not displace a valid SD URL in the same record',()=>run('<article data-video-data='{"browser_native_hd_url":"","browser_native_sd_url":"https://video.xx.fbcdn.net/sd.mp4"}'><video src="blob:current"></video></article>',({api,v})=>assert.equal(api.resolve(v).url,'https://video.xx.fbcdn.net/sd.mp4')));
+test('empty HD does not displace a valid SD URL in the same record',()=>run(`<article data-video-data='{"browser_native_hd_url":"","browser_native_sd_url":"https://video.xx.fbcdn.net/sd.mp4"}'><video src="blob:current"></video></article>`,({api,v})=>assert.equal(api.resolve(v).url,'https://video.xx.fbcdn.net/sd.mp4')));
