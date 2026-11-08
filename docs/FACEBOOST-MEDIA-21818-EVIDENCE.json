@@ -1,0 +1,74 @@
+{
+  "version": "2.18.18",
+  "versionCode": 2180018,
+  "package": "com.almekhlafi",
+  "mode": "Diagnostic V2, no automatic site-control clicking or downloading",
+  "appCommit": "fde22f37eccbfec8c62c0aa1ef94489fb0a4d3e5",
+  "sourceCommit": "fe8a474b25414b38819b7cf927720899c8c89705",
+  "workflow": {
+    "id": 42460639487,
+    "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42460639487",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "build",
+        "id": 128669031329,
+        "conclusion": "success"
+      },
+      {
+        "name": "chromium-fixtures",
+        "id": 128670164103,
+        "conclusion": "success"
+      },
+      {
+        "name": "candidate",
+        "id": 128670813623,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "tests": {
+    "localPassed": 154,
+    "localFailed": 0,
+    "localSkipped": 0,
+    "android13Passed": 27,
+    "android13Failed": 0,
+    "nativeGate": "Exact OK (27 tests); failure/crash markers rejected",
+    "newNativeCoverage": "Actual WebView V2 asset, action mapping after long prefix, old selector/bounds categories, native string filtering and candidate array cap"
+  },
+  "artifacts": [
+    {
+      "id": 13610170268,
+      "name": "Faceboost-2.18.18-build-inputs",
+      "size_in_bytes": 47114601,
+      "artifactArchiveDigest": "sha256:2674c0b150102706d6bca46f78b6811e6ba085457d24b6a8c76f292defbcad6f",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42460639487/artifacts/13610170268"
+    },
+    {
+      "id": 13609845846,
+      "name": "FPRO-2.18.18-media-candidate",
+      "size_in_bytes": 3078591,
+      "artifactArchiveDigest": "sha256:ee3bb3d5a6602a5e6986760caef3a87f467bfa3c785495fac96de7b613adcda7",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42460639487/artifacts/13609845846"
+    },
+    {
+      "id": 13608929116,
+      "name": "Faceboost-2.18.18-Chromium-evidence",
+      "size_in_bytes": 1693,
+      "artifactArchiveDigest": "sha256:36a5ff339aa97dd5b317e8cfb17ee21b5fa3e92b688693aae2ee0a91297b8199",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42460639487/artifacts/13608929116"
+    }
+  ],
+  "ownerEvidenceInterpretation": [
+    "Both supplied V1 reports show no detected React/fiber/known ID fields within examined hosts; not proof of global absence.",
+    "Reel report has one broad Share-like match, not a proven owned button. Other report hit an unspecified limit, not proof of no Share control.",
+    "sourceAgreement=1 in both samples; source mismatch is not observed at those instants."
+  ],
+  "limits": [
+    "No owner V2 report received or live extraction success established.",
+    "No raw IDs, URLs, labels, text, action identifiers, arbitrary object keys or account tokens exported; numeric structural/geometry allowlist only.",
+    "Finite local and viewport sampling can miss controls; zero candidates does not establish absence.",
+    "No automatic upload/copy/file storage or site-control clicking.",
+    "Metadata/archive digests from GitHub API; artifact Azure redirect cannot be downloaded in sandbox. Archive digest is not APK checksum."
+  ]
+}

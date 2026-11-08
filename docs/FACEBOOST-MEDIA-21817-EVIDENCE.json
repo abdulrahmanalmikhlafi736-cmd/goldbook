@@ -64,5 +64,10 @@
     "Report excludes actual identifiers, URLs, text, tokens, cookies, raw attributes, arbitrary object keys and React dumps. Only numeric structural schema is exported.",
     "No automatic upload, clipboard write or report file storage; user explicitly copies report from local native dialog.",
     "Artifact metadata/digests from GitHub API; APK bytes not independently downloaded because sandbox excludes artifact Azure redirect host. Archive digest is not APK checksum."
-  ]
+  ],
+  "subsequentOwnerReports": {
+    "received": 2,
+    "scope": "Structural counts only; summaries in 2.18.18 documentation.",
+    "result": "Real V1 tool worked; reports lacked candidate topology to prove ownership. Targeted V2 approved."
+  }
 }
