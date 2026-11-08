@@ -38,12 +38,14 @@ s=s.replace('            st.rate0 = v.playbackRate;', "            st.rate0 = v.
 p.write_text(s)
 p=base/'java/com/almekhlafi/materialbook/utils/BackgroundAudioWebView.kt';s=p.read_text();needle='    @Volatile var keepAlive = false';s=s.replace(needle,needle+'''
 
+    private val holdReleaseHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
     // Android receives UP/CANCEL even when a website capture handler swallows DOM release.
     override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
         val terminal = event.actionMasked == android.view.MotionEvent.ACTION_UP ||
             event.actionMasked == android.view.MotionEvent.ACTION_CANCEL
         return try { super.dispatchTouchEvent(event) } finally {
-            if (terminal) post { runCatching { evaluateJavascript("window.__mbReleaseHeldOnly?.();", null) } }
+            if (terminal) holdReleaseHandler.post { runCatching { evaluateJavascript("window.__mbReleaseHeldOnly?.();", null) } }
         }
     }
 ''');p.write_text(s)
