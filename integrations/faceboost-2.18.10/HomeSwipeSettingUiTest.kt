@@ -11,6 +11,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -44,12 +46,12 @@ class HomeSwipeSettingUiTest {
             compose.onNodeWithText(app.getString(R.string.fpro_cat_engine)).performScrollTo().assertIsDisplayed().performClick()
             compose.waitForIdle()
             val title=app.getString(R.string.fpro_home_swipe_block_title)
-            compose.onNodeWithText(title).performScrollTo().assertIsDisplayed().performClick()
-            runBlocking { withTimeout(5000) { prefs.fproHomeSwipeBlock.first { !it } } }
+            compose.onNodeWithText(title).performScrollTo().assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick) { it() }
+            try { runBlocking { withTimeout(5000) { prefs.fproHomeSwipeBlock.first { !it } } } } catch (e: Exception) { throw AssertionError("OFF action did not persist; model=${model.fproHomeSwipeBlock.value}", e) }
             compose.waitForIdle()
             assertTrue(!model.fproHomeSwipeBlock.value)
-            compose.onNodeWithText(title).performClick()
-            runBlocking { withTimeout(5000) { prefs.fproHomeSwipeBlock.first { it } } }
+            compose.onNodeWithText(title).performSemanticsAction(SemanticsActions.OnClick) { it() }
+            try { runBlocking { withTimeout(5000) { prefs.fproHomeSwipeBlock.first { it } } } } catch (e: Exception) { throw AssertionError("ON action did not persist; model=${model.fproHomeSwipeBlock.value}", e) }
             compose.waitForIdle()
             assertTrue(model.fproHomeSwipeBlock.value)
         } finally {

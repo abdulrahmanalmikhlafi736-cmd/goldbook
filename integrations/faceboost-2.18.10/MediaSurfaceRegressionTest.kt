@@ -195,7 +195,7 @@ class MediaSurfaceRegressionTest {
     }
     @Test fun applicationBrandUsesRequestedLabelAcrossLocales(){
         val context=InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("FPRO 🔥",context.packageManager.getApplicationLabel(context.applicationInfo).toString())
+        assertEquals("FPRO 🔥 Debug",context.packageManager.getApplicationLabel(context.applicationInfo).toString())
         for(tag in listOf("en","ar","in","de","fr","zh-TW")){
             val config=Configuration(context.resources.configuration);config.setLocale(Locale.forLanguageTag(tag))
             assertEquals("FPRO 🔥",context.createConfigurationContext(config).getString(R.string.app_name))

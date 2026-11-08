@@ -51,3 +51,7 @@ assert count>=12,count
 ui=root/'app/src/androidTest/java/com/almekhlafi/materialbook/ui/screens/HomeSwipeSettingUiTest.kt'
 shutil.copyfile(here/'HomeSwipeSettingUiTest.kt',ui)
 print(f'Added persisted home gesture option; renamed {count} localized application labels.')
+# Keep a visible debug distinction, but never retain the old product name.
+debug_manifest=root/'app/src/debug/AndroidManifest.xml'
+if debug_manifest.exists():
+    debug_manifest.write_text(debug_manifest.read_text().replace('Faceboost Debug','FPRO 🔥 Debug'))
