@@ -99,3 +99,20 @@ test('silent ClipboardItem write does not forward to real clipboard writer',asyn
 test('duplicate ClipboardItem channel after writeText capture stays internal; unrelated items remain manual',async()=>{const f=fixture();try{const h=silentHooks(f),url='https://www.facebook.com/share/v/CURRENT123/';f.env.navigator.clipboard.writeText(url);await f.env.navigator.clipboard.write([{getType:async()=>({text:async()=>url})}]);assert.equal(h.writes(),0);assert.equal(f.sent.length,1);await f.env.navigator.clipboard.write([{getType:async()=>({text:async()=> 'ordinary manual text'})}]);assert.equal(h.writes(),1);}finally{f.close();}});
 
 test('recycled player suppresses stale automated text and ClipboardItem without manual clipboard fallback',async()=>{for(const channel of ['text','items']){const f=fixture();try{const h=silentHooks(f);f.v.setAttribute('src','blob:recycled');const url='https://www.facebook.com/share/v/CURRENT123/';if(channel==='text')await f.env.navigator.clipboard.writeText(url);else await f.env.navigator.clipboard.write([{getType:async()=>({text:async()=>url})}]);assert.equal(h.writes(),0);assert.equal(f.sent.length,0);assert.equal(f.api.report().active,false);}finally{f.close();}}});
+
+// These are controlled name-format fixtures, not a claim about the owner's hidden aria text.
+test('homepage explicit Arabic Share and Copy survive Unicode direction isolates',()=>run(f=>{
+ f.share.setAttribute('aria-label','\u2068\u061Cمشاركة\u2069');
+ f.share.onclick=()=>{const root=f.sheet({delayed:true});root.firstChild.setAttribute('aria-label','\u2067نسخ الرابط\u2069');root.firstChild.onclick=()=>f.api.interceptCopy('https://www.facebook.com/share/v/CURRENT123/');};
+ assert.equal(f.api.begin(f.v),true);assert.equal(new URL(f.sent[0]).hostname,'download');assert.equal(new URL(f.sent[0]).searchParams.get('copy'),'0');
+},{url:'https://m.facebook.com/'}));
+test('Unicode invisible formatting inside an explicit command is not an unknown button name',()=>run(f=>{
+ f.share.setAttribute('aria-label','م\u200Bشاركة\uFEFF');f.api.begin(f.v);assert.equal(new URL(f.sent[0]).hostname,'download');
+},{url:'https://m.facebook.com/'}));
+test('direction isolates do not turn unknown, Like, comment or send-message names into Share',()=>{
+ for(const name of ['أعجبني','تعليق','زر غير معروف','إرسال رسالة إلى الكاتب'])run(f=>{f.share.setAttribute('aria-label','\u2068'+name+'\u2069');assert.equal(f.api.begin(f.v),false);assert.equal(f.shareClicks(),0);assert.equal(new URL(f.sent[0]).hostname,'official-download-help');},{url:'https://m.facebook.com/'});
+});
+test('homepage isolated Share still cannot select another post or two owned actions',()=>{
+ run(f=>{f.share.setAttribute('aria-label','\u2068مشاركة\u2069');const other=f.d.createElement('article');other.append(f.d.createElement('video'),f.share);f.d.body.append(other);f.api.begin(f.v);assert.equal(f.shareClicks(),0);},{url:'https://m.facebook.com/'});
+ run(f=>{f.share.setAttribute('aria-label','\u2068مشاركة\u2069');const clone=f.geometry(f.share.cloneNode(true));f.share.parentElement.append(clone);f.api.begin(f.v);assert.equal(f.shareClicks(),0);},{url:'https://m.facebook.com/'});
+});

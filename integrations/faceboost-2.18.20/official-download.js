@@ -2,7 +2,7 @@
 (function(w){
  'use strict';if(w.FproOfficialDownload)return;
  const d=w.document,legacySelector='button,[role="button"],a[data-sigil~="share"]',selector=legacySelector+',[data-action-id][data-mcomponent]';let copyDepth=0,receipt=null,receiptTimer=null;let active=null,last={stage:0,reason:0,share:0,copy:0,invalid:0};
- const normalize=s=>String(s||'').replace(/[\u064B-\u065F\u200E\u200F\u202A-\u202E]/g,'').replace(/[\uE000-\uF8FF\u{F0000}-\u{FFFFD}]/gu,' ').replace(/\s+/g,' ').trim().toLowerCase();
+ const normalize=s=>String(s||'').replace(/[\u064B-\u065F\u061C\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/g,'').replace(/[\uE000-\uF8FF\u{F0000}-\u{FFFFD}]/gu,' ').replace(/\s+/g,' ').trim().toLowerCase();
  const label=b=>normalize(b.getAttribute('aria-label')||b.getAttribute('title')||(b.getAttribute('aria-labelledby')||'').split(/\s+/).map(id=>d.getElementById(id)?.textContent||'').join(' ')||b.textContent);
  const exactShare=b=>b.matches(legacySelector)&&(/^(?:share(?: (?:video|reel|post))?|مشاركة(?: (?:هذا )?(?:الفيديو|الريلز|المنشور))?|خيارات المشاركة|مشاركه|شارك(?: (?:الفيديو|الريلز|المنشور))?)(?:\s*[\d٠-٩.,٬]+)?$/.test(label(b))||String(b.getAttribute('data-sigil')||'').split(/\s+/).includes('share'));
  // Owner V2: unique owned role=button/action/component passes selector/bounds,

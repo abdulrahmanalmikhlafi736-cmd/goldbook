@@ -538,4 +538,14 @@ class MediaSurfaceRegressionTest {
         }
     }
 
+    @Test fun homepageArabicDirectionIsolatesKeepOfficialCopyInternal(){val h=Harness();try{
+        h.load(true);h.officialFixture()
+        h.eval("document.querySelector('article>button').setAttribute('aria-label','\\u2068\\u061Cمشاركة\\u2069');FproOfficialDownload.begin(__v);")
+        val uri=android.net.Uri.parse(h.awaitRoute())
+        assertEquals("download",uri.host)
+        assertEquals("0",uri.getQueryParameter("copy"))
+        assertEquals("https://www.facebook.com/share/v/1HeYq17541/",uri.getQueryParameter("link"))
+        assertEquals("true",h.eval("__officialShares===1&&__officialCopies===1&&!FproOfficialDownload.report().active"))
+    }finally{h.close()}}
+
 }

@@ -32,3 +32,11 @@ Run 42463896778 compiled but exposed a stale copy=1 fixture expectation, stale-p
 Run 42464861250 also failed fetching the Gradle distribution. CI now uses setup-gradle's pinned 9.3.1 installation (the same version as the unchanged source wrapper) rather than the wrapper's failing bootstrap. App compilation/test gates remain mandatory; no failures are bypassed.
 
 Run 42465031734 passed pinned Gradle setup but hit HTTP 504 downloading the Kotlin compiler artifact. CI retries at most three dependency-transport failures; compilation diagnostics and Android assertion failures are not retried or bypassed.
+
+## Owner follow-up: home feed still fails in 2.18.19
+
+Owner clarified successful downloading is inside video/Reel viewers only. Home-feed V2 has attempt stage=0/reason=1/share=0, no extracted IDs, one visible player and 12 unclassified candidates (aria names, label=0). Candidate-cap flag=4 does not prove which action is Share. Geometry/three equal-width actions are NOT enough to choose a button. No raw name is available, so the report does not identify an exact new command or establish a root cause.
+
+Conservative compatibility correction: remove Unicode bidi isolates, Arabic letter mark, zero-width formatting/BOM in the already-recognized explicit Share/Copy names, consistently in routing and diagnostics. This does not recognize unknown controls, infer a command from position, widen ownership, click generic Send, or alter working viewer routing. Formatting is a tested hypothesis, not an observed fact about the owner's names. A screenshot/visible Share caption has been requested before any further command expansion.
+
+Updated local gate: 179 passed / 0 failed / 0 skipped. Updated Android gate: exactly 30 tests, including isolated Arabic Share on the homepage with the production home guard. Native execution and owner home-feed acceptance are pending. The original unchanged-clipboard sentinel/manual-copy test remains required.

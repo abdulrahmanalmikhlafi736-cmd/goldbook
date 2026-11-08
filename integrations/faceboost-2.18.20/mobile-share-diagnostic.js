@@ -5,7 +5,7 @@
  'use strict';const base=w.FproPlayerDiagnostic;if(!base||base.mobileV2)return;
  const d=w.document,owned='.fpro-video-tools,[data-fpro-owned],#mb-share-via';
  const selector='button,[role="button"],a,[data-action-id]';
- const norm=s=>String(s||'').replace(/[\u064B-\u065F\u200E\u200F\u202A-\u202E]/g,'').replace(/[\uE000-\uF8FF\u{F0000}-\u{FFFFD}]/gu,' ').replace(/\s+/g,' ').trim().toLowerCase();
+ const norm=s=>String(s||'').replace(/[\u064B-\u065F\u061C\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/g,'').replace(/[\uE000-\uF8FF\u{F0000}-\u{FFFFD}]/gu,' ').replace(/\s+/g,' ').trim().toLowerCase();
  function label(n){
   for(const [key,source]of [['aria-label',1],['title',2]]){const s=n.getAttribute(key);if(s)return {s:norm(s),source};}
   const ids=n.getAttribute('aria-labelledby');if(ids){const s=norm(ids.split(/\s+/).slice(0,8).map(id=>d.getElementById(id)?.textContent||'').join(' '));if(s)return {s,source:3};}
