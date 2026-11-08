@@ -13,7 +13,7 @@ Owner confirms 2.18.24 download and Share/Copy concealment all work. Preserve th
 
 Version2.18.25/code2180025/package com.almekhlafi; original signing configuration. Apply once to fresh original fe8a474b25414b38819b7cf927720899c8c89705.
 
-219 local tests PASS. CI requires exact36 Android13 tests: retain34, add actual Compose footer scroll/click + captured exact WhatsApp Intent, and unavailable-app fallback order/number contract. Existing native footer test also checks the actual6px painted offset. Native result pending. WhatsApp delivery to a real account is not claimed from captured Intents.
+219 local tests PASS. CI requires exact36 Android13 tests: retain34, add actual Compose footer scroll/click + captured exact WhatsApp Intent, and unavailable-app fallback order/number contract. Existing native footer test also checks the actual6px painted offset. All three jobs of CI run42506017830 passed, including the exact36-case Android13 gate at8b6c547393949f2a3b4bdb5ff87610f062ac1180. WhatsApp delivery to a real account is not claimed from captured Intents.
 
 Official download JS, native clipboard/download bridges, CTA, source extraction, themes and all unrelated behavior are unchanged. Owner visual/WhatsApp acceptance pending.
 
