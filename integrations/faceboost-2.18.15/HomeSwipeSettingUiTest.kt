@@ -47,11 +47,17 @@ class HomeSwipeSettingUiTest {
             compose.waitForIdle()
             val title=app.getString(R.string.fpro_home_swipe_block_title)
             compose.onNodeWithText(title).performScrollTo().assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick) { it() }
-            try { runBlocking { withTimeout(5000) { prefs.fproHomeSwipeBlock.first { !it } } } } catch (e: Exception) { throw AssertionError("OFF action did not persist; model=${model.fproHomeSwipeBlock.value}", e) }
+            // Drain the Compose/main queue before observing the asynchronous DataStore write.
+            // Keep both persistence assertions; a loaded emulator may take longer than five seconds.
+            compose.waitForIdle()
+            try { runBlocking { withTimeout(15000) { prefs.fproHomeSwipeBlock.first { !it } } } } catch (e: Exception) { throw AssertionError("OFF action did not persist; model=${model.fproHomeSwipeBlock.value}", e) }
             compose.waitForIdle()
             assertTrue(!model.fproHomeSwipeBlock.value)
             compose.onNodeWithText(title).performSemanticsAction(SemanticsActions.OnClick) { it() }
-            try { runBlocking { withTimeout(5000) { prefs.fproHomeSwipeBlock.first { it } } } } catch (e: Exception) { throw AssertionError("ON action did not persist; model=${model.fproHomeSwipeBlock.value}", e) }
+            // Drain the Compose/main queue before observing the asynchronous DataStore write.
+            // Keep both persistence assertions; a loaded emulator may take longer than five seconds.
+            compose.waitForIdle()
+            try { runBlocking { withTimeout(15000) { prefs.fproHomeSwipeBlock.first { it } } } } catch (e: Exception) { throw AssertionError("ON action did not persist; model=${model.fproHomeSwipeBlock.value}", e) }
             compose.waitForIdle()
             assertTrue(model.fproHomeSwipeBlock.value)
         } finally {
