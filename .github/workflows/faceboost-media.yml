@@ -43,8 +43,15 @@ jobs:
           # Same version as the source wrapper; setup-gradle handles distribution/cache.
           gradle --version
           set +e
-          gradle :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8" --stacktrace 2>&1 | tee "$RUNNER_TEMP/fpro-build.log"
-          result=${PIPESTATUS[0]}
+          for attempt in 1 2 3; do
+            gradle :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8" --stacktrace 2>&1 | tee "$RUNNER_TEMP/fpro-build.log"
+            result=${PIPESTATUS[0]}
+            if [ "$result" -eq 0 ]; then break; fi
+            # Retry dependency transport only. Never retry/bypass a compilation diagnostic.
+            if grep -Eq '^e:|Compilation error|Compilation failed' "$RUNNER_TEMP/fpro-build.log"; then break; fi
+            if ! grep -Eq 'Could not GET|Could not HEAD|Could not download|Gateway Time-out|Read timed out|Connection reset' "$RUNNER_TEMP/fpro-build.log"; then break; fi
+            if [ "$attempt" -lt 3 ]; then sleep 10; fi
+          done
           set -e
           if [ "$result" -ne 0 ]; then
             python3 -c 'import os,pathlib; lines=pathlib.Path(os.environ["RUNNER_TEMP"]+"/fpro-build.log").read_text().splitlines(); text="\n".join(x for x in lines if x.startswith("e:") or "error:" in x.lower() or "What went wrong" in x or "Execution failed" in x or "Could not" in x)[:8000]; print("::error title=FPRO build diagnostics::"+text.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
