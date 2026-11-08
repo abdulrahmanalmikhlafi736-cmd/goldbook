@@ -45,10 +45,9 @@
    for(const attr of ['data-store','data-ft','data-video-data']){const raw=n.getAttribute(attr);if(raw&&raw.length<=80000)try{data(JSON.parse(raw),0,attr==='data-video-data');}catch(_){}}
   }
   const scope=nodes[nodes.length-1];if(scope)for(const a of Array.from(scope.querySelectorAll('a[href]')).slice(0,160))if(!a.closest('[role="dialog"],[aria-hidden="true"],[role="comment"]'))add(a.href);
-  const route=parse(w.location.href);
-  return {ids,links,route};
+  return {ids,links};
  }
- function remember(v){const e=evidence(v);baseline.set(v,{source:source(v),keys:new Set([...e.links.keys(),...Array.from(e.ids,id=>'video:'+id),...(e.route?[e.route.key]:[])])});}
+ function remember(v){if(baseline.has(v))return;const e=evidence(v);baseline.set(v,{source:source(v),keys:new Set([...e.links.keys(),...Array.from(e.ids,id=>'video:'+id)])});}
  function resolve(v){
   if(!v||!v.isConnected)return {url:'',reason:'detached'};
   const e=evidence(v),old=baseline.get(v),s=source(v);
