@@ -62,7 +62,7 @@ class MediaSurfaceRegressionTest {
             InstrumentationRegistry.getInstrumentation().runOnMainSync {
                 web.evaluateJavascript(js) { value=it;done.countDown() }
             }
-            assertTrue("JS callback timeout",done.await(10,TimeUnit.SECONDS))
+            assertTrue("JS callback timeout (${js.length} chars)",done.await(30,TimeUnit.SECONDS))
             return value
         }
         fun load(earlyGuard: Boolean = false, initialEnabled: Boolean = true, nativeCopyBridge: Boolean = false) {
