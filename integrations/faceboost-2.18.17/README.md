@@ -9,6 +9,7 @@ This is explicitly a DIAGNOSTIC build, not a claimed download fix. The owner con
 ## Report schema v1 (developer decoding)
 
 - route: 1 Reel, 2 Watch, 3 other/feed. source: 0 empty, 1 blob, 2 HTTPS fbcdn, 3 other HTTPS, 4 other.
+- sourceAgreement: 0 comparison unavailable, 1 currentSrc/src agree, 2 differ (possible source transition). No source strings are retained.
 - topFrame: 0 child frame, 1 top frame. videos: global count capped at 200. limited: a work/data limit was encountered.
 - hosts: level 0 = video, 1 = immediate parent. tag: 0 other, 1 video, 2 div, 3 article, 4 section, 5 main, 6 span. props/fiber = React expando counts; store/component/action = known attribute presence flags.
 - hits: level, origin (0 React props, 1 fiber props, 2 data-store JSON, 3 data-video-data JSON, 4 data-mcomponent-data JSON); field (0 videoFBID, 1 videoId, 2 videoID, 3 video_id, 4 fbid, 5 id); type (0 null, 1 string, 2 number, 3 object, 4 other, 5 getter); digits = plausible numeric shape only, NOT its value.
@@ -17,7 +18,7 @@ This is explicitly a DIAGNOSTIC build, not a claimed download fix. The owner con
 
 Apply once to fresh upstream fe8a474b25414b38819b7cf927720899c8c89705. Version 2.18.17 / 2180017, original package/signing. Preserve accepted progress/seek/Like/entry-only fullscreen, settings/home/CTA/themes/audio. Older helper files/tests remain for regression history; production video button is diagnostic-only.
 
-Local suite: 142 controlled tests. CI requires exactly 26 Android 13 tests, including actual WebView diagnostic payload, native sanitization, origin rejection, report dialog and explicit clipboard button. These are not the real Facebook report: that comes from the owner's clip after installation.
+Local suite: 143 controlled tests. CI requires exactly 26 Android 13 tests, including actual WebView diagnostic payload, native sanitization, origin rejection, report dialog and explicit clipboard button. These are not the real Facebook report: that comes from the owner's clip after installation.
 
 Local command: FACEBOOST_SOURCE=SOURCE JSDOM_PATH=/absolute/node_modules/jsdom node --test integrations/faceboost-2.18.17/*.test.cjs
 

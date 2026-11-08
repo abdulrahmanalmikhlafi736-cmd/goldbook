@@ -12,7 +12,8 @@
  function share(n){const s=(n.getAttribute('aria-label')||n.textContent||'').trim();return s.length<80&&/^(?:مشاركة|شارك|إرسال|share|share now|send)(?:\s|$)/i.test(s);}
  function capture(v){
   if(!v||!v.isConnected||v.ownerDocument!==w.document||!/(^|\.)facebook\.com$/.test(w.location.hostname))return null;
-  const r={schema:1,route:/\/reels?\//.test(w.location.pathname)?1:/\/watch/.test(w.location.pathname)?2:3,source:sourceKind(v),videos:Math.min(200,w.document.querySelectorAll('video').length),topFrame:w===w.top?1:0,limited:0,hosts:[],hits:[],near:{buttons:0,actions:0,mcomponents:0,shares:0,svg:0,permalinks:0}};
+  let sourceAgreement=0;const current=v.currentSrc||'',attr=v.getAttribute('src')||'';if(current&&attr)try{sourceAgreement=new URL(current,w.location.href).href===new URL(attr,w.location.href).href?1:2;}catch(_){sourceAgreement=2;}
+  const r={schema:1,sourceAgreement,route:/\/reels?\//.test(w.location.pathname)?1:/\/watch/.test(w.location.pathname)?2:3,source:sourceKind(v),videos:Math.min(200,w.document.querySelectorAll('video').length),topFrame:w===w.top?1:0,limited:0,hosts:[],hits:[],near:{buttons:0,actions:0,mcomponents:0,shares:0,svg:0,permalinks:0}};
   const seen=new WeakSet();let budget=200,bytes=0;
   function walk(p,depth,level,origin,path){
    if(!p||typeof p!=='object'||seen.has(p))return;

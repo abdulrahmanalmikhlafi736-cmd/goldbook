@@ -21,7 +21,7 @@ object PlayerDiagnostic {
         val input = JSONObject(raw)
         require(input.optInt("schema") == 1)
         val out = JSONObject().put("schema", 1)
-        for ((key, max) in listOf("route" to 3, "source" to 4, "videos" to 200, "topFrame" to 1, "limited" to 1)) out.put(key, number(input, key, max))
+        for ((key, max) in listOf("route" to 3, "source" to 4, "sourceAgreement" to 2, "videos" to 200, "topFrame" to 1, "limited" to 1)) out.put(key, number(input, key, max))
         val hosts = JSONArray()
         val sourceHosts = input.optJSONArray("hosts") ?: JSONArray()
         require(sourceHosts.length() <= 8)
