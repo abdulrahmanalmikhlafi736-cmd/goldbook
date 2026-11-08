@@ -24,3 +24,7 @@ Run: `FACEBOOST_SOURCE=SOURCE JSDOM_PATH=/absolute/node_modules/jsdom node --tes
 The app no longer needs a system clipboard write for the download link. Facebook's own webpage feedback or Seal's independent behavior is not covered by this guarantee.
 
 Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
+
+### Verification history (pending final run)
+
+Run 42463896778 compiled but exposed a stale copy=1 fixture expectation, stale-player output falling through to normal copying, and Android's asynchronous classification callback for the seeded clip. The expectation now requires copy=0; stale outputs are discarded before writing; measurement starts after seed classification settles, retaining the zero-callback requirement during download. Local tests include stale writeText and ClipboardItem coverage. Run 42464778383 failed at Gradle distribution bootstrap, before compilation; CI now retries bootstrap only, never compilation or failing tests.

@@ -38,6 +38,12 @@ jobs:
         working-directory: work/faceboost
         run: |
           chmod +x gradlew
+          # Retry only wrapper/bootstrap downloads, not compilation or test failures.
+          for attempt in 1 2 3; do
+            ./gradlew --version && break
+            if [ "$attempt" -eq 3 ]; then exit 1; fi
+            sleep 5
+          done
           set +e
           ./gradlew :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8" --stacktrace 2>&1 | tee "$RUNNER_TEMP/fpro-build.log"
           result=${PIPESTATUS[0]}
