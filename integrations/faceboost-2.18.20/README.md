@@ -28,3 +28,5 @@ Compose reference: https://developer.android.com/develop/ui/compose/documentatio
 ### Verification history (pending final run)
 
 Run 42463896778 compiled but exposed a stale copy=1 fixture expectation, stale-player output falling through to normal copying, and Android's asynchronous classification callback for the seeded clip. The expectation now requires copy=0; stale outputs are discarded before writing; measurement starts after seed classification settles, retaining the zero-callback requirement during download. Local tests include stale writeText and ClipboardItem coverage. Run 42464778383 failed at Gradle distribution bootstrap, before compilation; CI now retries bootstrap only, never compilation or failing tests.
+
+Run 42464861250 also failed fetching the Gradle distribution. CI now uses setup-gradle's pinned 9.3.1 installation (the same version as the unchanged source wrapper) rather than the wrapper's failing bootstrap. App compilation/test gates remain mandatory; no failures are bypassed.

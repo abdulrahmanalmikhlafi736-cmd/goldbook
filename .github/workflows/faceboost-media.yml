@@ -25,6 +25,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
       - name: Download the pinned NEW project (not goldbook application sources)
         run: |
           mkdir -p work/faceboost
@@ -38,14 +40,10 @@ jobs:
         working-directory: work/faceboost
         run: |
           chmod +x gradlew
-          # Retry only wrapper/bootstrap downloads, not compilation or test failures.
-          for attempt in 1 2 3; do
-            ./gradlew --version && break
-            if [ "$attempt" -eq 3 ]; then exit 1; fi
-            sleep 5
-          done
+          # Same version as the source wrapper; setup-gradle handles distribution/cache.
+          gradle --version
           set +e
-          ./gradlew :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8" --stacktrace 2>&1 | tee "$RUNNER_TEMP/fpro-build.log"
+          gradle :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8" --stacktrace 2>&1 | tee "$RUNNER_TEMP/fpro-build.log"
           result=${PIPESTATUS[0]}
           set -e
           if [ "$result" -ne 0 ]; then
