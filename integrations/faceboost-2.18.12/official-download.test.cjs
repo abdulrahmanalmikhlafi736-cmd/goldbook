@@ -2,6 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {JSDOM}=require(process.env.JSDOM_PATH||'jsdom');
 function fixture({body='<article><video src="blob:current"></video><button aria-label="مشاركة">مشاركة</button></article>',url='https://m.facebook.com/reel/123/'}={}){
  const dom=new JSDOM(body,{url,runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window,d=w.document;
+ const handlers=new Map(),add=d.addEventListener.bind(d);d.addEventListener=function(type,fn,...args){if(!handlers.has(type))handlers.set(type,[]);handlers.get(type).push(fn);return add(type,fn,...args);};
  const sent=[],timers=new Map();let timerid=0,observers=0;
  const page=new URL(url),loc={get href(){return page.href;},set href(value){sent.push(value);},get pathname(){return page.pathname;},get hostname(){return page.hostname;}};
  const env={document:d,location:loc,Element:w.Element,navigator:{language:'ar',clipboard:{writeText:()=>Promise.resolve()}},innerHeight:800,innerWidth:400,getComputedStyle:w.getComputedStyle.bind(w),
@@ -20,7 +21,7 @@ function fixture({body='<article><video src="blob:current"></video><button aria-
   for(let i=0;i<count;i++){const b=geometry(d.createElement('button'),710);b.setAttribute('aria-label','نسخ الرابط');b.onclick=()=>{copyClicks++;if(!delayed)api.copied(value);};root.append(b);}d.body.append(root);return root;
  }
  const share=d.querySelector('[aria-label="مشاركة"]');if(share)share.onclick=()=>{shareClicks++;sheet();};
- return {dom,w,d,env,api,v,sent,timers,ctx,sheet,geometry,share,shareClicks:()=>shareClicks,copyClicks:()=>copyClicks,observers:()=>observers,close(){api.cancel();dom.window.close();}};
+ return {dom,w,d,env,api,v,sent,timers,ctx,sheet,geometry,share,trustedPointer:el=>(handlers.get('pointerdown')||[]).forEach(fn=>fn({isTrusted:true,target:el})),shareClicks:()=>shareClicks,copyClicks:()=>copyClicks,observers:()=>observers,close(){api.cancel();dom.window.close();}};
 }
 function run(fn,options){const f=fixture(options);try{fn(f);}finally{f.close();}}
 test('no observer/timer or clipboard reads while idle',()=>run(f=>{assert.equal(f.observers(),0);assert.equal(f.timers.size,0);assert.equal(f.api.copied('https://www.facebook.com/share/v/OLD123/'),false);assert.equal(f.sent.length,0);}));
@@ -47,3 +48,5 @@ test('ordinary manual clipboard copying outside a download request is unchanged 
 
 test('video viewer dialog may contain its own official share control',()=>run(f=>{f.api.begin(f.v);assert.equal(f.shareClicks(),1);assert.equal(f.copyClicks(),1);assert.equal(f.sent.length,1);},{body:'<div role="dialog"><article><video></video><button aria-label="مشاركة">مشاركة</button></article></div>'}));
 test('icon font glyphs do not corrupt otherwise explicit Arabic Share and Copy labels',()=>run(f=>{f.share.removeAttribute('aria-label');f.share.textContent='\u{F3100} مشاركة';f.share.onclick=()=>{const root=f.sheet({delayed:true});const b=root.firstChild;b.removeAttribute('aria-label');b.textContent='\u{F310F} نسخ الرابط';b.onclick=()=>f.api.copied('https://www.facebook.com/share/v/1HeYq17541/');};f.api.begin(f.v);assert.equal(f.sent.length,1);assert.equal(new URL(f.sent[0]).hostname,'download');}));
+
+test('choosing another official share-sheet action cancels a delayed download',()=>run(f=>{f.share.onclick=()=>f.sheet({delayed:true});f.api.begin(f.v);const other=f.geometry(f.d.createElement('button'),710);other.textContent='نشر';f.d.querySelector('[role="presentation"]').append(other);f.trustedPointer(other);assert.equal(f.api.report().active,false);assert.equal(f.api.copied('https://www.facebook.com/share/v/1HeYq17541/'),false);assert.equal(f.sent.length,0);assert.equal(f.observers(),0);}));

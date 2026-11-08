@@ -59,7 +59,8 @@
   listen('pointerdown',e=>{
    if(!e.isTrusted)return;
    const el=e.target instanceof w.Element?e.target:null;
-   if(el&&el.closest('[role="dialog"],[role="presentation"],.dialog-screen')&&copies().length)return;
+   if(el&&copies().some(b=>b.contains(el)))return;
+   if(t.phase==='copying'||el&&el.closest('[role="dialog"],[role="presentation"],.dialog-screen')&&!el.closest('article,[role="article"]')){t.cancel();return;}
    const article=video.closest('article,[role="article"]');
    if(!el||!(article?article.contains(el):video.parentElement&&video.parentElement.contains(el)))t.cancel();
   });
