@@ -20,6 +20,11 @@ import com.almekhlafi.materialbook.R
 import com.almekhlafi.materialbook.data.local.SettingsDataStore
 import com.almekhlafi.materialbook.ui.components.settings.SettingsContent
 import com.almekhlafi.materialbook.ui.viewmodel.SettingsViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -40,6 +45,10 @@ class HomeSwipeSettingUiTest {
         val master=runBlocking { prefs.fproEnhance.first() }
         runBlocking { prefs.setFproHomeSwipeBlock(true);prefs.setFproEnhance(false) }
         val model=SettingsViewModel(app)
+        // Observe persisted values off the UI/test thread; waitUntil keeps Compose's
+        // test clock progressing while the production viewModelScope write completes.
+        val observationScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
+        val persisted=prefs.fproHomeSwipeBlock.stateIn(observationScope,SharingStarted.Eagerly,true)
         try {
             compose.setContent { MaterialTheme { SettingsContent(modifier=Modifier.fillMaxSize().verticalScroll(rememberScrollState()),viewModel=model) } }
             // Production categories are collapsed by default: open the actual section first.
@@ -47,21 +56,18 @@ class HomeSwipeSettingUiTest {
             compose.waitForIdle()
             val title=app.getString(R.string.fpro_home_swipe_block_title)
             compose.onNodeWithText(title).performScrollTo().assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick) { it() }
-            // Drain the Compose/main queue before observing the asynchronous DataStore write.
-            // Keep both persistence assertions; a loaded emulator may take longer than five seconds.
-            compose.waitForIdle()
-            try { runBlocking { withTimeout(15000) { prefs.fproHomeSwipeBlock.first { !it } } } } catch (e: Exception) { throw AssertionError("OFF action did not persist; model=${model.fproHomeSwipeBlock.value}", e) }
+            try { compose.waitUntil(15000) { !persisted.value && !model.fproHomeSwipeBlock.value } } catch (e: Exception) { throw AssertionError("OFF action did not persist; observed=${persisted.value}; model=${model.fproHomeSwipeBlock.value}; snapshot=${runBlocking { withTimeout(5000) { prefs.prefs.first() } }}", e) }
+            assertTrue(!runBlocking { withTimeout(5000) { prefs.fproHomeSwipeBlock.first() } })
             compose.waitForIdle()
             assertTrue(!model.fproHomeSwipeBlock.value)
             compose.onNodeWithText(title).performSemanticsAction(SemanticsActions.OnClick) { it() }
-            // Drain the Compose/main queue before observing the asynchronous DataStore write.
-            // Keep both persistence assertions; a loaded emulator may take longer than five seconds.
-            compose.waitForIdle()
-            try { runBlocking { withTimeout(15000) { prefs.fproHomeSwipeBlock.first { it } } } } catch (e: Exception) { throw AssertionError("ON action did not persist; model=${model.fproHomeSwipeBlock.value}", e) }
+            try { compose.waitUntil(15000) { persisted.value && model.fproHomeSwipeBlock.value } } catch (e: Exception) { throw AssertionError("ON action did not persist; observed=${persisted.value}; model=${model.fproHomeSwipeBlock.value}; snapshot=${runBlocking { withTimeout(5000) { prefs.prefs.first() } }}", e) }
+            assertTrue(runBlocking { withTimeout(5000) { prefs.fproHomeSwipeBlock.first() } })
             compose.waitForIdle()
             assertTrue(model.fproHomeSwipeBlock.value)
         } finally {
             runBlocking { prefs.setFproHomeSwipeBlock(original);prefs.setFproEnhance(master) }
+            observationScope.cancel()
             model.viewModelScope.cancel()
         }
     }
