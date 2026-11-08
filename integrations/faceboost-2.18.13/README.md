@@ -6,6 +6,7 @@ The owner rejected 2.18.12's manual-share instruction. This revision removes bot
 
 Concrete changes:
 - Fix transaction invalidation when an official modal marks its background video aria-hidden. Detach, source/identity/route changes and actual app background still cancel.
+- Exclude hidden/offscreen old feed controls before applying the bounded candidate budget, so they cannot crowd out the new Copy sheet.
 - Resolve aria-labelledby accessible names and additional explicit Arabic Share labels. Never select controls by their ordinal position or blindly use a neighboring video's Share button.
 - Observe and forward the origin-checked main-frame native `copyText` channel as well as inherited web clipboard/execCommand hooks. Do not read clipboard history or install a system clipboard observer.
 - Temporarily mask only the newly opened share sheet's opacity during Copy. Restore its exact previous opacity on every exit; never remove site DOM, change body layout/scroll locks, force Back or hide an existing dialog. A completely flash-free transition is not guaranteed.
@@ -15,6 +16,6 @@ Concrete changes:
 
 Local gate: `FACEBOOST_SOURCE=SOURCE JSDOM_PATH=/absolute/node_modules/jsdom node --test integrations/faceboost-2.18.13/*.test.cjs`.
 
-CI requires 19 Android 13 instrumentation cases. Added native cases cover background aria-hidden and the actual origin-checked WebMessage copy bridge. Controlled Share/Copy handlers are not a logged-in account test, and native intent/clipboard checks do not exercise an installed Seal UI. Record actual results only after the workflow passes.
+CI requires 20 Android 13 instrumentation cases. Added native cases cover background aria-hidden and the actual origin-checked WebMessage copy bridge. Controlled Share/Copy handlers are not a logged-in account test, and native intent/clipboard checks do not exercise an installed Seal UI. Record actual results only after the workflow passes.
 
 Preserve accepted seek/ball geometry, upper fullscreen, Like repair, saved home guard, app identity/signing and themes. Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar

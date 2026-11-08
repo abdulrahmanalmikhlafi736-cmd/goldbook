@@ -286,4 +286,13 @@ class MediaSurfaceRegressionTest {
         assertEquals(1,h.routed.size)
     }finally{h.close()}}
 
+    @Test fun hiddenLongFeedControlsCannotExcludeNewOfficialCopySheet(){val h=Harness();try{
+        h.load();h.officialFixture()
+        h.eval("var hidden=document.createElement('section');hidden.hidden=true;for(var i=0;i<650;i++)hidden.appendChild(document.createElement('button'));document.body.insertBefore(hidden,document.body.firstChild);FproOfficialDownload.begin(__v);")
+        val uri=android.net.Uri.parse(h.awaitRoute())
+        assertEquals("download",uri.host)
+        assertEquals("https://www.facebook.com/share/v/1HeYq17541/",uri.getQueryParameter("link"))
+        assertEquals("true",h.eval("__officialShares===1&&__officialCopies===1&&!FproOfficialDownload.report().active"))
+    }finally{h.close()}}
+
 }

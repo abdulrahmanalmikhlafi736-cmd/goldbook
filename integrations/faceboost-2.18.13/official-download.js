@@ -6,7 +6,7 @@
  const label=b=>normalize(b.getAttribute('aria-label')||b.getAttribute('title')||(b.getAttribute('aria-labelledby')||'').split(/\s+/).map(id=>d.getElementById(id)?.textContent||'').join(' ')||b.textContent);
  const isShare=b=>/^(?:share(?: (?:video|reel|post))?|مشاركة(?: (?:هذا )?(?:الفيديو|الريلز|المنشور))?|خيارات المشاركة|مشاركه|شارك(?: (?:الفيديو|الريلز|المنشور))?)(?:\s*[\d٠-٩.,٬]+)?$/.test(label(b))||String(b.getAttribute('data-sigil')||'').split(/\s+/).includes('share');
  const visible=n=>{if(!n||!n.isConnected||n.closest('[aria-hidden="true"],[hidden]')||n.disabled||n.getAttribute('aria-disabled')==='true')return false;const r=n.getBoundingClientRect(),s=w.getComputedStyle(n);return r.width>0&&r.height>0&&r.bottom>0&&r.top<w.innerHeight&&r.right>0&&r.left<w.innerWidth&&s.display!=='none'&&s.visibility!=='hidden'&&s.opacity!=='0';};
- function buttons(root){return Array.from(root.querySelectorAll(selector)).slice(0,600);}
+ function buttons(root){return Array.from(root.querySelectorAll(selector)).filter(visible).slice(0,600);}
  function copies(){return buttons(d).filter(b=>!b.closest('#mb-share-via')&&(/^(?:copy link|نسخ الرابط|نسخ رابط الفيديو|نسخ رابط المنشور)$/.test(label(b))||Array.from(b.querySelectorAll('span')).some(n=>n.textContent==='\u{F310F}'))&&visible(b));}
  function fingerprint(v){return [v.currentSrc||'',v.getAttribute('src')||'',...Array.from(v.querySelectorAll('source')).map(n=>n.getAttribute('src')||'')].join('|');}
  function identity(v){let out='';for(let n=v,i=0;n&&i<10;n=n.parentElement,i++){if(n.matches('body,html,main,[role="feed"]'))break;out+='|'+(n.getAttribute('data-video-id')||n.getAttribute('data-videoid')||'');}return out;}
