@@ -5,6 +5,7 @@
     "app/build.gradle.kts",
     "app/src/androidTest/java/com/almekhlafi/materialbook/ui/screens/MediaSurfaceRegressionTest.kt",
     "app/src/main/assets/media-surface.js",
+    "app/src/main/assets/mobile-share-diagnostic.js",
     "app/src/main/assets/official-download.js",
     "app/src/main/assets/player-post-download.js",
     "app/src/main/java/com/almekhlafi/materialbook/utils/ExternalDownloader.kt",
@@ -35,10 +36,6 @@
       "sha256": "768e4a584d44632c56575a7dce7604013b6f0b19d8a4350539a148a6d862bd6b"
     },
     {
-      "path": "app/src/main/assets/mobile-share-diagnostic.js",
-      "sha256": "5643fcd4e8d5b92fa1805ca6a3a6f9be9e9b3b51fb0fdf1787a386e12cff0d99"
-    },
-    {
       "path": "app/src/main/assets/player-diagnostic.js",
       "sha256": "c48750c402b62a710a3eb9bce1f6c690de0c454aab9d51df0016c0ad265aaba1"
     },
@@ -47,5 +44,5 @@
       "sha256": "7289f9a272ae9ddcf7620f77c645388cf6ba5c2aebcda0f94445802275085ecf"
     }
   ],
-  "note": "media-surface.js and PlayerDiagnostic.kt differ only in version text; build.gradle.kts only version/code. No APK comparison or owner acceptance claimed."
+  "note": "media-surface.js and PlayerDiagnostic.kt differ only in version text; build.gradle.kts only version/code. Mobile diagnostics and official router now normalize invisible direction formatting. No owner-account acceptance or APK byte comparison claimed."
 }

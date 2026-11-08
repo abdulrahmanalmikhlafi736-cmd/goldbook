@@ -1,24 +1,50 @@
 {
-  "appCommit": "05b3411627070a1eeea3243e8ff8b7418e2e4b71",
-  "latestWorkflowCommit": "25fcaf626e3be9a68ca5c3609ddf6b060d8e6690",
-  "latestRun": 42465247524,
-  "status": "blocked_on_dependency_transport; Android changes not yet verified",
+  "appAndFixtureCommit": "b7c2e4bd57000afd144255ce51609e46dd3d9a5c",
+  "productionChangeCommit": "1c1e25528870b9a2354eb3e02a30d29700af8afc",
+  "runId": 42488447784,
+  "status": "all_CI_jobs_success; owner_account_test_pending",
   "local": {
-    "total": 174,
-    "passed": 174,
+    "total": 179,
+    "passed": 179,
     "failed": 0,
     "skipped": 0
   },
-  "requiredAndroidTests": 29,
-  "latestRunDetails": {
-    "conclusion": "failure",
+  "requiredAndroidTests": 30,
+  "nativeEvidence": "Android 13 job succeeded through exact OK (30 tests) and failure-marker gates; includes unchanged clipboard sentinel/zero change callbacks followed by successful manual copy. Controlled fixtures, not owner-account proof.",
+  "ownerStatus": "2.18.19 works inside video/Reel viewers; home feed failed before Share selection. 2.18.20 is not owner-tested.",
+  "artifacts": [
+    {
+      "id": 13621290885,
+      "name": "Faceboost-2.18.20-Chromium-evidence",
+      "archiveSizeBytes": 1845,
+      "archiveDigest": "sha256:827e6756727da151daee562c027551dc39bb411c25c33c2326921cf47a3f60f2",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42488447784/artifacts/13621290885"
+    },
+    {
+      "id": 13620577664,
+      "name": "Faceboost-2.18.20-build-inputs",
+      "archiveSizeBytes": 47128684,
+      "archiveDigest": "sha256:43b0e960e94c6fd27652306d1061ab492f484725fb3c1dd1c83555b98263d0d1",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42488447784/artifacts/13620577664"
+    },
+    {
+      "id": 13620004260,
+      "name": "FPRO-2.18.20-media-candidate",
+      "archiveSizeBytes": 3081545,
+      "archiveDigest": "sha256:c24bad8367b7ed90f0d56a00fc2c4c25ee1bb541d62af63cecd468f88ae499d6",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42488447784/artifacts/13620004260"
+    }
+  ],
+  "runDetails": {
+    "conclusion": "success",
+    "headSha": "b7c2e4bd57000afd144255ce51609e46dd3d9a5c",
     "jobs": [
       {
-        "completedAt": "2026-11-08T09:01:52Z",
-        "conclusion": "failure",
-        "databaseId": 128683153823,
+        "completedAt": "2026-11-08T14:20:42Z",
+        "conclusion": "success",
+        "databaseId": 128755363785,
         "name": "build",
-        "startedAt": "2026-11-08T08:59:49Z",
+        "startedAt": "2026-11-08T14:10:03Z",
         "status": "completed",
         "steps": [
           {
@@ -46,37 +72,37 @@
             "status": "completed"
           },
           {
-            "conclusion": "failure",
+            "conclusion": "success",
             "name": "Run gradle/actions/setup-gradle@v4",
             "number": 5,
             "status": "completed"
           },
           {
-            "conclusion": "skipped",
+            "conclusion": "success",
             "name": "Download the pinned NEW project (not goldbook application sources)",
             "number": 6,
             "status": "completed"
           },
           {
-            "conclusion": "skipped",
+            "conclusion": "success",
             "name": "DOM and production-gesture integration gate",
             "number": 7,
             "status": "completed"
           },
           {
-            "conclusion": "skipped",
+            "conclusion": "success",
             "name": "Build release and fixture APKs with unchanged identity and signing",
             "number": 8,
             "status": "completed"
           },
           {
-            "conclusion": "skipped",
+            "conclusion": "success",
             "name": "Package APK candidate and exact patched source",
             "number": 9,
             "status": "completed"
           },
           {
-            "conclusion": "skipped",
+            "conclusion": "success",
             "name": "Run actions/upload-artifact@v4",
             "number": 10,
             "status": "completed"
@@ -94,7 +120,7 @@
             "status": "completed"
           },
           {
-            "conclusion": "skipped",
+            "conclusion": "success",
             "name": "Post Run actions/setup-node@v4",
             "number": 19,
             "status": "completed"
@@ -112,29 +138,96 @@
             "status": "completed"
           }
         ],
-        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42465247524/job/128683153823"
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42488447784/job/128755363785"
       },
       {
-        "completedAt": "2026-11-08T09:01:52Z",
-        "conclusion": "skipped",
-        "databaseId": 128683667198,
-        "name": "candidate",
-        "startedAt": "2026-11-08T09:01:52Z",
-        "status": "completed",
-        "steps": [],
-        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42465247524/job/128683667198"
-      },
-      {
-        "completedAt": "2026-11-08T09:01:52Z",
-        "conclusion": "skipped",
-        "databaseId": 128683667271,
+        "completedAt": "2026-11-08T14:20:42Z",
+        "conclusion": "success",
+        "databaseId": 128757136797,
         "name": "chromium-fixtures",
-        "startedAt": "2026-11-08T09:01:52Z",
+        "startedAt": "2026-11-08T14:17:05Z",
         "status": "completed",
-        "steps": [],
-        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42465247524/job/128683667271"
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/download-artifact@v4",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Enable KVM",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run thirty WebView and settings regressions on Android 13",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v4",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 6,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42488447784/job/128757136797"
+      },
+      {
+        "completedAt": "2026-11-08T14:20:42Z",
+        "conclusion": "success",
+        "databaseId": 128758029350,
+        "name": "candidate",
+        "startedAt": "2026-11-08T14:20:33Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/download-artifact@v4",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v4",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 4,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42488447784/job/128758029350"
       }
     ],
     "status": "completed"
-  }
+  },
+  "limitations": [
+    "Artifact digest/size describes ZIP archive, not APK bytes. No independent APK byte/signature extraction performed. SHA256SUMS.txt is inside candidate archive.",
+    "Home feed direction-format compatibility is a controlled hypothesis; pasted V2 contains no actual action names. No geometry-only/unknown control clicking.",
+    "Facebook webpage feedback and Seal independent behavior are outside clipboard fixture proof."
+  ]
 }
