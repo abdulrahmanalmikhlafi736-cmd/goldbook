@@ -6,7 +6,7 @@ The pinned Useful Scripts `video.parentElement[reactKey].children.props.videoFBI
 
 New `player-post-download.js` is the only button route: explicit current-player videoFBID -> validated Facebook permalink -> empty media field -> native copy + configured Seal activity. A fresh official Share/Copy action for that same video is the only fallback. If identity cannot be obtained, do not export currentSrc, signed CDN files, DASH segments, xpv_asset_id, initial route or another playing video.
 
-Native ExternalDownloader now requires a validated Facebook post/video link for ALL download routes, including requests without copy=1. Native publicFirstSource ignores its historical media argument. Obsolete current-video-source.js is not injected or sampled on attachment; its file and legacy fixtures remain for regression history only. Missing identity may still cause the existing Share-not-found message; preventing the wrong CDN URL is NOT proof that the owner's mobile layout now exposes videoFBID.
+Native ExternalDownloader now requires a validated Facebook post/video link for ALL video download routes, including requests without copy=1. Native publicFirstSource ignores its historical media argument. Obsolete current-video-source.js is not injected or sampled on attachment; its file and legacy fixtures remain for regression history only. Missing identity may still cause the existing Share-not-found message; preventing the wrong CDN URL is NOT proof that the owner's mobile layout now exposes videoFBID.
 
 Apply once to fresh upstream fe8a474b25414b38819b7cf927720899c8c89705. Package/signing unchanged; version 2.18.16 / 2180016. Preserve media controller body/geometry (version comment only), Like/fullscreen, home guard, themes, audio and CTA behavior.
 
@@ -16,3 +16,5 @@ Local: FACEBOOST_SOURCE=SOURCE JSDOM_PATH=/absolute/node_modules/jsdom node --te
 
 Research excerpts and MIT attribution: RESEARCH.md and react-video-permalink.js.
 Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
+
+Preservation: story-image downloads have their own explicit `kind=image` route and retain the original direct-image transfer. Only that separate image action can use the legacy media selector; all video routes require a post link.
