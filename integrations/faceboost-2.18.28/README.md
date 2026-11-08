@@ -8,6 +8,6 @@ No acceptance gate changed. Unsupported responses remain blocked; no new fetch, 
 
 Version2.18.28/code2180028/com.almekhlafi; original signing configuration. Apply once to fresh fe8a474b25414b38819b7cf927720899c8c89705.
 
-233 local tests PASS. Native exact40-case gate retains39 including actual system PNG file save and native hold restoration; adds enum/redaction/reason-order tests with secret sentinels and ensures octet-stream still rejected. Native result pending. Owner needs to press the same Save row and send the diagnostic dialog screenshot. This is a diagnostic build, NOT a verified fix to the owner's Save failure.
+233 local tests PASS. Native exact40-case gate retains39 including actual system PNG file save and native hold restoration; adds enum/redaction/reason-order tests with secret sentinels and ensures octet-stream still rejected. All three jobs of run42514790612 passed, including exact40 Android13 cases atd088c1b37f5e8c56683f8b24caa854ebbc4123ab. Owner needs to press the same Save row and send the diagnostic dialog screenshot. This is a diagnostic build, NOT a verified fix to the owner's Save failure.
 
 Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
