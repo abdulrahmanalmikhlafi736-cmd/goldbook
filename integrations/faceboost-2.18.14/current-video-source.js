@@ -8,7 +8,7 @@
  const baseline=new WeakMap(),digits=/^\d+$/;
  const fields=['browser_native_hd_url','playable_url_quality_hd','browser_native_sd_url','playable_url','playable_url_dash'];
  function https(value){
-  try{if(typeof value!=='string'||value.length>8192)return '';const u=new URL(value,w.location.href);return u.protocol==='https:'&&!u.username&&!u.password?u.href:'';}catch(_){return '';}
+  try{if(typeof value!=='string'||value.length>8192||!/^https:\/\//i.test(value.trim()))return '';const u=new URL(value.trim());return u.protocol==='https:'&&!u.username&&!u.password?u.href:'';}catch(_){return '';}
  }
  function fingerprint(v){return [v.currentSrc||'',v.getAttribute('src')||'',...Array.from(v.querySelectorAll('source')).map(s=>s.getAttribute('src')||'')].join('|');}
  function scopes(v){const out=[v];for(let n=v.parentElement,i=0;n&&i<10;n=n.parentElement,i++){
