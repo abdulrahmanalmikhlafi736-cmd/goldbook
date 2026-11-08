@@ -335,9 +335,10 @@ class MediaSurfaceRegressionTest {
             first.REACT_PROPS={children:{props:{videoFBID:'111111'}}};
             var own=document.createElement('div');document.body.appendChild(own);own.appendChild(__v);
             own.REACT_PROPS={children:{props:{coreVideoPlayerMetaData:{videoFBID:'222222'}}}};
+            __v.REACT_FIBER={memoizedProps:{videoFBID:'333333'}};
             FproReactVideoPermalink.remember(__v);
             FproReactVideoPermalink.resolve(__v).url==='https://www.facebook.com/watch/?v=222222';
-        """.trimIndent().replace("REACT_PROPS","__reactProps"+"$"+"fixture")))
+        """.trimIndent().replace("REACT_PROPS","__reactProps"+"$"+"fixture").replace("REACT_FIBER","__reactFiber"+"$"+"fixture")))
     }finally{h.close()}}
     @Test fun reactSourceReuseAndAlternateTreeDisagreementCannotExportOldClip(){val h=Harness();try{
         h.load()

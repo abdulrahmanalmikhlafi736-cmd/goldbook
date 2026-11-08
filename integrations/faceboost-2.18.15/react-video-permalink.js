@@ -43,15 +43,22 @@
   }
   function hostBoundary(n){return n instanceof w.Element&&(n.matches(boundary)||n.querySelectorAll('video').length>1);}
   try{
+   const hosts=[];
    for(let n=v,depth=0;n&&depth<5;n=n.parentElement,depth++){
     if(n!==v&&hostBoundary(n))break;
-    const keys=Object.getOwnPropertyNames(n).slice(0,200);
+    hosts.push({n,keys:Object.getOwnPropertyNames(n).slice(0,200)});
+    if(n!==v&&n.matches('article,[role="article"]'))break;
+   }
+   // DOM React props are updated directly; prefer them to a possibly old owning fiber tree.
+   for(const {n,keys}of hosts){
     const ids=new Set();
     for(const key of keys)if(key.startsWith('__reactProps')){
      const descriptor=Object.getOwnPropertyDescriptor(n,key);
      if(descriptor&&'value'in descriptor)for(const value of props(descriptor.value))ids.add(value);
     }
     if(ids.size)return {ids,via:'react-props'};
+   }
+   for(const {n,keys}of hosts){
     for(const key of keys)if(key.startsWith('__reactFiber$')||key.startsWith('__reactInternalInstance$')){
      const descriptor=Object.getOwnPropertyDescriptor(n,key);let fiber=descriptor&&'value'in descriptor?descriptor.value:null;
      for(let level=0;fiber&&typeof fiber==='object'&&level<8;level++,fiber=fiber.return){
@@ -62,7 +69,6 @@
       if(found.size)return {ids:found,via:'react-fiber'};
      }
     }
-    if(n!==v&&n.matches('article,[role="article"]'))break;
    }
   }catch(_){return {ids:new Set(),via:'unreadable'};}
   return {ids:new Set(),via:'missing'};

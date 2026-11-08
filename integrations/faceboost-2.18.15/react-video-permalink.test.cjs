@@ -19,3 +19,5 @@ test('accessor properties are not executed while enumerating React keys',()=>run
 test('cyclic props and fibers terminate within fixed work limits',()=>run(({api,v})=>{const p={};p.children=p;v.parentElement.__reactProps$x=p;const f={memoizedProps:{}};f.return=f;v.__reactFiber$x=f;api.remember(v);assert.equal(api.resolve(v).url,'');}));
 test('detached and non-Facebook contexts do not export IDs',()=>{run(({api,v})=>{props(v.parentElement,'111111');api.remember(v);v.remove();assert.equal(api.resolve(v).url,'');});run(({api,v})=>{props(v.parentElement,'111111');assert.equal(api.resolve(v).url,'');},undefined,'https://www.messenger.com/');});
 test('no matching React property means no browser-address fallback',()=>run(({api,v})=>{api.remember(v);assert.equal(api.resolve(v).url,'');}));
+
+test('current parent React props take precedence over an older video fiber tree',()=>run(({api,v})=>{props(v.parentElement,'222222');v.__reactFiber$x={memoizedProps:{videoFBID:'111111'}};api.remember(v);assert.equal(api.resolve(v).url,'https://www.facebook.com/watch/?v=222222');}));
