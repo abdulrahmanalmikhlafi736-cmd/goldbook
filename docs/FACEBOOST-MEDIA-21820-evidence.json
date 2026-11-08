@@ -1,0 +1,140 @@
+{
+  "appCommit": "05b3411627070a1eeea3243e8ff8b7418e2e4b71",
+  "latestWorkflowCommit": "25fcaf626e3be9a68ca5c3609ddf6b060d8e6690",
+  "latestRun": 42465247524,
+  "status": "blocked_on_dependency_transport; Android changes not yet verified",
+  "local": {
+    "total": 174,
+    "passed": 174,
+    "failed": 0,
+    "skipped": 0
+  },
+  "requiredAndroidTests": 29,
+  "latestRunDetails": {
+    "conclusion": "failure",
+    "jobs": [
+      {
+        "completedAt": "2026-11-08T09:01:52Z",
+        "conclusion": "failure",
+        "databaseId": 128683153823,
+        "name": "build",
+        "startedAt": "2026-11-08T08:59:49Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-node@v4",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-java@v4",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "failure",
+            "name": "Run gradle/actions/setup-gradle@v4",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Download the pinned NEW project (not goldbook application sources)",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "DOM and production-gesture integration gate",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Build release and fixture APKs with unchanged identity and signing",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Package APK candidate and exact patched source",
+            "number": 9,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Run actions/upload-artifact@v4",
+            "number": 10,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run gradle/actions/setup-gradle@v4",
+            "number": 17,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-java@v4",
+            "number": 18,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Post Run actions/setup-node@v4",
+            "number": 19,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 20,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 21,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42465247524/job/128683153823"
+      },
+      {
+        "completedAt": "2026-11-08T09:01:52Z",
+        "conclusion": "skipped",
+        "databaseId": 128683667198,
+        "name": "candidate",
+        "startedAt": "2026-11-08T09:01:52Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42465247524/job/128683667198"
+      },
+      {
+        "completedAt": "2026-11-08T09:01:52Z",
+        "conclusion": "skipped",
+        "databaseId": 128683667271,
+        "name": "chromium-fixtures",
+        "startedAt": "2026-11-08T09:01:52Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42465247524/job/128683667271"
+      }
+    ],
+    "status": "completed"
+  }
+}
