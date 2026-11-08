@@ -1,9 +1,9 @@
-name: Faceboost scoped media 2.18.25
+name: Faceboost scoped media 2.18.26
 on:
   push:
     branches: [arena/f8d9a96b-goldbook]
     paths:
-      - 'integrations/faceboost-2.18.25/**'
+      - 'integrations/faceboost-2.18.26/**'
       - '.github/workflows/faceboost-media.yml'
   workflow_dispatch:
 permissions:
@@ -31,11 +31,11 @@ jobs:
         run: |
           mkdir -p work/faceboost
           curl --fail --location --retry 3 https://codeload.github.com/abdulrahmanalmikhlafi736-cmd/faceboost-review/tar.gz/fe8a474b25414b38819b7cf927720899c8c89705 | tar -xz --strip-components=1 -C work/faceboost
-          python3 integrations/faceboost-2.18.25/apply.py work/faceboost
+          python3 integrations/faceboost-2.18.26/apply.py work/faceboost
       - name: DOM and production-gesture integration gate
         run: |
           npm install --prefix "$RUNNER_TEMP/harness" --no-audit --no-fund jsdom@26.1.0
-          FACEBOOST_SOURCE="$PWD/work/faceboost" JSDOM_PATH="$RUNNER_TEMP/harness/node_modules/jsdom" node --test integrations/faceboost-2.18.25/*.test.cjs | tee media-dom-results.tap
+          FACEBOOST_SOURCE="$PWD/work/faceboost" JSDOM_PATH="$RUNNER_TEMP/harness/node_modules/jsdom" node --test integrations/faceboost-2.18.26/*.test.cjs | tee media-dom-results.tap
       - name: Build release and fixture APKs with unchanged identity and signing
         working-directory: work/faceboost
         run: |
@@ -60,15 +60,15 @@ jobs:
       - name: Package APK candidate and exact patched source
         run: |
           mkdir -p artifacts
-          cp work/faceboost/app/build/outputs/apk/release/app-release.apk artifacts/FPRO-2.18.25-media-candidate.apk
+          cp work/faceboost/app/build/outputs/apk/release/app-release.apk artifacts/FPRO-2.18.26-media-candidate.apk
           cp work/faceboost/app/build/outputs/apk/debug/app-debug.apk artifacts/fixture-app.apk
           cp work/faceboost/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk artifacts/fixture-tests.apk
           cp media-dom-results.tap artifacts/
-          tar --exclude='./.gradle' --exclude='./.kotlin' --exclude='./build' --exclude='./app/build' --exclude='./local.properties' -czf artifacts/FPRO-2.18.25-source.tar.gz -C work/faceboost .
+          tar --exclude='./.gradle' --exclude='./.kotlin' --exclude='./build' --exclude='./app/build' --exclude='./local.properties' -czf artifacts/FPRO-2.18.26-source.tar.gz -C work/faceboost .
           sha256sum artifacts/*.apk > artifacts/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: Faceboost-2.18.25-build-inputs
+          name: Faceboost-2.18.26-build-inputs
           path: artifacts/
           if-no-files-found: error
   chromium-fixtures:
@@ -78,7 +78,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Faceboost-2.18.25-build-inputs
+          name: Faceboost-2.18.26-build-inputs
           path: artifacts
       - name: Enable KVM
         run: |
@@ -108,7 +108,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Faceboost-2.18.25-Chromium-evidence
+          name: Faceboost-2.18.26-Chromium-evidence
           path: instrumentation.txt
           if-no-files-found: warn
   candidate:
@@ -117,13 +117,13 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Faceboost-2.18.25-build-inputs
+          name: Faceboost-2.18.26-build-inputs
           path: artifacts
       - uses: actions/upload-artifact@v4
         with:
-          name: FPRO-2.18.25-media-candidate
+          name: FPRO-2.18.26-media-candidate
           path: |
-            artifacts/FPRO-2.18.25-media-candidate.apk
+            artifacts/FPRO-2.18.26-media-candidate.apk
             artifacts/SHA256SUMS.txt
             artifacts/media-dom-results.tap
           if-no-files-found: error
