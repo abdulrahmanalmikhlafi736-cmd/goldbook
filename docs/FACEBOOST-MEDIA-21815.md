@@ -1,5 +1,7 @@
 # FPRO 🔥 2.18.15 — identify the selected Facebook player before downloading
 
+> Subsequent owner feedback: this version failed and exported a signed CDN playback URL rather than the current post permalink. See 2.18.16 for fallback removal; no live identity-extraction success established.
+
 ## Corrected research scope
 
 The owner clarified that the missing step is obtaining the link FROM the current Facebook video, not downloading a URL already supplied by the user. Version 2.18.14 failed in the owner's account. This revision adds current-player React metadata identification before the unchanged source/official-copy fallbacks and native Seal handoff. It is not a claim of live account success.

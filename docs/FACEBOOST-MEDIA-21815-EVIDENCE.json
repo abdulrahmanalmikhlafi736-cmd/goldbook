@@ -65,5 +65,10 @@
   "priorFailedRuns": [
     42452901529,
     42453784179
-  ]
+  ],
+  "subsequentOwnerFeedback": {
+    "outcome": "failed",
+    "symptom": "Wrong signed scontent/fbcdn playback MP4 exported instead of current post permalink.",
+    "followUp": "2.18.16 removes the fallback; live identity extraction still unproven."
+  }
 }
