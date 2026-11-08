@@ -419,9 +419,12 @@ class MediaSurfaceRegressionTest {
                 val popup=reference.get() as android.app.AlertDialog
                 assertTrue(popup.isShowing)
                 popup.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick()
+            }
+            // AlertDialog dispatches its button callback through a Handler message.
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            scenario.onActivity { activity ->
                 val clipboard=activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 assertEquals(report,clipboard.primaryClip!!.getItemAt(0).text.toString())
-                popup.dismiss()
             }
         }
     }finally{h.close()}}
