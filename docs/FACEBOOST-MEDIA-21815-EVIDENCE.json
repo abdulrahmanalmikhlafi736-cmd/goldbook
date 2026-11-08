@@ -1,0 +1,69 @@
+{
+  "version": "2.18.15",
+  "versionCode": 2180015,
+  "package": "com.almekhlafi",
+  "appCommit": "d7ebadafeb0cabf1ade7095e891d4a95a86496be",
+  "sourceCommit": "fe8a474b25414b38819b7cf927720899c8c89705",
+  "workflow": {
+    "id": 42454724174,
+    "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42454724174",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "build",
+        "id": 128651197584,
+        "conclusion": "success"
+      },
+      {
+        "name": "chromium-fixtures",
+        "id": 128652575757,
+        "conclusion": "success"
+      },
+      {
+        "name": "candidate",
+        "id": 128653195235,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "tests": {
+    "localPassed": 123,
+    "localFailed": 0,
+    "localSkipped": 0,
+    "android13Passed": 24,
+    "android13Failed": 0,
+    "nativeGate": "Exact OK (24 tests) required; FAILURES / INSTRUMENTATION_FAILED / Process crashed rejected"
+  },
+  "artifacts": [
+    {
+      "id": 13607571508,
+      "name": "FPRO-2.18.15-media-candidate",
+      "size_in_bytes": 3067496,
+      "artifactArchiveDigest": "sha256:05701300eeea5331db91d27d7b3783eef3cb24cc8aff63ef9d6aa2ccb43b527b",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42454724174/artifacts/13607571508"
+    },
+    {
+      "id": 13606839939,
+      "name": "Faceboost-2.18.15-Chromium-evidence",
+      "size_in_bytes": 1536,
+      "artifactArchiveDigest": "sha256:43ba6eb601275ca2efc6463327aad846f6639fe8484804b43dc3adcab147f78b",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42454724174/artifacts/13606839939"
+    },
+    {
+      "id": 13606724732,
+      "name": "Faceboost-2.18.15-build-inputs",
+      "size_in_bytes": 47078021,
+      "artifactArchiveDigest": "sha256:7a72562a8149f94d102f844e91dc24fae2f545782631632da022d174ed5861d4",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42454724174/artifacts/13606724732"
+    }
+  ],
+  "limits": [
+    "No logged-in owner Facebook acceptance or installed Seal UI verification.",
+    "Artifact metadata/digests obtained from GitHub API; sandbox cannot follow Azure blob artifact-download redirects. APK byte size and APK SHA256 were not independently retrieved; archive digests are not APK checksums.",
+    "Two prior CI runs failed the inherited settings persistence fixture; final fixture observes real persisted values off the UI thread and advances Compose clock. Both OFF/ON persistence snapshots and model assertions remain; production settings unchanged."
+  ],
+  "priorFailedRuns": [
+    42452901529,
+    42453784179
+  ]
+}
