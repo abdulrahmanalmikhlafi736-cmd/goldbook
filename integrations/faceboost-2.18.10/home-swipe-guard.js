@@ -110,5 +110,5 @@
  window.addEventListener('pointerup',e=>{if(pointer&&pointer.id===e.pointerId){if(pointer.mode==='blocked'&&pointer.url===location.href&&home()&&!selecting())consume(e);pointer=null;}},{capture:true,passive:false});
  window.addEventListener('pointercancel',()=>{pointer=null;},{capture:true,passive:true});
  window.addEventListener('pagehide',()=>{touch=null;pointer=null;});
- window.__fproHomeSwipeGuard={setEnabled(value){enabled=value!==false;window.__fproHomeSwipeEnabled=enabled;touch=null;pointer=null;},report:()=>({enabled,blocked,controlDrags,home:home(),documentStart:!!window.__fproHomeSwipeAtStart})};
+ window.__fproHomeSwipeGuard={setEnabled(value){enabled=value!==false;window.__fproHomeSwipeEnabled=enabled;touch=null;pointer=null;},report:()=>({blocked,controlDrags,enabled,home:home(),documentStart:!!window.__fproHomeSwipeAtStart})};
 })();

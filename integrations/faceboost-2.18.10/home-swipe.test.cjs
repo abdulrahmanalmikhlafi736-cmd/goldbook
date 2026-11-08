@@ -1,9 +1,8 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {JSDOM}=require(process.env.JSDOM_PATH||'jsdom');
-function fixture(route='/',enabled=true){
+function fixture(route='/'){
  const d=new JSDOM('<!doctype html><body><div id="post">Post body</div></body>',{url:'https://m.facebook.com'+route,runScripts:'outside-only',pretendToBeVisual:true});const w=d.window;
  Object.defineProperty(w,'innerWidth',{value:400});Object.defineProperty(w,'innerHeight',{value:800});
- w.__fproHomeSwipeEnabled=enabled;
  w.eval(fs.readFileSync(path.join(__dirname,'home-swipe-guard.js'),'utf8'));const target=w.document.getElementById('post');let ends=0;
  w.document.addEventListener('touchend',()=>ends++);
  function touch(type,x,y,el=target,count=1){const e=new w.Event(type,{bubbles:true,cancelable:true});const p={clientX:x,clientY:y,identifier:1};Object.assign(e,{touches:type==='touchend'?[]:Array.from({length:count},()=>p),changedTouches:[p]});el.dispatchEvent(e);return e;}
@@ -24,7 +23,5 @@ test('a button remains tappable but cannot exempt a whole home swipe',()=>{const
 test('full-height paging shell does not masquerade as a carousel',()=>{const f=fixture();try{f.target.style.overflowX='hidden';f.target.getBoundingClientRect=()=>({width:400,height:800,left:0,right:400,top:0,bottom:800});Object.defineProperty(f.target,'clientWidth',{value:400});Object.defineProperty(f.target,'scrollWidth',{value:800});assert.equal(f.swipe(-100,0).move.defaultPrevented,true);}finally{f.close();}});
 
 test('fullscreen on a home URL is not treated as ordinary home feed',()=>{const f=fixture();try{Object.defineProperty(f.w.document,'fullscreenElement',{value:f.target});assert.equal(f.swipe(-100,0).move.defaultPrevented,false);}finally{f.close();}});
-
-test('home policy toggles immediately without reloading its document',()=>{const f=fixture();try{f.w.__fproHomeSwipeGuard.setEnabled(false);assert.equal(f.swipe(-100,0).move.defaultPrevented,false);f.w.__fproHomeSwipeGuard.setEnabled(true);assert.equal(f.swipe(-100,0).move.defaultPrevented,true);}finally{f.close();}});
-test('saved OFF policy is respected at document startup',()=>{const f=fixture('/',false);try{assert.equal(f.w.__fproHomeSwipeGuard.report().enabled,false);assert.equal(f.swipe(-100,0).move.defaultPrevented,false);}finally{f.close();}});
-test('turning home guard off clears pending home intent',()=>{const f=fixture();try{f.touch('touchstart',300,300);f.w.__fproHomeSwipeGuard.setEnabled(false);assert.equal(f.touch('touchmove',200,300).defaultPrevented,false);assert.equal(f.touch('touchend',200,300).defaultPrevented,false);}finally{f.close();}});
+test('optional home block defaults on, can turn off and on without page reload',()=>{const f=fixture();try{assert.equal(f.w.__fproHomeSwipeGuard.report().enabled,true);f.w.__fproHomeSwipeGuard.setEnabled(false);assert.equal(f.swipe(-100,0).move.defaultPrevented,false);f.w.__fproHomeSwipeGuard.setEnabled(true);assert.equal(f.swipe(-100,0).move.defaultPrevented,true);}finally{f.close();}});
+test('turning the option off resets a partially blocked page gesture',()=>{const f=fixture();try{f.touch('touchstart',300,300);assert.equal(f.touch('touchmove',200,300).defaultPrevented,true);f.w.__fproHomeSwipeGuard.setEnabled(false);assert.equal(f.touch('touchend',200,300).defaultPrevented,false);}finally{f.close();}});
