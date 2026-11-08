@@ -50,12 +50,13 @@
  }
  function clearReceipt(e){if(e&&!e.isTrusted)return;receipt=null;if(receiptTimer!==null)w.clearTimeout(receiptTimer);receiptTimer=null;d.removeEventListener('pointerdown',clearReceipt,true);d.removeEventListener('keydown',clearReceipt,true);}
  function rememberReceipt(value,video){clearReceipt();receipt={value,video,source:fingerprint(video),page:w.location.href,until:Date.now()+2000};d.addEventListener('pointerdown',clearReceipt,true);d.addEventListener('keydown',clearReceipt,true);receiptTimer=w.setTimeout(()=>clearReceipt(),2000);}
- function isInternalCopy(){return copyDepth>0||!!(active&&active.phase==='copying'&&valid(active));}
+ function isInternalCopy(){return copyDepth>0||!!(active&&active.phase==='copying');}
  function receiptMatches(text){return !!(receipt&&Date.now()<receipt.until&&text===receipt.value&&receipt.video.isConnected&&fingerprint(receipt.video)===receipt.source&&w.location.href===receipt.page);}
  function shouldSuppressCopy(value){return isInternalCopy()||receiptMatches(String(value||'').trim());}
  function interceptCopy(value){
   const text=String(value||'').trim(),t=active;
-  if(t&&t.phase==='copying'&&valid(t)){
+  if(t&&t.phase==='copying'){
+   if(!valid(t)){stop(t);return true;} // Discard stale automated output; never turn it into manual copying.
    if(w.FproPublicVideoLink.parse(text)){rememberReceipt(text,t.video);copied(text);}else last.invalid++;
    return true; // Never write invalid intermediate data from the automated action either.
   }

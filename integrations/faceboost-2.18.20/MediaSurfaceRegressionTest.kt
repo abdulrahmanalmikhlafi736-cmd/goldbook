@@ -250,7 +250,7 @@ class MediaSurfaceRegressionTest {
         val routed=android.net.Uri.parse(h.awaitRoute())
         assertEquals("download",routed.host)
         assertEquals("https://www.facebook.com/share/v/1HeYq17541/",routed.getQueryParameter("link"))
-        assertEquals("1",routed.getQueryParameter("copy"))
+        assertEquals("0",routed.getQueryParameter("copy"))
         assertEquals("true",h.eval("__officialShares===1&&__officialCopies===1&&!FproOfficialDownload.report().active"))
         h.eval("__emitOfficialCopy()")
         assertEquals(1,h.routed.size)
@@ -501,10 +501,20 @@ class MediaSurfaceRegressionTest {
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("test","FPRO_SENTINEL"))
             }
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-            scenario.onActivity { clipboard.addPrimaryClipChangedListener(listener) }
             val h=Harness()
             try {
                 h.load(true,nativeCopyBridge=true);h.officialFixture(delayed=true)
+                // Android asynchronously classifies the seeded clip and can notify listeners
+                // without another write. Wait for that setup work BEFORE measuring downloads.
+                val deadline=android.os.SystemClock.uptimeMillis()+10000
+                var classifying=true
+                while(classifying&&android.os.SystemClock.uptimeMillis()<deadline){
+                    scenario.onActivity { classifying=clipboard.primaryClipDescription?.classificationStatus==android.content.ClipDescription.CLASSIFICATION_NOT_COMPLETE }
+                    if(classifying)Thread.sleep(50)
+                }
+                assertTrue("seed classification did not settle",!classifying)
+                InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+                scenario.onActivity { clipboard.addPrimaryClipChangedListener(listener) }
                 h.eval("FproOfficialDownload.begin(__v);FaceboostPage.postMessage(JSON.stringify({call:'copyText',text:'https://www.facebook.com/share/v/1HeYq17541/'}));")
                 val uri=android.net.Uri.parse(h.awaitRoute())
                 assertEquals("0",uri.getQueryParameter("copy"))
