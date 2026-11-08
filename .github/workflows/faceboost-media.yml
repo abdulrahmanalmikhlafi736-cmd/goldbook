@@ -39,7 +39,7 @@ jobs:
         run: |
           chmod +x gradlew
           set +e
-          ./gradlew :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace 2>&1 | tee "$RUNNER_TEMP/fpro-build.log"
+          ./gradlew :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8" --stacktrace 2>&1 | tee "$RUNNER_TEMP/fpro-build.log"
           result=${PIPESTATUS[0]}
           set -e
           if [ "$result" -ne 0 ]; then
