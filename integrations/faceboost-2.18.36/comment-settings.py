@@ -41,7 +41,7 @@ s=s.replace(needle,'''                if (fproAllComments.value) SettingsItem(
                     title = stringResource(R.string.fpro_comment_diagnostic_title),
                     supportingText = stringResource(R.string.fpro_comment_diagnostic_desc),
                     onClick = { com.almekhlafi.materialbook.utils.CommentSortPreference.showDiagnostic(context) }
-                ),
+                ) else null,
 '''+needle,1);p.write_text(s)
 for folder,title,desc in [('values','Comment sort diagnostic','Open the sort menu first, then return here to copy a numeric report.'),('values-ar','تشخيص خيار التعليقات','افتح قائمة فرز التعليقات أولًا، ثم ارجع هنا لنسخ تقرير عددي.')]:
  p=base/'res'/folder/'fpro_all_comments.xml';s=p.read_text().replace('</resources>',f'<string name="fpro_comment_diagnostic_title">{title}</string>\n<string name="fpro_comment_diagnostic_desc">{desc}</string>\n</resources>');p.write_text(s)

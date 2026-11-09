@@ -6,7 +6,7 @@ import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.almekhlafi.materialbook.R
 
-/** One bounded preference controller per top Facebook document; no reload or bridge. */
+/** Bounded preference controller; no reload. Diagnostic sink accepts numeric reports only. */
 object CommentSortPreference {
     @Volatile private var lastReport:String?=null
     fun cachedDiagnostic():String?=lastReport
