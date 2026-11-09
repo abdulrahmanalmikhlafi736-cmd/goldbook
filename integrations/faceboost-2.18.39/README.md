@@ -7,7 +7,7 @@ Found a reproducible entry gap: after the initial feed opportunity ends, a same-
 - Back/Forward into a dedicated post and foreground return to one start a bounded attempt; backgrounding still cancels. No feed-wide perpetual observer/polling.
 - Existing exact unique opener, semantic titled radio menu, checked-state confirmation and scoped OK gates unchanged. Missing/ambiguous opener still fails closed. Metadata-only SPA entry without a permalink/event remains unproven; do NOT claim every Facebook route is covered or server global defaults changed.
 
-294 Node cases PASS on fresh originalpin;4 focused entry regressions fail38/pass39. Six new Node cases include negative entry/OFF coverage. Intended58 Android13 tests retain57 and add post-link→opener→All→OK with no manual sort tap. Native pending; fixtures are not owner-account acceptance.
+294 Node cases PASS on fresh originalpin;4 focused entry regressions fail38/pass39. Six new Node cases include negative entry/OFF coverage. All58 Android13 tests PASS, retaining57 and adding post-link→opener→All→OK with no manual sort tap. All3 jobs in run42652647750 SUCCESS; fixtures are not owner-account acceptance. See VERIFICATION.md for artifacts.
 
 Version2.18.39/code2180039. Default-OFF persisted option, OFF cancellation, diagnostics/privacy, original identity/signing and unrelated media/download/progress behavior preserved. See source-comparison.json.
 Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
