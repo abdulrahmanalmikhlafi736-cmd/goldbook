@@ -6,6 +6,6 @@ On explicit download only, a separate Story handler uses the exact chosen video'
 
 Native routing adds an explicit kind=story-video branch validating both the current Facebook Story page and HTTPS fbcdn MP4 before the existing package-targeted Seal intent. Empty public link/copy=0; no internal downloader or chooser. Feed/profile/Reel and ordinary story.php post requests remain public-post-only. Images,31 Share matching, progress/ball, hold cleanup, footer and themes are untouched.
 
-Version2.18.32/code2180032/original identity and signing. Apply once to fresh fe8a474b25414b38819b7cf927720899c8c89705.255 Node cases PASS. Exact49 Android13 gate retains47 plus Story-selected-source/Seal intent and negative native/transition cases; native result pending. Actual owner Story URL/extension is not exposed by the report; owner success remains pending, and blob/manifest Stories are not claimed supported.
+Version2.18.32/code2180032/original identity and signing. Apply once to fresh fe8a474b25414b38819b7cf927720899c8c89705.255 Node cases PASS. Exact49 Android13 gate retains47 plus Story-selected-source/Seal intent and negative native/transition cases; all49 PASS and all three CI jobs SUCCESS (see VERIFICATION.md). Actual owner Story URL/extension is not exposed by the report; owner success remains pending, and blob/manifest Stories are not claimed supported.
 
 Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
