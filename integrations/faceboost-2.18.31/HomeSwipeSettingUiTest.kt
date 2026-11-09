@@ -73,8 +73,23 @@ class HomeSwipeSettingUiTest {
     }
     @Test fun foregroundClipboardAndPackageShareCarryTheSameValidatedUrl(){
         val app=ApplicationProvider.getApplicationContext<Application>()
-        compose.setContent { androidx.compose.material3.Text("FPRO download contract") }
+        lateinit var clipboardWindow:android.view.View
+        compose.setContent { clipboardWindow=androidx.compose.ui.platform.LocalView.current;androidx.compose.material3.Text("FPRO download contract") }
         compose.waitForIdle()
+        val instrumentation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+        for(command in listOf("input keyevent KEYCODE_WAKEUP","wm dismiss-keyguard")){
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command)).use { it.readBytes() }
+        }
+        compose.runOnIdle {
+            clipboardWindow.keepScreenOn=true
+            var context:android.content.Context=clipboardWindow.context
+            while(context is android.content.ContextWrapper && context !is android.app.Activity)context=context.baseContext
+            (context as? android.app.Activity)?.let { activity ->
+                if(android.os.Build.VERSION.SDK_INT>=27){activity.setShowWhenLocked(true);activity.setTurnScreenOn(true)}
+                (activity.getSystemService(android.content.Context.KEYGUARD_SERVICE) as android.app.KeyguardManager).requestDismissKeyguard(activity,null)
+            }
+        }
+        compose.waitUntil(15000){clipboardWindow.hasWindowFocus()}
         compose.runOnIdle {
             val url="https://www.facebook.com/watch/?v=987654"
             val selected=com.almekhlafi.materialbook.utils.FproNavigation.publicFirstSource("https://video.fbcdn.net/direct.mp4",url)

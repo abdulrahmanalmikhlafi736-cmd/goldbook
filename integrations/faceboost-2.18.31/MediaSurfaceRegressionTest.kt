@@ -123,8 +123,14 @@ class MediaSurfaceRegressionTest {
     // ActivityScenario RESUMED / waitForIdleSync alone do not guarantee that, especially
     // just after dismissing an AlertDialog or the system clipboard overlay.
     private fun awaitActivityFocus(scenario:androidx.test.core.app.ActivityScenario<androidx.activity.ComponentActivity>){
+        val instrumentation=InstrumentationRegistry.getInstrumentation()
+        for(command in listOf("input keyevent KEYCODE_WAKEUP","wm dismiss-keyguard")){
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command)).use { it.readBytes() }
+        }
         val focused=CountDownLatch(1)
         scenario.onActivity { activity ->
+            if(android.os.Build.VERSION.SDK_INT>=27){activity.setShowWhenLocked(true);activity.setTurnScreenOn(true)}
+            (activity.getSystemService(android.content.Context.KEYGUARD_SERVICE) as android.app.KeyguardManager).requestDismissKeyguard(activity,null)
             activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             val decor=activity.window.decorView
             if(decor.hasWindowFocus())focused.countDown()

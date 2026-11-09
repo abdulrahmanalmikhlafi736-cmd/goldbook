@@ -6,6 +6,8 @@ New owner report: route3, two document videos/one visible, selected single-video
 
 Remove only that pathname restriction and require a Facebook hostname. Keep the same single-video owner, ancestor boundaries, visible geometry, icon-font/direct-text identity, nested/mixed/hidden icon rejection, ambiguity/recycle cancellation, fresh official Share→Copy, internal copy capture and Seal flow. No global/first-playing fallback, portal widening, polling or new observer. Diagnostic title now31 (old23 title was stale text, not installed-version evidence).
 
-Version2.18.31/code2180031, original identity/signing. Apply once to fresh fe8a474b25414b38819b7cf927720899c8c89705.246 local tests PASS, including profile/page positive and negative ownership cases. The previous30 reader fails the profile/page regression. Exact47 Android13 native gate is pending (retains45 and adds two profile/page shape cases). Owner-account confirmation remains pending.
+Version2.18.31/code2180031, original identity/signing. Apply once to fresh fe8a474b25414b38819b7cf927720899c8c89705.246 local tests PASS, including profile/page positive and negative ownership cases. The previous30 Share matcher fails the profile/page regression. Exact47 Android13 native gate is pending (retains45 and adds two profile/page shape cases). Owner-account confirmation remains pending.
 
 Reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar . See RESEARCH.md and eventual VERIFICATION.md for evidence boundaries.
+
+First CI attempt42538418079: new profile/page cases passed, but three existing foreground/clipboard tests failed (two window-focus timeouts, one null clipboard read). No APK candidate promoted. Failed-only rerun was rejected by GitHub. Test-only recovery now explicitly wakes/dismisses keyguard and waits for actual window focus; all assertions and exact47 gate remain. Production behavior unchanged.
