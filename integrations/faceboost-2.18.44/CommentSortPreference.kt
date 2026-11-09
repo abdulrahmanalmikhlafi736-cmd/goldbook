@@ -1,0 +1,80 @@
+package com.almekhlafi.materialbook.utils
+
+import android.webkit.WebView
+import androidx.webkit.ScriptHandler
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
+import com.almekhlafi.materialbook.R
+
+/** Bounded preference controller; no reload. Diagnostic sink accepts numeric reports only. */
+object CommentSortPreference {
+    @Volatile private var lastReport:String?=null
+    fun cachedDiagnostic():String?=lastReport
+    private fun remember(raw:String){
+        val valid=CommentSortDiagnostic.format(raw)?:return
+        val merged=runCatching {
+            val clean=org.json.JSONObject(valid.substring(valid.indexOf('{')))
+            if(!clean.has("opener"))lastReport?.let { old ->
+                org.json.JSONObject(old.substring(old.indexOf('{'))).optJSONObject("opener")?.let { clean.put("opener",it) }
+            }
+            clean
+        }.getOrNull()?:return
+        val meaningful=merged.optJSONObject("opener")?.optJSONArray("rows")?.length()?.let{it>0} == true ||
+            listOf("current","previous").any { key -> val rows=merged.optJSONObject(key)?.optJSONArray("rows"); rows!=null&&(0 until rows.length()).any { rows.optJSONObject(it)?.optInt("label") in listOf(2,4) } }
+        if(meaningful)lastReport=CommentSortDiagnostic.format(merged.toString())
+
+    }
+    private val enabledViews=java.util.WeakHashMap<WebView,Boolean>()
+    private var currentWeb:java.lang.ref.WeakReference<WebView>?=null
+    fun stateScript(enabled:Boolean):String = "window.__fproAllComments=$enabled;window.FproCommentSort?.setEnabled($enabled);\n"
+    private fun script(web:WebView,enabled:Boolean)=stateScript(enabled)+web.context.assets.open("comment-sort-diagnostic.js").bufferedReader().use{it.readText()}+web.context.assets.open("comment-sort.js").bufferedReader().use{it.readText()}
+    fun install(web:WebView,enabled:Boolean=false){
+        currentWeb=java.lang.ref.WeakReference(web)
+        enabledViews[web]=enabled
+        if(WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)){
+            WebViewCompat.removeWebMessageListener(web,"FproCommentSortReport")
+            WebViewCompat.addWebMessageListener(web,"FproCommentSortReport",setOf("https://facebook.com","https://*.facebook.com")){_,message,_,mainFrame,_->
+                if(mainFrame&&message.type==androidx.webkit.WebMessageCompat.TYPE_STRING)message.data?.let{remember(it)}
+            }
+        }
+        (web.getTag(R.id.fpro_comment_sort_registration) as? ScriptHandler)?.remove()
+        web.setTag(R.id.fpro_comment_sort_registration,null)
+        if(WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)){
+            val handle=WebViewCompat.addDocumentStartJavaScript(web,script(web,enabled),setOf("https://facebook.com","https://*.facebook.com"))
+            web.setTag(R.id.fpro_comment_sort_registration,handle)
+        }
+    }
+    fun update(web:WebView,enabled:Boolean){install(web,enabled);web.evaluateJavascript(script(web,enabled),null)}
+    /** Called only by the existing main WebViewClient's native history/finish callbacks. */
+    fun onNativeNavigation(web:WebView,url:String?,phase:Int){
+        if(enabledViews[web]!=true||url==null||phase !in 1..2)return
+        val uri=runCatching{android.net.Uri.parse(url)}.getOrNull()?:return
+        val host=uri.host?.lowercase()?:return
+        if(uri.scheme!="https"||(host!="facebook.com"&&!host.endsWith(".facebook.com")))return
+        val signal="window.FproCommentSort?.onNativeNavigation("+org.json.JSONObject.quote(url)+",$phase);"
+        // Document-start handles normal loads. Page-finished also bootstraps old WebViews.
+        web.evaluateJavascript((if(phase==2)script(web,true) else "")+signal,null)
+    }
+    fun showDiagnostic(context:android.content.Context){
+        var c=context
+        while(c is android.content.ContextWrapper && c !is android.app.Activity)c=c.baseContext
+        val activity=c as? android.app.Activity ?: return
+        val web=currentWeb?.get()
+        if(web==null){lastReport?.let{CommentSortDiagnostic.showFormatted(activity,it)}?:ExternalDownloader.toast(activity,"افتح التعليقات أولًا ثم حاول التشخيص");return}
+        val done=java.util.concurrent.atomic.AtomicBoolean(false)
+        val handler=android.os.Handler(android.os.Looper.getMainLooper())
+        val timeout=Runnable{if(done.compareAndSet(false,true)){lastReport?.let{CommentSortDiagnostic.showFormatted(activity,it)}?:ExternalDownloader.toast(activity,"لم تستجب صفحة التعليقات للتشخيص؛ أعد فتحها ثم حاول")}}
+        handler.postDelayed(timeout,3000)
+        val js="(()=>JSON.stringify({schema:1,current:window.FproCommentSortDiagnostic?.capture(),previous:window.FproCommentSort?.diagnostic(),opener:window.FproCommentSortDiagnostic?.opener()}))()"
+        web.evaluateJavascript(js){value->
+            if(done.compareAndSet(false,true)){
+                handler.removeCallbacks(timeout)
+                val raw=runCatching{org.json.JSONTokener(value).nextValue() as? String}.getOrNull()
+                remember(raw.orEmpty())
+                val report=lastReport?:CommentSortDiagnostic.format(raw.orEmpty())
+                if(report!=null)CommentSortDiagnostic.showFormatted(activity,report) else CommentSortDiagnostic.show(activity,"")
+            }
+        }
+    }
+}
+
