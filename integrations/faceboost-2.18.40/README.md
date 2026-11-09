@@ -8,6 +8,6 @@ Owner39 diagnostic: stage0/reason2/passes2, no menu/opener/choice counts; both c
 - Same canonical post may change tracking query/hash without cancelling checked-state verification. Canonical story/permalink identity includes story_fbid and owner id; post-path identity is exact normalized path. IDs stay internal, never diagnostic exports. No guessed post URL or forced navigation.
 - Observe documentElement for the same finite session so a replaced body does not orphan its observer. Same8-second24-pass deadline; no renewal, history patch, polling or idle observer. OFF cancels everything; strict opener/radio/confirmation gates untouched.
 
-302 Node tests PASS on fresh applied source. Four positive regressions fail39/pass40. Intended59 Android13 tests retain58 and add delayed post URL + body replacement → opener/All/OK. Native pending. Controlled fixtures are not owner success.
+302 Node tests PASS on fresh applied source. Four positive regressions fail39/pass40. All59 Android13 tests PASS, retaining58 and adding delayed post URL + body replacement → opener/All/OK. All3 CI jobs in run42656223722 SUCCESS. See VERIFICATION.md for artifacts. Controlled fixtures are not owner success.
 
 Version2.18.40/code2180040, original pin fe8a474b25414b38819b7cf927720899c8c89705. Default-OFF persisted toggle, media/progress/downloads/privacy/identity/signing retained. Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
