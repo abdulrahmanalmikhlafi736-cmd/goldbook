@@ -961,6 +961,7 @@ class MediaSurfaceRegressionTest {
         h.eval("document.querySelector('[aria-label=\"التعليقات\"]>button').click()")
         val raw=org.json.JSONTokener(h.eval("JSON.stringify({schema:1,current:FproCommentSortDiagnostic.capture()})")).nextValue().toString()
         val polluted=org.json.JSONObject(raw).put("url","https://private.example/PRIVATE_SENTINEL").put("cookie","PRIVATE_SENTINEL")
+        polluted.getJSONObject("current").put("visited",777)
         val rows=polluted.getJSONObject("current").getJSONArray("rows")
         assertTrue(rows.length()>0);rows.getJSONObject(0).put("text","PRIVATE_SENTINEL").put("id","PRIVATE_SENTINEL")
         val clean=com.almekhlafi.materialbook.utils.CommentSortDiagnostic.format(polluted.toString())!!
@@ -969,8 +970,9 @@ class MediaSurfaceRegressionTest {
         h.eval("FproCommentSortReport.postMessage("+org.json.JSONObject.quote(polluted.toString())+")")
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         val deadline=android.os.SystemClock.uptimeMillis()+5000
-        while(com.almekhlafi.materialbook.utils.CommentSortPreference.cachedDiagnostic()==null&&android.os.SystemClock.uptimeMillis()<deadline)Thread.sleep(20)
+        while(com.almekhlafi.materialbook.utils.CommentSortPreference.cachedDiagnostic()!=clean&&android.os.SystemClock.uptimeMillis()<deadline)Thread.sleep(20)
         val cached=com.almekhlafi.materialbook.utils.CommentSortPreference.cachedDiagnostic()
+        assertEquals(clean,cached)
         assertTrue(cached!=null&&!cached.contains("PRIVATE_SENTINEL"))
         org.junit.Assert.assertNull(com.almekhlafi.materialbook.utils.CommentSortDiagnostic.format("{\"schema\":99}"))
     }finally{h.close()}}
