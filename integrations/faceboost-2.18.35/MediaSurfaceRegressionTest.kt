@@ -580,6 +580,9 @@ class MediaSurfaceRegressionTest {
                 }
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 assertEquals(0,changed.get())
+                // The unavailable-downloader toast/system clipboard UI may change focus.
+                // Android13 only delivers clipboard callbacks to the foreground UID.
+                awaitActivityFocus(scenario)
                 h.eval("FaceboostPage.postMessage(JSON.stringify({call:'copyText',text:'FPRO_MANUAL_COPY'}));")
                 assertTrue(manualReady.await(10,TimeUnit.SECONDS))
                 awaitActivityFocus(scenario)
