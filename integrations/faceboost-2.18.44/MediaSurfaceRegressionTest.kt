@@ -84,8 +84,11 @@ class MediaSurfaceRegressionTest {
                     val nativeClient=if(nativeNavigation){
                         navigationScope=kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
                         com.almekhlafi.materialbook.utils.BlockingWebViewClient().apply{
-                            state=com.multiplatform.webview.web.WebViewState(com.multiplatform.webview.web.WebContent.Url("https://m.facebook.com/"))
-                            navigator=com.multiplatform.webview.web.WebViewNavigator(navigationScope!!)
+                            // Compose normally initializes these internal-set library fields.
+                            // Fixture uses the same real state/navigator, not a mocked callback.
+                            val clientType=com.multiplatform.webview.web.AccompanistWebViewClient::class.java
+                            clientType.getDeclaredField("state").apply{isAccessible=true}.set(this,com.multiplatform.webview.web.WebViewState(com.multiplatform.webview.web.WebContent.Url("https://m.facebook.com/")))
+                            clientType.getDeclaredField("navigator").apply{isAccessible=true}.set(this,com.multiplatform.webview.web.WebViewNavigator(navigationScope!!))
                         }
                     }else null
                     webViewClient=object:WebViewClient(){
