@@ -958,7 +958,7 @@ class MediaSurfaceRegressionTest {
 
     @Test fun commentSortReportBridgeIsReadOnlyAndNativeFormatterDropsSecrets(){val h=Harness();try{
         h.load(true,commentSortEnabled=false);commentSortFixture(h)
-        h.eval("document.querySelector('button').click()")
+        h.eval("document.querySelector('[aria-label=\"التعليقات\"]>button').click()")
         val raw=org.json.JSONTokener(h.eval("JSON.stringify({schema:1,current:FproCommentSortDiagnostic.capture()})")).nextValue().toString()
         val polluted=org.json.JSONObject(raw).put("url","https://private.example/PRIVATE_SENTINEL").put("cookie","PRIVATE_SENTINEL")
         val rows=polluted.getJSONObject("current").getJSONArray("rows")
