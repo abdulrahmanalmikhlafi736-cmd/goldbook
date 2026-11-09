@@ -6,7 +6,7 @@ Owner41 report stage5/reason0/confirms1/openers0 establishes the select/OK path 
 
 Adds counters events/traces/unmatched/bypassed/pending to snapshots, so a missing result can be distinguished from missed labels/budget. A confirmed trace survives a later unrelated attempt in that document. Native sanitized cache also merges an existing opener into later packets lacking one, avoiding evidence loss on settings/menu reports. Explicit incoming opener replaces old evidence; storage is app memory only.
 
-314 Node tests PASS fresh applied source; six new focused tests fail41/pass42 (unnamed capture, budget, drag cancellation, confirmed retention, deep path). Intended61 Android13 cases retain60 and add generic icon→official sheet plus later opener-less visited888 packet; requires both that packet's arrival and preserved trace, not stale cache. Native pending. Owner capture and automatic fix still unconfirmed.
+314 Node tests PASS fresh applied source; six new focused tests fail41/pass42 (unnamed capture, budget, drag cancellation, confirmed retention, deep path). All61 Android13 cases PASS, retaining60 and adding generic icon→official sheet plus later opener-less visited888 packet; requires both that packet's arrival and preserved trace, not stale cache. All3 jobs in run42684032252 SUCCESS. See VERIFICATION.md. Owner capture and automatic fix still unconfirmed.
 
 Use: optional sorting ON; enter a post and tap Most once for diagnosis; wait about2seconds; settings→FPRO→comment diagnostic→Copy full report. Look for `opener`; send report even if absent because new counters identify missing hooks. A diagnostic tap is not a permanent manual workaround.
 
