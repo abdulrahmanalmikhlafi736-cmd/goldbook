@@ -13,7 +13,7 @@ object CommentSortDiagnostic {
         for(key in listOf("current","previous"))input.optJSONObject(key)?.let { source ->
             require(source.optInt("schema")==1)
             val item=JSONObject().put("schema",1)
-            for((name,max) in listOf("enabled" to 1,"visited" to 1200,"points" to 48,"limited" to 7,"scopes" to 32))item.put(name,source.optInt(name,0).coerceIn(0,max))
+            for((name,max) in listOf("route" to 3,"composers" to 32,"enabled" to 1,"visited" to 1200,"points" to 48,"limited" to 7,"scopes" to 32))item.put(name,source.optInt(name,0).coerceIn(0,max))
             val rows=source.optJSONArray("rows")?:JSONArray();require(rows.length()<=16)
             val result=JSONArray()
             for(i in 0 until rows.length()){
