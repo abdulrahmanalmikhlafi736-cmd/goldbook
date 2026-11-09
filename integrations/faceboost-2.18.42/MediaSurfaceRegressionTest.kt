@@ -967,12 +967,19 @@ class MediaSurfaceRegressionTest {
         val clean=com.almekhlafi.materialbook.utils.CommentSortDiagnostic.format(polluted.toString())!!
         assertTrue(!clean.contains("PRIVATE_SENTINEL")&&!clean.contains("private.example"))
         assertEquals("true",h.eval("__commentActions.join(',')==='1,0,0'"))
+        //42 retains prior sanitized opener evidence, but the whole NEW current snapshot
+        //including visited777 must still match exactly; a stale cache cannot satisfy this.
+        val expectedPayload=org.json.JSONObject(polluted.toString())
+        com.almekhlafi.materialbook.utils.CommentSortPreference.cachedDiagnostic()?.let { old ->
+            org.json.JSONObject(old.substring(old.indexOf('{'))).optJSONObject("opener")?.let { expectedPayload.put("opener",it) }
+        }
+        val expected=com.almekhlafi.materialbook.utils.CommentSortDiagnostic.format(expectedPayload.toString())!!
         h.eval("FproCommentSortReport.postMessage("+org.json.JSONObject.quote(polluted.toString())+")")
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         val deadline=android.os.SystemClock.uptimeMillis()+5000
-        while(com.almekhlafi.materialbook.utils.CommentSortPreference.cachedDiagnostic()!=clean&&android.os.SystemClock.uptimeMillis()<deadline)Thread.sleep(20)
+        while(com.almekhlafi.materialbook.utils.CommentSortPreference.cachedDiagnostic()!=expected&&android.os.SystemClock.uptimeMillis()<deadline)Thread.sleep(20)
         val cached=com.almekhlafi.materialbook.utils.CommentSortPreference.cachedDiagnostic()
-        assertEquals(clean,cached)
+        assertEquals(expected,cached)
         assertTrue(cached!=null&&!cached.contains("PRIVATE_SENTINEL"))
         org.junit.Assert.assertNull(com.almekhlafi.materialbook.utils.CommentSortDiagnostic.format("{\"schema\":99}"))
     }finally{h.close()}}
