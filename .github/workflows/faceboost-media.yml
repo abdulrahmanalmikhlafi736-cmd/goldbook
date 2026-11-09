@@ -1,9 +1,9 @@
-name: Faceboost scoped media 2.18.38
+name: Faceboost scoped media 2.18.39
 on:
   push:
     branches: [arena/f8d9a96b-goldbook]
     paths:
-      - 'integrations/faceboost-2.18.38/**'
+      - 'integrations/faceboost-2.18.39/**'
       - '.github/workflows/faceboost-media.yml'
   workflow_dispatch:
 permissions:
@@ -31,11 +31,11 @@ jobs:
         run: |
           mkdir -p work/faceboost
           curl --fail --location --retry 3 https://codeload.github.com/abdulrahmanalmikhlafi736-cmd/faceboost-review/tar.gz/fe8a474b25414b38819b7cf927720899c8c89705 | tar -xz --strip-components=1 -C work/faceboost
-          python3 integrations/faceboost-2.18.38/apply.py work/faceboost
+          python3 integrations/faceboost-2.18.39/apply.py work/faceboost
       - name: DOM and production-gesture integration gate
         run: |
           npm install --prefix "$RUNNER_TEMP/harness" --no-audit --no-fund jsdom@26.1.0
-          FACEBOOST_SOURCE="$PWD/work/faceboost" JSDOM_PATH="$RUNNER_TEMP/harness/node_modules/jsdom" node --test integrations/faceboost-2.18.38/*.test.cjs | tee media-dom-results.tap
+          FACEBOOST_SOURCE="$PWD/work/faceboost" JSDOM_PATH="$RUNNER_TEMP/harness/node_modules/jsdom" node --test integrations/faceboost-2.18.39/*.test.cjs | tee media-dom-results.tap
       - name: Build release and fixture APKs with unchanged identity and signing
         working-directory: work/faceboost
         run: |
@@ -60,15 +60,15 @@ jobs:
       - name: Package APK candidate and exact patched source
         run: |
           mkdir -p artifacts
-          cp work/faceboost/app/build/outputs/apk/release/app-release.apk artifacts/FPRO-2.18.38-media-candidate.apk
+          cp work/faceboost/app/build/outputs/apk/release/app-release.apk artifacts/FPRO-2.18.39-media-candidate.apk
           cp work/faceboost/app/build/outputs/apk/debug/app-debug.apk artifacts/fixture-app.apk
           cp work/faceboost/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk artifacts/fixture-tests.apk
           cp media-dom-results.tap artifacts/
-          tar --exclude='./.gradle' --exclude='./.kotlin' --exclude='./build' --exclude='./app/build' --exclude='./local.properties' -czf artifacts/FPRO-2.18.38-source.tar.gz -C work/faceboost .
+          tar --exclude='./.gradle' --exclude='./.kotlin' --exclude='./build' --exclude='./app/build' --exclude='./local.properties' -czf artifacts/FPRO-2.18.39-source.tar.gz -C work/faceboost .
           sha256sum artifacts/*.apk > artifacts/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: Faceboost-2.18.38-build-inputs
+          name: Faceboost-2.18.39-build-inputs
           path: artifacts/
           if-no-files-found: error
   chromium-fixtures:
@@ -78,14 +78,14 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Faceboost-2.18.38-build-inputs
+          name: Faceboost-2.18.39-build-inputs
           path: artifacts
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Run fifty-seven WebView and settings regressions on Android 13
+      - name: Run fifty-eight WebView and settings regressions on Android 13
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 33
@@ -103,12 +103,12 @@ jobs:
             adb install artifacts/fixture-app.apk
             adb install artifacts/fixture-tests.apk
             adb shell am instrument -w -r -e class com.almekhlafi.materialbook.ui.screens.MediaSurfaceRegressionTest,com.almekhlafi.materialbook.ui.screens.HomeSwipeSettingUiTest com.almekhlafi.test/androidx.test.runner.AndroidJUnitRunner | tee instrumentation.txt
-            if ! grep -F 'OK (57 tests)' instrumentation.txt; then python3 -c 'import pathlib; text=pathlib.Path("instrumentation.txt").read_text(); marker="INSTRUMENTATION_RESULT: stream="; text=(text[text.rfind(marker):] if marker in text else text[-8000:]); text="\n".join(line for line in text.splitlines() if not line.startswith("\tat ") or "MediaSurfaceRegressionTest.kt:" in line or "HomeSwipeSettingUiTest.kt:" in line)[:7000]; print("::error title=FPRO fixture diagnostics::"+text.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'; exit 1; fi
+            if ! grep -F 'OK (58 tests)' instrumentation.txt; then python3 -c 'import pathlib; text=pathlib.Path("instrumentation.txt").read_text(); marker="INSTRUMENTATION_RESULT: stream="; text=(text[text.rfind(marker):] if marker in text else text[-8000:]); text="\n".join(line for line in text.splitlines() if not line.startswith("\tat ") or "MediaSurfaceRegressionTest.kt:" in line or "HomeSwipeSettingUiTest.kt:" in line)[:7000]; print("::error title=FPRO fixture diagnostics::"+text.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'; exit 1; fi
             if grep -E 'FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed' instrumentation.txt; then exit 1; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Faceboost-2.18.38-Chromium-evidence
+          name: Faceboost-2.18.39-Chromium-evidence
           path: instrumentation.txt
           if-no-files-found: warn
   candidate:
@@ -117,13 +117,13 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Faceboost-2.18.38-build-inputs
+          name: Faceboost-2.18.39-build-inputs
           path: artifacts
       - uses: actions/upload-artifact@v4
         with:
-          name: FPRO-2.18.38-media-candidate
+          name: FPRO-2.18.39-media-candidate
           path: |
-            artifacts/FPRO-2.18.38-media-candidate.apk
+            artifacts/FPRO-2.18.39-media-candidate.apk
             artifacts/SHA256SUMS.txt
             artifacts/media-dom-results.tap
           if-no-files-found: error
