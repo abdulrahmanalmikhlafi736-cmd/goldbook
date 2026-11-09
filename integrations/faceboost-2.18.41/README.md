@@ -10,7 +10,7 @@ Native numeric allowlist/cache accepts and retains the separate opener snapshot,
 
 Use: install41, leave optional sorting ON, enter a post, tap its Most relevant control once for THIS diagnostic capture, wait about1second (up to8 if no menu), open existing settings→FPRO→comment diagnostic→Copy report. Send whole report with `opener`. This manual tap is evidence collection, not the promised automatic solution or a permanent workaround.
 
-308 Node tests PASS on fresh source; intended60 Android13 tests retain59 and add native/WebView pre-menu→sheet→sanitized-cache evidence. Native pending. Actual owner capture/fix unconfirmed.
+308 Node tests PASS on fresh source; all60 Android13 tests PASS, retaining59 and adding native/WebView pre-menu→sheet→sanitized-cache evidence. All3 jobs in run42680131597 SUCCESS. See VERIFICATION.md for artifacts. Actual owner capture/fix unconfirmed.
 
 Version2.18.41/code2180041; originalpin fe8a474b25414b38819b7cf927720899c8c89705. Existing default-OFF toggle, sorting behavior, media/download/progress/privacy/identity/signing preserved.
 Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
