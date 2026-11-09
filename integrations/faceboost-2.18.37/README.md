@@ -9,6 +9,6 @@ Scoped fixes:
 - Activate the bounded session for descriptive Most relevant names, without changing click/gesture delivery.
 - Numeric diagnostic now includes stage/reason/passes/menus/choices/relevant/openers/confirms to identify any remaining rejection precisely. No raw page strings/IDs/URLs added.
 
-The old36 matcher fails all three new focused regressions;37 passes280 Node cases. Intended56 Android13 gate retains55 and adds composer-zero metadata opener + described radio/OK sheet, nested/header-only scopes and a Most wrapper; native pending. These remain controlled fixtures, NOT owner-account success. Owner confirmation required.
+The old36 matcher fails all three new focused regressions;37 passes280 Node cases. All56 Android13 cases PASS in final run42641552341, retaining55 and adding composer-zero metadata opener + described radio/OK sheet, nested/header-only scopes and a Most wrapper. All three CI jobs SUCCESS; see VERIFICATION.md for artifacts and the initial focus-failed attempt. These remain controlled fixtures, NOT owner-account success. Owner confirmation required.
 
 Persisted ON/OFF/default-OFF and diagnostic UI/cache unchanged. Progress2px/ball, images, Story/video/Seal, clipboard, held playback, developer footer and identity/signing preserved. Version2.18.37/code2180037; fresh fe8a474b25414b38819b7cf927720899c8c89705. Compose reference: https://developer.android.com/develop/ui/compose/documentation?hl=ar
