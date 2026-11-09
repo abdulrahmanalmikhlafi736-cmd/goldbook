@@ -1065,7 +1065,21 @@ class MediaSurfaceRegressionTest {
             owner.onclick=function(){__advancedClicks++;var sheet=document.createElement('div');sheet.setAttribute('role','dialog');sheet.innerHTML='<h2>فرز التعليقات</h2><div role="radio" aria-label="الأكثر ملاءمة" aria-checked="true"></div><div role="radio" aria-label="كل التعليقات" aria-checked="false"></div><div role="button" aria-label="موافق"></div>';document.body.append(sheet);[sheet,...sheet.querySelectorAll('*')].forEach(box);};
         """.trimIndent())
         InstrumentationRegistry.getInstrumentation().runOnMainSync{com.almekhlafi.materialbook.utils.CommentSortPreference.update(h.web,true)}
-        h.eval("__flush();__advancedChild.click()")
+        h.eval("__flush();FproCommentSortDiagnostic.recordActivation({type:'click',target:__advancedChild,isTrusted:false})")
+        val beforeJson=h.eval("JSON.stringify({schema:1,opener:FproCommentSortDiagnostic.opener()})")
+        val beforeRaw=org.json.JSONTokener(beforeJson).nextValue() as String
+        val expectedBefore=com.almekhlafi.materialbook.utils.CommentSortDiagnostic.format(beforeRaw)!!
+        val expectedOpener=org.json.JSONObject(expectedBefore.substring(expectedBefore.indexOf('{'))).getJSONObject("opener").toString()
+        val preDeadline=System.currentTimeMillis()+5000
+        var retainedBefore=false
+        while(System.currentTimeMillis()<preDeadline){
+            val cached=com.almekhlafi.materialbook.utils.CommentSortPreference.cachedDiagnostic()
+            retainedBefore=runCatching { cached!=null&&org.json.JSONObject(cached.substring(cached.indexOf('{'))).getJSONObject("opener").toString()==expectedOpener }.getOrDefault(false)
+            if(retainedBefore)break
+            Thread.sleep(25)
+        }
+        assertTrue("exact new opener-only snapshot must reach cache BEFORE menu exists",retainedBefore)
+        h.eval("__advancedChild.click()")
         assertEquals("true",h.eval("FproCommentSortDiagnostic.opener().result===1&&FproCommentSortDiagnostic.opener().event===2&&FproCommentSortDiagnostic.opener().rows.some(function(n){return n.label===1&&n.action===1&&n.component===1&&n.role===0;})&&__advancedClicks===1"))
         val deadline=System.currentTimeMillis()+5000
         var report:String?=null
