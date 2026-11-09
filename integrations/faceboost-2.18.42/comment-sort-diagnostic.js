@@ -1,6 +1,7 @@
 /* GPL-3.0-or-later. Read-only numeric comment-sort structure. Never exports text/IDs/URLs. */
 (function(w){
  'use strict';if(w!==w.top||w.location.protocol!=='https:'||!/(^|\.)facebook\.com$/i.test(w.location.hostname)||w.FproCommentSortDiagnostic)return;
+ const seenEvents=new WeakSet();
  let events=0,traces=0,unmatched=0,bypassed=0,genericStarts=0,lastGood=null;
  const d=w.document,norm=s=>String(s||'').replace(/[\u064B-\u065F\u061C\u200B-\u200F\u202A-\u202E\u2066-\u2069]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
  function text(n){const walker=d.createTreeWalker(n,w.NodeFilter.SHOW_TEXT);let t='',x;for(let i=0;(x=walker.nextNode())&&i<32;i++){t+=String(x.nodeValue||'').slice(0,301-t.length);if(t.length>300)return '';}return x?'':t;}
@@ -47,7 +48,7 @@
  }
  function recordActivation(e){
   if(!w.FproCommentSort?.report().enabled||!d.body||d.hidden||!['touchstart','click'].includes(e.type))return;
-  events=Math.min(64,events+1);if(e.type==='touchstart'&&e.touches?.length!==1)return;
+  if(seenEvents.has(e))return;seenEvents.add(e);events=Math.min(64,events+1);if(e.type==='touchstart'&&e.touches?.length!==1)return;
   let target=e.target?.nodeType===1?e.target:e.target?.parentElement;if(!target||target.closest('[data-fpro-owned],.fpro-video-tools'))return;
   if(trace&&lastTarget===target&&w.performance.now()-started<700)return;
   const chain=[];let matched=false;
@@ -65,6 +66,9 @@
   trace={...pre,generic:matched?0:1,endRoute:route(),blockers,event:e.type==='touchstart'?1:2,trusted:e.isTrusted?1:0,tap:e.type==='click'?1:0,result:0,checks:0,age:0,bodyLimited:node?1:0,rows:chain};
   watch=new w.MutationObserver(checkTrace);watch.observe(d.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden','aria-hidden','role','aria-label','aria-checked']});traceTimer=w.setTimeout(()=>stopTrace(w.location.href===traceUrl?2:3),8000);publish();
  }
+ // Earliest read-only window capture also sees trusted input consumed before document listeners.
+ ['touchstart','click'].forEach(type=>w.addEventListener(type,e=>{if(e.isTrusted)recordActivation(e);},{capture:true,passive:true}));
+ ['touchend','touchcancel'].forEach(type=>w.addEventListener(type,e=>{if(e.isTrusted)finishActivation(e);},{capture:true,passive:true}));
  w.addEventListener('pagehide',()=>stopTrace(3));
  d.addEventListener('visibilitychange',()=>{if(d.hidden)stopTrace(3);});
  w.FproCommentSortDiagnostic={capture,recordActivation,finishActivation,opener,stopTrace};
