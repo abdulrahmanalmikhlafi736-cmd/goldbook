@@ -69,3 +69,5 @@ jobs:
           name: FPRO-2.18.47-download-trial
           path: artifacts/
           if-no-files-found: error
+
+# Retry requested by owner: resubmit unchanged 2.18.47 application sources.
