@@ -1,0 +1,60 @@
+{
+  "version": "2.18.7",
+  "version_code": 2180007,
+  "application_id": "com.almekhlafi",
+  "tested_commit": "d5881065ca9ddbdd364b7603a530092101091baa",
+  "run_id": 42424922501,
+  "run_url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42424922501",
+  "conclusion": "success",
+  "local_dom_tests": 36,
+  "android_13_controlled_webview_fixtures": 6,
+  "jobs": [
+    {
+      "id": 128561095850,
+      "name": "build",
+      "conclusion": "success",
+      "started_at": "2026-11-07T23:22:18Z",
+      "completed_at": "2026-11-07T23:28:22Z"
+    },
+    {
+      "id": 128562468012,
+      "name": "chromium-fixtures",
+      "conclusion": "success",
+      "started_at": "2026-11-07T23:28:24Z",
+      "completed_at": "2026-11-07T23:30:59Z"
+    },
+    {
+      "id": 128563063424,
+      "name": "candidate",
+      "conclusion": "success",
+      "started_at": "2026-11-07T23:31:01Z",
+      "completed_at": "2026-11-07T23:31:07Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13595183414,
+      "name": "FPRO-2.18.7-media-candidate",
+      "archive_size_bytes": 3049796,
+      "expired": false
+    },
+    {
+      "id": 13594859393,
+      "name": "Faceboost-2.18.7-Chromium-evidence",
+      "archive_size_bytes": 640,
+      "expired": false
+    },
+    {
+      "id": 13594388870,
+      "name": "Faceboost-2.18.7-build-inputs",
+      "archive_size_bytes": 47002061,
+      "expired": false
+    }
+  ],
+  "limits": [
+    "Controlled synthetic-event fixtures, not a signed-in Facebook account test.",
+    "No server-persistence guarantee; observed official UI state is not backend proof.",
+    "No full inherited unit/lint or thermal measurements.",
+    "APK certificate/size not independently inspected locally; artifact sizes describe archives."
+  ]
+}

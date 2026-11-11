@@ -1,0 +1,100 @@
+{
+  "baseline": "2.18.29",
+  "candidate": "2.18.30",
+  "commit": "50bd977e54645a89413bc954d98c4e809522365e",
+  "changedPaths": [
+    "app/build.gradle.kts",
+    "app/src/androidTest/java/com/almekhlafi/materialbook/ui/screens/MediaSurfaceRegressionTest.kt",
+    "app/src/main/assets/local-image-save.js",
+    "app/src/main/assets/local-image-source.js",
+    "app/src/main/assets/media-surface.js",
+    "app/src/main/java/com/almekhlafi/materialbook/utils/ImageDownloads.kt",
+    "app/src/main/java/com/almekhlafi/materialbook/utils/LocalImageSaver.kt"
+  ],
+  "criticalIdentical": [
+    {
+      "path": "app/src/main/AndroidManifest.xml",
+      "sha256": "0549595effabebe95fa3d414175c03202e5112870407e4efff1e8db38c4eff4f"
+    },
+    {
+      "path": "app/src/main/assets/home-swipe-guard.js",
+      "sha256": "8fa455a27f9b672c73df4a613b9fe5e7b306a5bf24418355e0ecf1f5cd30335e"
+    },
+    {
+      "path": "app/src/main/assets/react-video-permalink.js",
+      "sha256": "079e2f61c5a3670e134b3a4c71b0c2ddb54561579dd22b8a46e175d37667b822"
+    },
+    {
+      "path": "app/src/main/assets/current-video-source.js",
+      "sha256": "e014c1b9f16bac32a46bfc63196c9d45abe2ab6f10c54bd3da1b6d9bece076bd"
+    },
+    {
+      "path": "app/src/main/assets/public-video-link.js",
+      "sha256": "768e4a584d44632c56575a7dce7604013b6f0b19d8a4350539a148a6d862bd6b"
+    },
+    {
+      "path": "app/src/main/assets/player-post-download.js",
+      "sha256": "4da65cf5029a9ac91f49e9d35bebd75f78c87ef30ed83684feda25798a06d16b"
+    },
+    {
+      "path": "app/src/main/assets/player-diagnostic.js",
+      "sha256": "c48750c402b62a710a3eb9bce1f6c690de0c454aab9d51df0016c0ad265aaba1"
+    },
+    {
+      "path": "app/src/main/assets/mobile-share-diagnostic.js",
+      "sha256": "8159460a5ed9e05e6e8ae6bf0cd5b620bafef6cdd71431f90e5bae1de74c6f34"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/utils/HomeSwipeGuard.kt",
+      "sha256": "7289f9a272ae9ddcf7620f77c645388cf6ba5c2aebcda0f94445802275085ecf"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/utils/ExternalDownloader.kt",
+      "sha256": "2aba6e3c85df19d849e9b0876d6c0eec03685a11e183488094bf937183926a35"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/utils/jsBridge/ClipboardBridge.kt",
+      "sha256": "30bc5d48da3cc6122a96ca2b5d43e6f0b3b64041077cc67a3bd38e1a82238e5c"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/utils/jsBridge/PageBridge.kt",
+      "sha256": "5b9bd4876bb034c13a44a778c6cd102a5cb2caa4019e4066ddf8131897ef4187"
+    },
+    {
+      "path": "app/src/main/res/raw/scripts.js",
+      "sha256": "143330f09a9f4026794f75176dc3d637863e2749f9e08e9d64538b4c970e25ce"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/utils/PlayerDiagnostic.kt",
+      "sha256": "ef82016f6723fc5a9b6c76920e4bbcf30ec4116874f29d9c46b67e210d2c8fb3"
+    },
+    {
+      "path": "app/src/main/assets/official-download.js",
+      "sha256": "14ddc3cfbc6d114503747e5e9b17d3f0044f2629783bbed38f21ea715f48581e"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/utils/DeveloperContact.kt",
+      "sha256": "678d16e5b68ca677c9f004af730168c258aa5d42c7e31a8e07d02f595394e8ca"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/ui/components/settings/DeveloperContactCard.kt",
+      "sha256": "adf2ffbb2cd3d098c55508d8e941b5038562aefe961f5b312165b05f5dc8b7fe"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/ui/components/settings/SettingsContent.kt",
+      "sha256": "88b3f4b93733ef7f3f89ca18b979b2a08ef415b756ac92a47239943413c9c033"
+    },
+    {
+      "path": "app/src/main/res/raw/reel_gestures.js",
+      "sha256": "267334b6dd7a39c0a1c84a2a0fa2c8560be72315afa522cdcb250987300b47a0"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/utils/BackgroundAudioWebView.kt",
+      "sha256": "261f9ab9d7febdcf6ff10f58e1ce8e61592216fd47832d99a0681e94b7702007"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/ui/screens/MaterialbookWV.kt",
+      "sha256": "fac3479e5f783fe4e1bc8fba2b0070ffa42a1f51c1561db7a87821317654456c"
+    }
+  ]
+}

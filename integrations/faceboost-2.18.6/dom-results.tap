@@ -1,0 +1,130 @@
+TAP version 13
+# Subtest: production gesture pair: top double tap enters once and does not seek
+ok 1 - production gesture pair: top double tap enters once and does not seek
+  ---
+  duration_ms: 196.663124
+  type: 'test'
+  ...
+# Subtest: production gesture pair: lower right double tap seeks and never enters fullscreen
+ok 2 - production gesture pair: lower right double tap seeks and never enters fullscreen
+  ---
+  duration_ms: 57.007677
+  type: 'test'
+  ...
+# Subtest: production gesture: swipe and cancelled touch never enter fullscreen
+ok 3 - production gesture: swipe and cancelled touch never enter fullscreen
+  ---
+  duration_ms: 37.66496
+  type: 'test'
+  ...
+# Subtest: existing-like diagnostic: animation appears even when no official button is found
+ok 4 - existing-like diagnostic: animation appears even when no official button is found
+  ---
+  duration_ms: 35.525049
+  type: 'test'
+  ...
+# Subtest: existing-like diagnostic: fast double tap self-swallows the official click but still animates
+ok 5 - existing-like diagnostic: fast double tap self-swallows the official click but still animates
+  ---
+  duration_ms: 25.691314
+  type: 'test'
+  ...
+# Subtest: existing-like diagnostic: slower double tap sends click but never verifies official state
+ok 6 - existing-like diagnostic: slower double tap sends click but never verifies official state
+  ---
+  duration_ms: 31.305941
+  type: 'test'
+  ...
+# Subtest: footer stays entirely above viewport/system boundary across viewport sizes
+ok 7 - footer stays entirely above viewport/system boundary across viewport sizes
+  ---
+  duration_ms: 1.141263
+  type: 'test'
+  ...
+# Subtest: native and visual viewport bounds use the smaller CSS area
+ok 8 - native and visual viewport bounds use the smaller CSS area
+  ---
+  duration_ms: 0.287234
+  type: 'test'
+  ...
+# Subtest: fullscreen region is upper 40 percent, lower region and offscreen points excluded
+ok 9 - fullscreen region is upper 40 percent, lower region and offscreen points excluded
+  ---
+  duration_ms: 0.199103
+  type: 'test'
+  ...
+# Subtest: one visible rail, no persistent animation loop at rest
+ok 10 - one visible rail, no persistent animation loop at rest
+  ---
+  duration_ms: 125.713868
+  type: 'test'
+  ...
+# Subtest: remount detached root and detached button host even when hidden=false
+ok 11 - remount detached root and detached button host even when hidden=false
+  ---
+  duration_ms: 43.148892
+  type: 'test'
+  ...
+# Subtest: moving a video retains identity; removal disposes; replacement/recycling attaches immediately
+ok 12 - moving a video retains identity; removal disposes; replacement/recycling attaches immediately
+  ---
+  duration_ms: 36.202627
+  type: 'test'
+  ...
+# Subtest: transparent/offscreen/aria-hidden dialogs do not suppress tools; covering modal does
+ok 13 - transparent/offscreen/aria-hidden dialogs do not suppress tools; covering modal does
+  ---
+  duration_ms: 24.840018
+  type: 'test'
+  ...
+# Subtest: download resolves current recycled source on click, not initial source
+ok 14 - download resolves current recycled source on click, not initial source
+  ---
+  duration_ms: 24.853958
+  type: 'test'
+  ...
+# Subtest: master off disposes, on rebuilds once; progress off releases legacy ownership
+ok 15 - master off disposes, on rebuilds once; progress off releases legacy ownership
+  ---
+  duration_ms: 42.356135
+  type: 'test'
+  ...
+# Subtest: one progress owner for overlapping players
+ok 16 - one progress owner for overlapping players
+  ---
+  duration_ms: 24.676889
+  type: 'test'
+  ...
+# Subtest: duration/live changes and seek affect only the bound video
+ok 17 - duration/live changes and seek affect only the bound video
+  ---
+  duration_ms: 17.302815
+  type: 'test'
+  ...
+# Subtest: top ownership can be disabled and never toggles existing fullscreen
+ok 18 - top ownership can be disabled and never toggles existing fullscreen
+  ---
+  duration_ms: 13.340496
+  type: 'test'
+  ...
+# Subtest: requested lower position: line drops 8 CSS px and ball remains above boundary
+ok 19 - requested lower position: line drops 8 CSS px and ball remains above boundary
+  ---
+  duration_ms: 0.267064
+  type: 'test'
+  ...
+# Subtest: painted fill receives the lower offset rather than inherited old CSS
+ok 20 - painted fill receives the lower offset rather than inherited old CSS
+  ---
+  duration_ms: 44.169346
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1874.997971

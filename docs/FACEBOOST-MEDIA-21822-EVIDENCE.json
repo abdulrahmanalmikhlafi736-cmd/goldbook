@@ -1,0 +1,243 @@
+{
+  "appCommit": "f2ef792f91821d2ed8520ddbb128573b441a1635",
+  "runId": 42493654152,
+  "status": "all_CI_jobs_success; owner_home_feed_test_pending",
+  "local": {
+    "total": 194,
+    "passed": 194,
+    "failed": 0,
+    "skipped": 0
+  },
+  "requiredExactAndroidTests": 32,
+  "evidenceBasis": {
+    "ownerVersion": "2.18.21",
+    "route": 3,
+    "shareGlyph": 983930,
+    "likeGlyph": 983928,
+    "commentGlyph": 983929,
+    "font": 1,
+    "via": 1,
+    "ownerLevel": 5,
+    "relation": 0,
+    "scopeLimits": 6,
+    "note": "Prior owner screenshot/manual Share sheet identifies the arrow. Report caps do not establish whole-page absence. Runtime does not choose by row index/left side/count."
+  },
+  "artifacts": [
+    {
+      "id": 13623071669,
+      "name": "FPRO-2.18.22-media-candidate",
+      "archiveSizeBytes": 3083867,
+      "archiveDigest": "sha256:d7c67864073aa7c06054108da311fffe8fa5382c73d097810816a0da111fe003",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42493654152/artifacts/13623071669"
+    },
+    {
+      "id": 13622777548,
+      "name": "Faceboost-2.18.22-Chromium-evidence",
+      "archiveSizeBytes": 1949,
+      "archiveDigest": "sha256:4e2ef387a09cff8dff027e6099c755253905aff3d2ed105d25824888b307bac9",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42493654152/artifacts/13622777548"
+    },
+    {
+      "id": 13622712716,
+      "name": "Faceboost-2.18.22-build-inputs",
+      "archiveSizeBytes": 47137390,
+      "archiveDigest": "sha256:b7a18fdb27e2b4ebf5b3221cdc7bf9f32d51ba9c4b1b3ed554164394f57b68d2",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42493654152/artifacts/13622712716"
+    }
+  ],
+  "runDetails": {
+    "conclusion": "success",
+    "headSha": "f2ef792f91821d2ed8520ddbb128573b441a1635",
+    "jobs": [
+      {
+        "completedAt": "2026-11-08T15:23:43Z",
+        "conclusion": "success",
+        "databaseId": 128771221213,
+        "name": "build",
+        "startedAt": "2026-11-08T15:13:03Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-node@v4",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-java@v4",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run gradle/actions/setup-gradle@v4",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download the pinned NEW project (not goldbook application sources)",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "DOM and production-gesture integration gate",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build release and fixture APKs with unchanged identity and signing",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package APK candidate and exact patched source",
+            "number": 9,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v4",
+            "number": 10,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run gradle/actions/setup-gradle@v4",
+            "number": 17,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-java@v4",
+            "number": 18,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@v4",
+            "number": 19,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 20,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 21,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42493654152/job/128771221213"
+      },
+      {
+        "completedAt": "2026-11-08T15:23:43Z",
+        "conclusion": "success",
+        "databaseId": 128773082493,
+        "name": "chromium-fixtures",
+        "startedAt": "2026-11-08T15:20:13Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/download-artifact@v4",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Enable KVM",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run thirty-two WebView and settings regressions on Android 13",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v4",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 6,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42493654152/job/128773082493"
+      },
+      {
+        "completedAt": "2026-11-08T15:23:43Z",
+        "conclusion": "success",
+        "databaseId": 128773980813,
+        "name": "candidate",
+        "startedAt": "2026-11-08T15:23:33Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/download-artifact@v4",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v4",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 4,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42493654152/job/128773980813"
+      }
+    ],
+    "status": "completed"
+  },
+  "limitations": [
+    "Controlled fixtures/native gates are not logged-in owner or installed Seal UI proof.",
+    "Archive digest/size are ZIP metadata, not APK bytes/SHA. No independent APK extraction/signature check claimed.",
+    "Download intent and clipboard behavior are preserved; independent Facebook/Seal feedback is outside fixture proof."
+  ]
+}

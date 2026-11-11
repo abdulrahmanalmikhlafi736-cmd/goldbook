@@ -1,0 +1,332 @@
+{
+  "scope": "Offline native fixtures, not authenticated account acceptance",
+  "versionCode": 69,
+  "productionCommit": "84c24a8789cdd33e88d4ff1fc269b5009c7b28a5",
+  "testedCommit": "71cb1c6d82dfee8bb568a1824d9857d58082cee6",
+  "targetedNativeGate": "11 expected tests required; failure/error/skipped rejected by workflow",
+  "runs": [
+    {
+      "conclusion": "success",
+      "databaseId": 41397076722,
+      "headSha": "c76c97f7667e4102e1629d1eb0415bb98463d61c",
+      "jobs": [
+        {
+          "completedAt": "2026-11-02T06:03:24Z",
+          "conclusion": "success",
+          "databaseId": 125120600655,
+          "name": "verify",
+          "startedAt": "2026-11-02T05:58:25Z",
+          "status": "completed",
+          "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397076722/job/125120600655",
+          "evidence": [
+            {
+              "level": "notice",
+              "message": "decodedVideoAndClockDoNotRescanUnrelatedColors: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "nativeBackDoesNotConsumeFirstPressScrollingDetailToTop: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "openedPostKeepsViewportOffsetAfterNativeBackAndLateLayout: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "collapsedSourcePostRemainsVisibleInsteadOfRestoringImpossibleOffset: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "siteArrowRestoresPostWhenReplacingHomeTrackingRoute: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "boundedStateRestoresHistoryWithoutChangingLiveHistory: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "nativeBackClosesSiteDialogWithoutNavigatingHistory: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "blockedRendererBackTimesOutOnceAndLateCallbackCannotNavigateAgain: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "messagesUsesExistingHistoryInsteadOfReloadingHome: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "promptFilterPreservesLargeShadowMediaOwnerAndHidesActualCta: SAFETY REGRESSION PASS (offline fixture)"
+            }
+          ]
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397076722"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 41397147283,
+      "headSha": "71cb1c6d82dfee8bb568a1824d9857d58082cee6",
+      "jobs": [
+        {
+          "completedAt": "2026-11-02T06:04:42Z",
+          "conclusion": "success",
+          "databaseId": 125120821186,
+          "name": "verify",
+          "startedAt": "2026-11-02T05:59:36Z",
+          "status": "completed",
+          "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397147283/job/125120821186",
+          "evidence": [
+            {
+              "level": "notice",
+              "message": "decodedVideoAndClockDoNotRescanUnrelatedColors: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "nativeBackDoesNotConsumeFirstPressScrollingDetailToTop: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "openedPostKeepsViewportOffsetAfterNativeBackAndLateLayout: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "collapsedSourcePostRemainsVisibleInsteadOfRestoringImpossibleOffset: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "siteArrowRestoresPostWhenReplacingHomeTrackingRoute: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "boundedStateRestoresHistoryWithoutChangingLiveHistory: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "nativeBackClosesSiteDialogWithoutNavigatingHistory: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "blockedRendererBackTimesOutOnceAndLateCallbackCannotNavigateAgain: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "messagesUsesExistingHistoryInsteadOfReloadingHome: SAFETY REGRESSION PASS (offline fixture)"
+            },
+            {
+              "level": "notice",
+              "message": "promptFilterPreservesLargeShadowMediaOwnerAndHidesActualCta: SAFETY REGRESSION PASS (offline fixture)"
+            }
+          ]
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397147283"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 41397147275,
+      "headSha": "71cb1c6d82dfee8bb568a1824d9857d58082cee6",
+      "jobs": [
+        {
+          "completedAt": "2026-11-02T06:03:38Z",
+          "conclusion": "success",
+          "databaseId": 125120820782,
+          "name": "build",
+          "startedAt": "2026-11-02T05:59:24Z",
+          "status": "completed",
+          "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397147275/job/125120820782",
+          "evidence": []
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397147275"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 41396519936,
+      "headSha": "84c24a8789cdd33e88d4ff1fc269b5009c7b28a5",
+      "jobs": [
+        {
+          "completedAt": "2026-11-02T05:55:46Z",
+          "conclusion": "success",
+          "databaseId": 125118911892,
+          "name": "verify (33)",
+          "startedAt": "2026-11-02T05:52:24Z",
+          "status": "completed",
+          "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41396519936/job/125118911892",
+          "evidence": [
+            {
+              "level": "notice",
+              "message": "PASS"
+            }
+          ]
+        },
+        {
+          "completedAt": "2026-11-02T05:55:46Z",
+          "conclusion": "success",
+          "databaseId": 125118912194,
+          "name": "verify (35)",
+          "startedAt": "2026-11-02T05:52:24Z",
+          "status": "completed",
+          "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41396519936/job/125118912194",
+          "evidence": [
+            {
+              "level": "notice",
+              "message": "PASS"
+            }
+          ]
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41396519936"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 41394768968,
+      "headSha": "fbf71a077638e6cd5f4cbb451983bfc1b6339a69",
+      "jobs": [
+        {
+          "completedAt": "2026-11-02T05:37:32Z",
+          "conclusion": "success",
+          "databaseId": 125113614066,
+          "name": "verify",
+          "startedAt": "2026-11-02T05:34:03Z",
+          "status": "completed",
+          "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41394768968/job/125113614066",
+          "evidence": [
+            {
+              "level": "notice",
+              "message": "I/FPRO_VIDEO_AUDIT( 2362): {\"queries\":0,\"fullQueries\":0,\"updates\":25,\"clockUpdates\":25,\"frames\":134,\"errors\":[]}"
+            },
+            {
+              "level": "notice",
+              "message": "PASS"
+            }
+          ]
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41394768968"
+    },
+    {
+      "conclusion": "failure",
+      "databaseId": 41397147230,
+      "headSha": "71cb1c6d82dfee8bb568a1824d9857d58082cee6",
+      "jobs": [
+        {
+          "completedAt": "2026-11-02T06:02:59Z",
+          "conclusion": "failure",
+          "databaseId": 125120820579,
+          "name": "lifecycle",
+          "startedAt": "2026-11-02T05:59:13Z",
+          "status": "completed",
+          "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397147230/job/125120820579",
+          "evidence": [
+            {
+              "level": "failure",
+              "message": "Process completed with exit code 1."
+            },
+            {
+              "level": "notice",
+              "message": "productionPromptRulesHideBeforeFirstFrameAndRestoreOff: PASS"
+            },
+            {
+              "level": "failure",
+              "message": "java.lang.AssertionError: Opaque comment must not select Android text; website dispatch=\"{\\\"pointer\\\":0,\\\"touch\\\":0,\\\"hold\\\":0}\", selection=\"FPROopaque\"\nat org.junit.Assert.fail(Assert.java:89)\nat org.junit.Assert.assertTrue(Assert.java:42)\nat org.junit.Assert.assertFalse(Assert.java:65)\nat com.almekhlafi.FPRO.PromptSelection59RegressionTest.nativeCopyIsAvailableForPostsAndHashtagsButNotComments(PromptSelection59RegressionTest.kt:153)\n"
+            },
+            {
+              "level": "notice",
+              "message": "nativeCopyIsAvailableForPostsAndHashtagsButNotComments: FAIL"
+            },
+            {
+              "level": "notice",
+              "message": "importedEngineReplacesLegacySelectorsAndRestoresNativeLayout: PASS"
+            },
+            {
+              "level": "notice",
+              "message": "adaptedFiltersUseNativeMaterialPaletteAndRestoreSiteContent: PASS"
+            },
+            {
+              "level": "notice",
+              "message": "trustedActionsKeepVerifiedFooterHiddenDuringFixedPageTransitions: PASS"
+            },
+            {
+              "level": "notice",
+              "message": "openAppFilterKeepsBlockingSheetsAndPageControlsUsable: PASS"
+            },
+            {
+              "level": "notice",
+              "message": "rendererCallbackReplacesBrowserAndBoundsAutomaticReloads: PASS"
+            },
+            {
+              "level": "notice",
+              "message": "messageBridgeRejectsSameOriginSubframesAndMalformedPayloads: PASS"
+            },
+            {
+              "level": "notice",
+              "message": "playbackReportingTracksPageOnEveryProvider: PASS"
+            },
+            {
+              "level": "failure",
+              "message": "The process '/usr/bin/sh' failed with exit code 1"
+            }
+          ]
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397147230"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 41397147248,
+      "headSha": "71cb1c6d82dfee8bb568a1824d9857d58082cee6",
+      "jobs": [
+        {
+          "completedAt": null,
+          "conclusion": "",
+          "databaseId": 125120820830,
+          "name": "rendering (29, debug, Debug, app)",
+          "startedAt": "2026-11-02T05:59:12Z",
+          "status": "in_progress",
+          "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397147248/job/125120820830",
+          "evidence": []
+        },
+        {
+          "completedAt": null,
+          "conclusion": "",
+          "databaseId": 125120821054,
+          "name": "rendering (35, debug, Debug, app)",
+          "startedAt": "2026-11-02T05:59:13Z",
+          "status": "in_progress",
+          "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397147248/job/125120821054",
+          "evidence": []
+        },
+        {
+          "completedAt": null,
+          "conclusion": "",
+          "databaseId": 125120821099,
+          "name": "rendering (36, compact, Compact, device-tests)",
+          "startedAt": "2026-11-02T05:59:22Z",
+          "status": "in_progress",
+          "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397147248/job/125120821099",
+          "evidence": []
+        },
+        {
+          "completedAt": null,
+          "conclusion": "",
+          "databaseId": 125120821146,
+          "name": "rendering (35, compact, Compact, device-tests)",
+          "startedAt": "2026-11-02T05:59:41Z",
+          "status": "in_progress",
+          "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397147248/job/125120821146",
+          "evidence": []
+        }
+      ],
+      "status": "in_progress",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41397147248"
+    }
+  ]
+}

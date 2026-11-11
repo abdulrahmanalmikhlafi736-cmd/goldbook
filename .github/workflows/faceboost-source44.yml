@@ -1,0 +1,51 @@
+name: FPRO 2.18.44 source ZIP only
+on:
+  push:
+    branches: [arena/f8d9a96b-goldbook]
+    paths:
+      - '.github/workflows/faceboost-source44.yml'
+      - 'tools/package-faceboost44.py'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: fpro-source44
+  cancel-in-progress: false
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify application overlay matches the verified 2.18.44 source
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          pin='e3d53a94c589d2ee70ab12eed149d0fbece289e2'
+          for path in Path('integrations/faceboost-2.18.44').iterdir():
+              if path.suffix in {'.kt','.js','.py','.txt','.cjs'}:
+                  assert path.read_bytes()==subprocess.check_output(['git','show',pin+':'+path.as_posix()]),path
+          PY
+      - name: Build and validate the source-only project ZIP
+        run: |
+          mkdir -p work/project artifacts
+          curl --fail --location --retry 3 https://codeload.github.com/abdulrahmanalmikhlafi736-cmd/faceboost-review/tar.gz/fe8a474b25414b38819b7cf927720899c8c89705 | tar -xz --strip-components=1 -C work/project
+          python3 tools/package-faceboost44.py work/project artifacts/FPRO-2.18.44-source.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FPRO-2.18.44-source-zip
+          path: artifacts/FPRO-2.18.44-source.zip
+          if-no-files-found: error
+      - name: Publish source ZIP without changing the latest app release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view fpro-2.18.44-source >/dev/null 2>&1; then
+            gh release upload fpro-2.18.44-source artifacts/FPRO-2.18.44-source.zip --clobber
+            gh release edit fpro-2.18.44-source --notes-file artifacts/FPRO-2.18.44-source.notes.md --prerelease --latest=false
+          else
+            gh release create fpro-2.18.44-source artifacts/FPRO-2.18.44-source.zip --target e3d53a94c589d2ee70ab12eed149d0fbece289e2 --title 'FPRO 2.18.44 — source project ZIP' --notes-file artifacts/FPRO-2.18.44-source.notes.md --prerelease --latest=false
+          fi

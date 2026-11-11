@@ -1,0 +1,84 @@
+package com.almekhlafi.materialbook.ui.screens
+
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+
+/** Chromium fixture tests, not logged-in Facebook or trusted native-gesture acceptance.
+ * Geometry and rAF are controlled to make detach/recycle and queue assertions deterministic.
+ */
+@RunWith(AndroidJUnit4::class)
+class MediaSurfaceRegressionTest {
+    private class Harness {
+        lateinit var web: WebView
+        fun eval(js: String): String {
+            val done=CountDownLatch(1)
+            var value="null"
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                web.evaluateJavascript(js) { value=it;done.countDown() }
+            }
+            assertTrue("JS callback timeout",done.await(10,TimeUnit.SECONDS))
+            return value
+        }
+        fun load() {
+            val done=CountDownLatch(1)
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                web=WebView(InstrumentationRegistry.getInstrumentation().targetContext).apply {
+                    settings.javaScriptEnabled=true
+                    settings.domStorageEnabled=true
+                    layout(0,0,400,800)
+                    webViewClient=object:WebViewClient(){override fun onPageFinished(view:WebView,url:String){done.countDown()}}
+                    loadDataWithBaseURL("https://m.facebook.com/reel/123/","<html><head><meta name='viewport' content='width=device-width,initial-scale=1'></head><body><video id='v'></video></body></html>","text/html","UTF-8",null)
+                }
+            }
+            assertTrue("page timeout",done.await(10,TimeUnit.SECONDS))
+            eval("""
+              Object.defineProperty(document,'hidden',{value:false,configurable:true});
+              Object.defineProperty(window,'innerWidth',{value:400,configurable:true});
+              Object.defineProperty(window,'innerHeight',{value:800,configurable:true});
+              Object.defineProperty(window,'visualViewport',{value:{width:400,height:800,offsetTop:0,offsetLeft:0,addEventListener:function(){}},configurable:true});
+              window.__q=new Map();window.__next=1;
+              window.requestAnimationFrame=function(f){var id=__next++;__q.set(id,f);return id;};
+              window.cancelAnimationFrame=function(id){__q.delete(id);};
+              window.__flush=function(){var budget=12;while(__q.size&&budget-->0){var q=Array.from(__q.values());__q.clear();q.forEach(function(f){f();});}if(__q.size)throw Error('frame loop');};
+              window.__v=document.getElementById('v');
+              __v.getBoundingClientRect=function(){return {left:0,top:50,right:400,bottom:750,width:400,height:700};};
+              Object.defineProperty(__v,'duration',{value:100,configurable:true});
+              Object.defineProperty(__v,'paused',{value:false,configurable:true});
+              window.__cfg={enhance:true,downloads:true,rainbow:true,doubleTapFullscreen:true};
+            """.trimIndent())
+            val context=InstrumentationRegistry.getInstrumentation().targetContext
+            eval(context.assets.open("media-surface.js").bufferedReader().use{it.readText()})
+            eval("window.__entries=new Map();window.__surface=FproMediaSurface.create({entries:__entries,getConfig:function(){return __cfg;},download:function(){}});__surface.layout();")
+            eval("__flush();")
+        }
+        fun close(){if(!::web.isInitialized)return;InstrumentationRegistry.getInstrumentation().runOnMainSync{web.destroy()}}
+    }
+    @Test fun footerAndTopRegionUseCssViewportBounds(){val h=Harness();try{
+        h.load()
+        assertEquals("true",h.eval("(function(){var p=FproMediaSurface.dock({left:0,top:0,right:400,bottom:800});return p.top+p.height<=794 && FproMediaSurface.ownsTop(__v,100,100) && !FproMediaSurface.ownsTop(__v,100,600);})()"))
+    }finally{h.close()}}
+    @Test fun detachedVisibleHostsAreRepairedWithoutPolling(){val h=Harness();try{
+        h.load();h.eval("__entries.get(__v).overlay.remove();document.getElementById('fpro-media-surface').remove();")
+        h.eval("__flush();")
+        assertEquals("true",h.eval("__entries.get(__v).overlay.isConnected && __entries.get(__v).track.isConnected && !__entries.get(__v).overlay.hidden"))
+    }finally{h.close()}}
+    @Test fun videoRemovalAndReinsertionDoNotRetainDeadEntries(){val h=Harness();try{
+        h.load();h.eval("window.__saved=__v;__v.remove();");h.eval("__flush();")
+        assertEquals("0",h.eval("__entries.size"))
+        h.eval("document.body.appendChild(__saved);");h.eval("__flush();")
+        assertEquals("1",h.eval("__entries.size"))
+    }finally{h.close()}}
+    @Test fun idleHasNoPerpetualFrameAndMasterOffDisposes(){val h=Harness();try{
+        h.load();h.eval("__flush();");assertEquals("0",h.eval("__q.size"))
+        h.eval("__cfg.enhance=false;__surface.layout();")
+        assertEquals("0",h.eval("__entries.size"))
+    }finally{h.close()}}
+}
