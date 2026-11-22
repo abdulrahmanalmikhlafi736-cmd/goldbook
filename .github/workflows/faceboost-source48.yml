@@ -24,7 +24,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import subprocess
-          pin='9e59aa6'
+          pin='9e59aa6a6ca66fa66627892625511bda072aeb84'
           for path in Path('integrations/faceboost-2.18.48').iterdir():
               if path.suffix in {'.kt','.js','.py','.txt','.cjs'}:
                   assert path.read_bytes()==subprocess.check_output(['git','show',pin+':'+path.as_posix()]),path
@@ -47,5 +47,5 @@ jobs:
             gh release upload fpro-2.18.48-source artifacts/FPRO-2.18.48-source.zip --clobber
             gh release edit fpro-2.18.48-source --notes-file artifacts/FPRO-2.18.48-source.notes.md --prerelease --latest=false
           else
-            gh release create fpro-2.18.48-source artifacts/FPRO-2.18.48-source.zip --target 9e59aa6 --title 'FPRO 2.18.48 — source project ZIP' --notes-file artifacts/FPRO-2.18.48-source.notes.md --prerelease --latest=false
+            gh release create fpro-2.18.48-source artifacts/FPRO-2.18.48-source.zip --target 9e59aa6a6ca66fa66627892625511bda072aeb84 --title 'FPRO 2.18.48 — source project ZIP' --notes-file artifacts/FPRO-2.18.48-source.notes.md --prerelease --latest=false
           fi
