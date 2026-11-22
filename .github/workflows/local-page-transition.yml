@@ -1,0 +1,76 @@
+name: Local page transition Android 16 isolation
+on:
+  push:
+    paths: ['.github/workflows/local-page-transition.yml', 'device-tests/src/main/java/com/almekhlafi/FPRO/devicechecks/LocalTransitionUiTest.kt', 'device-tests/src/main/java/com/almekhlafi/FPRO/devicechecks/CompactUiTest.kt']
+  workflow_dispatch:
+jobs:
+  isolate:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: ['baseline', 'isolated']
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Restore pre-fix baseline in the comparison arm only
+        if: matrix.mode == 'baseline'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/java/com/almekhlafi/FPRO/MainActivity.kt')
+          s=p.read_text()
+          a=s.index('    @SuppressLint("SetJavaScriptEnabled")\n    private fun showDisplayTest() {')
+          b=s.index('\n    // Physical WebView',a)
+          baseline=Path('tools/fixtures/local-display-baseline.kt.txt').read_text()
+          p.write_text(s[:a]+baseline+s[b:])
+          PY
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            adb shell wm size 720x1280
+            adb shell wm density 280
+            mkdir -p transition-evidence
+            if ./gradlew :device-tests:connectedCompactAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.devicechecks.LocalTransitionUiTest --stacktrace > transition-evidence/gradle.log 2>&1; then echo PASS > transition-evidence/result; else echo FAIL > transition-evidence/result; fi
+            adb logcat -d > transition-evidence/logcat.txt
+            test "$(cat transition-evidence/result)" = PASS
+      - name: Publish actual failures and native aborts
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          for p in Path('device-tests/build/outputs/androidTest-results').rglob('TEST-*.xml'):
+              for c in ET.parse(p).iter('testcase'):
+                  f=c.find('failure')
+                  text=(f.text or '')[:3500] if f is not None else 'PASS: '+str(c.attrib)
+                  print('::notice title=Local transition assertions::'+text.replace('%','%25').replace('\n','%0A'))
+          p=Path('transition-evidence/logcat.txt')
+          if p.exists():
+              for line in p.read_text(errors='replace').splitlines():
+                  if any(s in line for s in ['Fatal signal','Abort message','Detected dangling','WebViewFactory: Loading']):
+                      print('::notice title=Local transition native::'+line.replace('%','%25'))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: local-transition-${{ matrix.mode }}
+          path: |
+            transition-evidence/
+            device-tests/build/outputs/androidTest-results/

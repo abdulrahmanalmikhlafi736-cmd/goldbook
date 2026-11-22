@@ -1,0 +1,60 @@
+{
+  "run": {
+    "id": 42448476675,
+    "html_url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42448476675",
+    "head_sha": "2f9d6ce917c6400105b76e73fb5c18f0da3692cc",
+    "conclusion": "success",
+    "status": "completed"
+  },
+  "jobs": [
+    {
+      "id": 128632395060,
+      "name": "build",
+      "conclusion": "success",
+      "started_at": "2026-11-08T04:51:40Z",
+      "completed_at": "2026-11-08T04:59:45Z"
+    },
+    {
+      "id": 128633925396,
+      "name": "chromium-fixtures",
+      "conclusion": "success",
+      "started_at": "2026-11-08T04:59:47Z",
+      "completed_at": "2026-11-08T05:02:52Z"
+    },
+    {
+      "id": 128634575153,
+      "name": "candidate",
+      "conclusion": "success",
+      "started_at": "2026-11-08T05:02:54Z",
+      "completed_at": "2026-11-08T05:03:00Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13604738030,
+      "name": "Faceboost-2.18.14-build-inputs",
+      "size_in_bytes": 47067458,
+      "expired": false
+    },
+    {
+      "id": 13604504108,
+      "name": "Faceboost-2.18.14-Chromium-evidence",
+      "size_in_bytes": 1444,
+      "expired": false
+    },
+    {
+      "id": 13604019433,
+      "name": "FPRO-2.18.14-media-candidate",
+      "size_in_bytes": 3064757,
+      "expired": false
+    }
+  ],
+  "localTestsPassed": 105,
+  "android13TestsPassed": 22,
+  "limits": [
+    "Controlled production-asset fixtures, not Facebook logged-in owner acceptance",
+    "No real installed Seal UI in gate",
+    "Frost archived; yt-dlp field adaptation is not proof all layouts expose those fields",
+    "Direct media URLs may expire; privacy and download support restrictions remain"
+  ]
+}

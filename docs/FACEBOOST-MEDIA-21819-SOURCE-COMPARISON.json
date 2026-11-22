@@ -1,0 +1,30 @@
+{
+  "baseline": "2.18.18",
+  "candidate": "2.18.19",
+  "appCommit": "a033a62974548a0fde4fdf136b314d2828295e68",
+  "changedPaths": [
+    "app/build.gradle.kts",
+    "app/src/androidTest/java/com/almekhlafi/materialbook/ui/screens/MediaSurfaceRegressionTest.kt",
+    "app/src/main/assets/facebook.js",
+    "app/src/main/assets/media-surface.js",
+    "app/src/main/assets/official-download.js",
+    "app/src/main/java/com/almekhlafi/materialbook/utils/FproAssets.kt",
+    "app/src/main/java/com/almekhlafi/materialbook/utils/PlayerDiagnostic.kt"
+  ],
+  "unchangedCriticalFiles": {
+    "app/src/main/java/com/almekhlafi/materialbook/utils/jsBridge/PageBridge.kt": "beb436eb0bfdf36d5c7f520ce6d1d52bc109dd7d344336c68b614f408c4d189e",
+    "app/src/main/java/com/almekhlafi/materialbook/ui/screens/MaterialbookWV.kt": "59d62148b5311e0f6ae816106ec6fe98d8dc50a813fef9979e9571033fd61557",
+    "app/src/main/java/com/almekhlafi/materialbook/utils/HomeSwipeGuard.kt": "7289f9a272ae9ddcf7620f77c645388cf6ba5c2aebcda0f94445802275085ecf",
+    "app/src/main/java/com/almekhlafi/materialbook/ui/viewmodel/SettingsViewModel.kt": "8e1eecfaf55d492e3b90389f887cb0c0d1145b2e5622eab709e18a8b378e35c0",
+    "app/src/main/java/com/almekhlafi/materialbook/data/local/SettingsDataStore.kt": "74ba27fed21af1838e5e8ab891f9f1659e9dbf095223b7a9b9fdace0f8fc8561",
+    "app/src/main/assets/home-swipe-guard.js": "8fa455a27f9b672c73df4a613b9fe5e7b306a5bf24418355e0ecf1f5cd30335e",
+    "app/src/main/assets/public-video-link.js": "768e4a584d44632c56575a7dce7604013b6f0b19d8a4350539a148a6d862bd6b",
+    "app/src/main/assets/current-video-source.js": "e014c1b9f16bac32a46bfc63196c9d45abe2ab6f10c54bd3da1b6d9bece076bd",
+    "app/src/main/res/raw/reel_gestures.js": "609535f38460801a7f3ef16f9dd70ef98f5b141e4b5b9c48dcb49f1eeb2ca0c1",
+    "app/src/main/assets/react-video-permalink.js": "079e2f61c5a3670e134b3a4c71b0c2ddb54561579dd22b8a46e175d37667b822",
+    "app/src/main/java/com/almekhlafi/materialbook/utils/ExternalDownloader.kt": "6b190274fb77242ffd8455e7d7afdc6057187e841f081d5086d31d8645cfecf8",
+    "app/src/main/assets/player-diagnostic.js": "c48750c402b62a710a3eb9bce1f6c690de0c454aab9d51df0016c0ad265aaba1"
+  },
+  "mediaControllerBodyIdenticalExceptVersion": true,
+  "purpose": "Repair descriptive mobile Share accessible-name rejection; restore guarded official copy/native Seal route; failure-only numeric telemetry."
+}

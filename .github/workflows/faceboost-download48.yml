@@ -1,0 +1,71 @@
+name: FPRO 2.18.48 download trial APK
+on:
+  push:
+    branches: [arena/f8d9a96b-goldbook]
+    paths:
+      - 'integrations/faceboost-2.18.48/**'
+      - '.github/workflows/faceboost-download48.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: faceboost-media-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+      - name: Download the pinned NEW project (not goldbook application sources)
+        run: |
+          mkdir -p work/faceboost
+          curl --fail --location --retry 3 https://codeload.github.com/abdulrahmanalmikhlafi736-cmd/faceboost-review/tar.gz/fe8a474b25414b38819b7cf927720899c8c89705 | tar -xz --strip-components=1 -C work/faceboost
+          python3 integrations/faceboost-2.18.48/apply.py work/faceboost
+      - name: DOM and production-gesture integration gate
+        run: |
+          npm install --prefix "$RUNNER_TEMP/harness" --no-audit --no-fund jsdom@26.1.0
+          FACEBOOST_SOURCE="$PWD/work/faceboost" JSDOM_PATH="$RUNNER_TEMP/harness/node_modules/jsdom" node --test integrations/faceboost-2.18.48/official-download.test.cjs | tee media-dom-results.tap
+      - name: Build release and fixture APKs with unchanged identity and signing
+        working-directory: work/faceboost
+        run: |
+          chmod +x gradlew
+          # Same version as the source wrapper; setup-gradle handles distribution/cache.
+          gradle --version
+          set +e
+          for attempt in 1 2 3; do
+            gradle :app:assembleRelease --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8" --stacktrace 2>&1 | tee "$RUNNER_TEMP/fpro-build.log"
+            result=${PIPESTATUS[0]}
+            if [ "$result" -eq 0 ]; then break; fi
+            # Retry dependency transport only. Never retry/bypass a compilation diagnostic.
+            if grep -Eq '^e:|Compilation error|Compilation failed' "$RUNNER_TEMP/fpro-build.log"; then break; fi
+            if ! grep -Eq 'Could not GET|Could not HEAD|Could not download|Gateway Time-out|Read timed out|Connection reset' "$RUNNER_TEMP/fpro-build.log"; then break; fi
+            if [ "$attempt" -lt 3 ]; then sleep 10; fi
+          done
+          set -e
+          if [ "$result" -ne 0 ]; then
+            python3 -c 'import os,pathlib; lines=pathlib.Path(os.environ["RUNNER_TEMP"]+"/fpro-build.log").read_text().splitlines(); text="\n".join(x for x in lines if x.startswith("e:") or "error:" in x.lower() or "What went wrong" in x or "Execution failed" in x or "Could not" in x)[:8000]; print("::error title=FPRO build diagnostics::"+text.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
+            exit "$result"
+          fi
+      - name: Package APK candidate and exact patched source
+        run: |
+          mkdir -p artifacts
+          cp work/faceboost/app/build/outputs/apk/release/app-release.apk artifacts/FPRO-2.18.48-media-candidate.apk
+          cp media-dom-results.tap artifacts/
+          tar --exclude='./.gradle' --exclude='./.kotlin' --exclude='./build' --exclude='./app/build' --exclude='./local.properties' -czf artifacts/FPRO-2.18.48-source.tar.gz -C work/faceboost .
+          sha256sum artifacts/*.apk > artifacts/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FPRO-2.18.48-download-trial
+          path: artifacts/
+          if-no-files-found: error

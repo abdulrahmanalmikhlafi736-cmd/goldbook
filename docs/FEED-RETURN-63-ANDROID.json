@@ -1,0 +1,24 @@
+{
+  "run": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41208266445",
+  "productionCommit": "c498f2555c4b8f5bd2f34e52117bc49969f76085",
+  "environment": "Android13/API33 emulator, real WebView and Activity BackHandler, trusted input on a synthetic page; not a Facebook account",
+  "initialTop": 100.0,
+  "restoredTop": 100.0,
+  "windowYAfterLateLayout": 1400.0,
+  "nativeReport": {
+    "enabled": true,
+    "active": false,
+    "pending": false,
+    "retained": 0,
+    "captures": 1,
+    "returns": 1,
+    "corrections": 2,
+    "cancelled": 1,
+    "attempts": 9
+  },
+  "unchangedBuild62Assets": {
+    "app-prompt-engine.js": "ab7deec35a6fff5f074b466d38798bba5cc43779f02d48f9e27a3861b351be60",
+    "site-engine.js": "fed7dbe7d1a50adf71b77c32f766aedc6f2aea28d9347232b8ddc3474a2042fe",
+    "facebook.js": "e26a7def667b0695a70e2db3f4782e9df05724976880a45766e7143c82ac916e"
+  }
+}

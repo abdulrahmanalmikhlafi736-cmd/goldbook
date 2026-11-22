@@ -1,0 +1,456 @@
+{
+  "scope": "jsdom fixture, site-engine only; NOT Android/WebView or authenticated Facebook; heap is Node+jsdom, not app RSS",
+  "gcExposed": true,
+  "results": [
+    {
+      "color": false,
+      "amoled": false,
+      "cycles": 30,
+      "routesPerCycle": 5,
+      "baseline": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 0,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 0,
+        "detachedElements": 0,
+        "detachedChildReferences": 0,
+        "errors": []
+      },
+      "samples": [
+        {
+          "cycle": 1,
+          "heapUsed": 22356360,
+          "liveObservers": 1,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 0,
+            "timers": 0,
+            "elements": 0,
+            "childChanges": 0,
+            "detachedElements": 0,
+            "detachedChildReferences": 0,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 5,
+          "heapUsed": 22554520,
+          "liveObservers": 1,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 0,
+            "timers": 0,
+            "elements": 0,
+            "childChanges": 0,
+            "detachedElements": 0,
+            "detachedChildReferences": 0,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 10,
+          "heapUsed": 22628640,
+          "liveObservers": 1,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 0,
+            "timers": 0,
+            "elements": 0,
+            "childChanges": 0,
+            "detachedElements": 0,
+            "detachedChildReferences": 0,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 15,
+          "heapUsed": 22754648,
+          "liveObservers": 1,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 0,
+            "timers": 0,
+            "elements": 0,
+            "childChanges": 0,
+            "detachedElements": 0,
+            "detachedChildReferences": 0,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 20,
+          "heapUsed": 22798256,
+          "liveObservers": 1,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 0,
+            "timers": 0,
+            "elements": 0,
+            "childChanges": 0,
+            "detachedElements": 0,
+            "detachedChildReferences": 0,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 25,
+          "heapUsed": 22891112,
+          "liveObservers": 1,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 0,
+            "timers": 0,
+            "elements": 0,
+            "childChanges": 0,
+            "detachedElements": 0,
+            "detachedChildReferences": 0,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 30,
+          "heapUsed": 22903024,
+          "liveObservers": 1,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 0,
+            "timers": 0,
+            "elements": 0,
+            "childChanges": 0,
+            "detachedElements": 0,
+            "detachedChildReferences": 0,
+            "errors": []
+          }
+        }
+      ],
+      "final": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 0,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 0,
+        "detachedElements": 0,
+        "detachedChildReferences": 0,
+        "errors": []
+      },
+      "disabled": {
+        "report": {
+          "engine": "Materialbook/Nobook",
+          "active": false,
+          "errors": []
+        },
+        "liveObservers": 1
+      }
+    },
+    {
+      "color": true,
+      "amoled": false,
+      "cycles": 30,
+      "routesPerCycle": 5,
+      "baseline": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 1,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 1,
+        "detachedElements": 0,
+        "detachedChildReferences": 0,
+        "errors": []
+      },
+      "samples": [
+        {
+          "cycle": 1,
+          "heapUsed": 24241944,
+          "liveObservers": 2,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 1,
+            "timers": 0,
+            "elements": 40,
+            "childChanges": 3,
+            "detachedElements": 32,
+            "detachedChildReferences": 2,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 5,
+          "heapUsed": 25258656,
+          "liveObservers": 2,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 1,
+            "timers": 0,
+            "elements": 200,
+            "childChanges": 3,
+            "detachedElements": 192,
+            "detachedChildReferences": 2,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 10,
+          "heapUsed": 26409800,
+          "liveObservers": 2,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 1,
+            "timers": 0,
+            "elements": 400,
+            "childChanges": 3,
+            "detachedElements": 392,
+            "detachedChildReferences": 2,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 15,
+          "heapUsed": 27529320,
+          "liveObservers": 2,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 1,
+            "timers": 0,
+            "elements": 600,
+            "childChanges": 3,
+            "detachedElements": 592,
+            "detachedChildReferences": 2,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 20,
+          "heapUsed": 28626992,
+          "liveObservers": 2,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 1,
+            "timers": 0,
+            "elements": 800,
+            "childChanges": 3,
+            "detachedElements": 792,
+            "detachedChildReferences": 2,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 25,
+          "heapUsed": 29687456,
+          "liveObservers": 2,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 1,
+            "timers": 0,
+            "elements": 1000,
+            "childChanges": 3,
+            "detachedElements": 992,
+            "detachedChildReferences": 2,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 30,
+          "heapUsed": 30727048,
+          "liveObservers": 2,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 1,
+            "timers": 0,
+            "elements": 1200,
+            "childChanges": 3,
+            "detachedElements": 1192,
+            "detachedChildReferences": 2,
+            "errors": []
+          }
+        }
+      ],
+      "final": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 1,
+        "timers": 0,
+        "elements": 1200,
+        "childChanges": 3,
+        "detachedElements": 1192,
+        "detachedChildReferences": 2,
+        "errors": []
+      },
+      "disabled": {
+        "report": {
+          "engine": "Materialbook/Nobook",
+          "active": false,
+          "errors": []
+        },
+        "liveObservers": 1
+      }
+    },
+    {
+      "color": true,
+      "amoled": true,
+      "cycles": 30,
+      "routesPerCycle": 5,
+      "baseline": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 2,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 10,
+        "detachedElements": 0,
+        "detachedChildReferences": 8,
+        "errors": []
+      },
+      "samples": [
+        {
+          "cycle": 1,
+          "heapUsed": 25839792,
+          "liveObservers": 3,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 2,
+            "timers": 0,
+            "elements": 40,
+            "childChanges": 10,
+            "detachedElements": 32,
+            "detachedChildReferences": 8,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 5,
+          "heapUsed": 26852224,
+          "liveObservers": 3,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 2,
+            "timers": 0,
+            "elements": 200,
+            "childChanges": 10,
+            "detachedElements": 192,
+            "detachedChildReferences": 8,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 10,
+          "heapUsed": 28010216,
+          "liveObservers": 3,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 2,
+            "timers": 0,
+            "elements": 400,
+            "childChanges": 10,
+            "detachedElements": 392,
+            "detachedChildReferences": 8,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 15,
+          "heapUsed": 29108720,
+          "liveObservers": 3,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 2,
+            "timers": 0,
+            "elements": 600,
+            "childChanges": 10,
+            "detachedElements": 592,
+            "detachedChildReferences": 8,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 20,
+          "heapUsed": 30196272,
+          "liveObservers": 3,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 2,
+            "timers": 0,
+            "elements": 800,
+            "childChanges": 10,
+            "detachedElements": 792,
+            "detachedChildReferences": 8,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 25,
+          "heapUsed": 31213872,
+          "liveObservers": 3,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 2,
+            "timers": 0,
+            "elements": 1000,
+            "childChanges": 10,
+            "detachedElements": 992,
+            "detachedChildReferences": 8,
+            "errors": []
+          }
+        },
+        {
+          "cycle": 30,
+          "heapUsed": 32269968,
+          "liveObservers": 3,
+          "report": {
+            "engine": "Materialbook/Nobook",
+            "active": true,
+            "observers": 2,
+            "timers": 0,
+            "elements": 1200,
+            "childChanges": 10,
+            "detachedElements": 1192,
+            "detachedChildReferences": 8,
+            "errors": []
+          }
+        }
+      ],
+      "final": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 2,
+        "timers": 0,
+        "elements": 1200,
+        "childChanges": 10,
+        "detachedElements": 1192,
+        "detachedChildReferences": 8,
+        "errors": []
+      },
+      "disabled": {
+        "report": {
+          "engine": "Materialbook/Nobook",
+          "active": false,
+          "errors": []
+        },
+        "liveObservers": 1
+      }
+    }
+  ]
+}

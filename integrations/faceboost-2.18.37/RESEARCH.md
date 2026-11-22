@@ -1,0 +1,9 @@
+# Owner report36: evidence-driven scope
+
+Previous snapshot is the actual menu: route1, composer count0, two scopes. Rows show a visible heading (including h1/h2/h3 category), three role-radio/action/component controls with Most relevant checked and All/Newest unchecked, and one role-button/action/component OK. No blind reaction/position action is needed. Current snapshot is another page with no controls, not evidence the menu disappeared incorrectly.
+
+36 required a recognized composer to open the inline sort: the reported0 blocks that path. Its Most relevant count also included button wrappers, unlike its All-radio count, and it counted titled scope containers before requiring radio evidence. Those are code-level rejection mechanisms; the supplied report does not prove either wrapper case happened in the owner's DOM.37 reproduces and fixes those cases without claiming that inference as fact.
+
+New evidence requirements remain conservative: a composer-less inline opener must be unique, exact-named, role=button and carry both metadata attributes on a dedicated post route. Radio selection remains role-based and unique; confirmation still waits for selected state before clicking a unique official OK in the selected scope. No action-ID values, guessed endpoints, network/API hooks, cookies, clipboard automation or permanent feed observer.
+
+Numeric stage/reason counters address the prior report's missing execution evidence. Reasons:0 complete/none,1 timeout,2 page changed,3 pass budget,4 multiple distinct menus,5 invalid radio counts,6 already All,7 scope truncated,8 multiple confirm buttons,10 missing/ambiguous opener,11 waiting for selected state,12 no confirm,13 cancellation. Stage0 idle/open search,1 opener clicked,2 menu accepted,3 All clicked,4 confirmation click,5 completed. These counters describe local execution, not server-side result verification.

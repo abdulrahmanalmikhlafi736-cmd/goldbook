@@ -1,0 +1,41 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
+const {JSDOM}=require(process.env.JSDOM_PATH || 'jsdom');
+const source=process.env.FACEBOOST_SOURCE;
+if(!source)throw Error('FACEBOOST_SOURCE must point to the patched pinned source');
+function fixture(){
+ const dom=new JSDOM('<!doctype html><html><head></head><body><video id="v"></video></body></html>',{url:'https://m.facebook.com/reel/123/',runScripts:'outside-only',pretendToBeVisual:true});
+ const w=dom.window;Object.defineProperty(w,'innerWidth',{value:400});Object.defineProperty(w,'innerHeight',{value:800});
+ const v=w.document.getElementById('v');v.getBoundingClientRect=()=>({left:0,top:50,right:400,bottom:750,width:400,height:700});
+ Object.defineProperty(v,'duration',{value:100,configurable:true});Object.defineProperty(v,'paused',{value:false,configurable:true});v.currentTime=20;
+ let fullscreen=0;v.requestFullscreen=()=>{fullscreen++;return Promise.resolve();};
+ w.Element.prototype.animate=()=>({onfinish:null});
+ w.__CONFIG__={enhance:false,siteEngine:'upstream',doubleTapFullscreen:true,textSelection:false,downloads:false,rainbow:false,color:'طبيعي'};
+ w.eval(fs.readFileSync(path.join(source,'app/src/main/assets/public-video-link.js'),'utf8'));
+ w.eval(fs.readFileSync(path.join(source,'app/src/main/assets/official-download.js'),'utf8'));
+ w.eval(fs.readFileSync(path.join(source,'app/src/main/assets/media-surface.js'),'utf8'));
+ // Production order: Faceboost gesture listener first, then FPRO engine.
+ w.__mbReel={rate:2,skip:10};
+ w.eval(fs.readFileSync(path.join(source,'app/src/main/res/raw/reel_gestures.js'),'utf8'));
+ w.eval(fs.readFileSync(path.join(source,'app/src/main/assets/facebook.js'),'utf8'));
+ function pointer(type,x,y,id=1){const e=new w.Event(type,{bubbles:true,cancelable:true});Object.assign(e,{pointerType:'touch',pointerId:id,isPrimary:true,clientX:x,clientY:y});v.dispatchEvent(e);return e;}
+ function touch(type,x,y){const e=new w.Event(type,{bubbles:true,cancelable:true});const p={clientX:x,clientY:y,identifier:1};Object.assign(e,{touches:type==='touchend'?[]:[p],changedTouches:[p]});v.dispatchEvent(e);return e;}
+ function tap(x,y){pointer('pointerdown',x,y);touch('touchstart',x,y);pointer('pointerup',x,y);return touch('touchend',x,y);}
+ return {w,v,tap,pointer,fullscreen:()=>fullscreen,close:()=>dom.window.close()};
+}
+test('production gesture pair: top double tap enters once and does not seek',()=>{const f=fixture();try{f.tap(350,100);f.tap(350,100);assert.equal(f.fullscreen(),1);assert.equal(f.v.currentTime,20);}finally{f.close();}});
+test('production gesture pair: lower right double tap seeks and never enters fullscreen',()=>{const f=fixture();try{f.tap(350,600);f.tap(350,600);assert.equal(f.fullscreen(),0);assert.equal(f.v.currentTime,30);}finally{f.close();}});
+test('production gesture: swipe and cancelled touch never enter fullscreen',()=>{const f=fixture();try{f.pointer('pointerdown',100,100);f.pointer('pointermove',100,200);f.pointer('pointerup',100,200);f.tap(100,100);assert.equal(f.fullscreen(),0);f.pointer('pointercancel',100,100);f.tap(100,100);assert.equal(f.fullscreen(),0);}finally{f.close();}});
+
+function reaction(f,pressed=false,onClick){const b=f.w.document.createElement('div');b.setAttribute('role','button');b.setAttribute('data-long-click-action-id','fixture');b.setAttribute('aria-label','Like');b.setAttribute('aria-pressed',String(pressed));b.getBoundingClientRect=()=>({left:0,top:380,right:40,bottom:420,width:40,height:40});if(onClick)b.addEventListener('click',()=>onClick(b));f.w.document.body.appendChild(b);return b;}
+test('no official button means no fake success animation',()=>{const f=fixture();try{f.tap(200,600);f.tap(200,600);assert.equal(f.w.document.getElementById('mb-reel-anim'),null);}finally{f.close();}});
+test('fast double tap reaches only the intended click and confirms changed state',()=>{const f=fixture();try{f.w.Date.now=()=>1000;let clicks=0;const b=reaction(f,false,b=>{clicks++;b.setAttribute('aria-pressed','true');});f.tap(200,600);f.tap(200,600);assert.equal(clicks,1);assert.equal(b.getAttribute('aria-pressed'),'true');assert.ok(f.w.document.getElementById('mb-reel-anim'));assert.equal(f.fullscreen(),0);}finally{f.close();}});
+test('unconfirmed click gets no success and no duplicate retry',()=>{const f=fixture();try{let clicks=0;reaction(f,false,()=>clicks++);for(let i=0;i<4;i++)f.tap(200,600);assert.equal(clicks,1);assert.equal(f.w.document.getElementById('mb-reel-anim'),null);}finally{f.close();}});
+test('unlike also waits for official state transition',()=>{const f=fixture();try{const b=reaction(f,true,b=>b.setAttribute('aria-pressed','false'));f.tap(200,600);f.tap(200,600);assert.equal(b.getAttribute('aria-pressed'),'false');assert.ok(f.w.document.getElementById('mb-reel-anim'));}finally{f.close();}});
+test('unrelated replay click remains blocked by capture guard',()=>{const f=fixture();try{let count=0;const b=f.w.document.createElement('button');b.addEventListener('click',()=>count++);f.w.document.body.appendChild(b);f.w.Date.now=()=>1000;f.tap(200,600);b.click();assert.equal(count,0);}finally{f.close();}});
+test('ambiguous portal rail is not clicked',()=>{const f=fixture();try{let count=0;reaction(f,false,()=>count++);reaction(f,false,()=>count++);f.tap(200,600);f.tap(200,600);assert.equal(count,0);assert.equal(f.w.document.getElementById('mb-reel-anim'),null);}finally{f.close();}});
+test('delayed state update confirms; recycled source never confirms stale action',async()=>{const f=fixture();try{const b=reaction(f,false,()=>{});f.tap(200,600);f.tap(200,600);assert.equal(f.w.document.getElementById('mb-reel-anim'),null);b.setAttribute('aria-pressed','true');await new Promise(setImmediate);assert.ok(f.w.document.getElementById('mb-reel-anim'));}finally{f.close();}const g=fixture();try{const b=reaction(g,false,()=>{});Object.defineProperty(g.v,'currentSrc',{configurable:true,get:()=> 'https://video.fbcdn.net/still-loaded-old.mp4'});g.tap(200,600);g.tap(200,600);g.v.setAttribute('src','https://video.fbcdn.net/next.mp4');b.setAttribute('aria-pressed','true');await new Promise(setImmediate);assert.equal(g.w.document.getElementById('mb-reel-anim'),null);}finally{g.close();}});
+
+test('adding an explicit false state is not a successful reaction transition',()=>{const f=fixture();try{const b=reaction(f,false,b=>b.setAttribute('aria-pressed','false'));b.removeAttribute('aria-pressed');f.tap(200,600);f.tap(200,600);assert.equal(f.w.document.getElementById('mb-reel-anim'),null);}finally{f.close();}});
+test('refreshing a reaction image cannot masquerade as changing Like state',()=>{const f=fixture();try{const b=reaction(f,false,b=>b.querySelector('img').setAttribute('src','next-icon.png'));b.removeAttribute('aria-pressed');b.removeAttribute('aria-label');b.innerHTML='<img src="old-icon.png">';const scope=f.w.document.createElement('section');f.w.document.body.appendChild(scope);scope.append(f.v,b);f.tap(200,600);f.tap(200,600);assert.equal(f.w.document.getElementById('mb-reel-anim'),null);}finally{f.close();}});
+test('private video scope excludes another video rail even at identical bounds',()=>{const f=fixture();try{let own=0,foreign=0;const b=reaction(f,false,b=>{own++;b.setAttribute('aria-pressed','true');});const other=reaction(f,false,()=>foreign++);const scope=f.w.document.createElement('section');f.w.document.body.appendChild(scope);scope.append(f.v,b);const v2=f.w.document.createElement('video');v2.getBoundingClientRect=f.v.getBoundingClientRect;const s2=f.w.document.createElement('section');f.w.document.body.appendChild(s2);s2.append(v2,other);f.tap(200,600);f.tap(200,600);assert.equal(own,1);assert.equal(foreign,0);}finally{f.close();}});
+test('offscreen official button is refused',()=>{const f=fixture();try{let clicks=0;const b=reaction(f,false,()=>clicks++);b.getBoundingClientRect=()=>({left:-200,top:380,right:-160,bottom:420,width:40,height:40});f.tap(200,600);f.tap(200,600);assert.equal(clicks,0);assert.equal(f.w.document.getElementById('mb-reel-anim'),null);}finally{f.close();}});

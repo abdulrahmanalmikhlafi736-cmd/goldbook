@@ -1,0 +1,165 @@
+{
+  "tested_commit": "64e0626b13f7b60be0e5e7fe22a6d06fb7ab21c8",
+  "baseline": "2.18.9",
+  "candidate": "2.18.10",
+  "pinned_source": "fe8a474b25414b38819b7cf927720899c8c89705",
+  "media_controller_identical_except_version_comment": true,
+  "changed_paths": [
+    {
+      "path": "app/build.gradle.kts",
+      "before_sha256": "79582e695a204a0a34449671d44523c157f098fc7653536f2b50064f9fd78516",
+      "after_sha256": "5877d7284c7c4306c4c9c2cc33680f5bcf35471cb22f5abc28cfa928c1a7dcdc"
+    },
+    {
+      "path": "app/src/androidTest/java/com/almekhlafi/materialbook/ui/screens/HomeSwipeSettingUiTest.kt",
+      "before_sha256": null,
+      "after_sha256": "ee04576739b281302ac61995efedf7a72aa39531dfc581ff330a50cdf2e04ef1"
+    },
+    {
+      "path": "app/src/androidTest/java/com/almekhlafi/materialbook/ui/screens/MediaSurfaceRegressionTest.kt",
+      "before_sha256": "31c11c4342d7b279beb6096c630d38569be7563b107e9c6881d85eb0f586955b",
+      "after_sha256": "ab1c4125a170a41656910c85d62eb5972aeb3831c27d56b03b2adb56af55c6aa"
+    },
+    {
+      "path": "app/src/debug/AndroidManifest.xml",
+      "before_sha256": "be09dd206d5f163033a275ebf66c268ca00b7cd8e3afb8c7bcd5d6c1261737c5",
+      "after_sha256": "8f2c4e7317562f083e86ed0b4ee26466659aba9ad3b5f73ab5fd10661a4a9a88"
+    },
+    {
+      "path": "app/src/debug/res/values/strings.xml",
+      "before_sha256": "dfd146249dda02f1e5969eb5e4e107fbb4fb52725407aff856794bc889380689",
+      "after_sha256": "9540fe15fda180b67d301d20a037f2031c7d3405d8092d57cfe667f47f4862b6"
+    },
+    {
+      "path": "app/src/main/assets/home-swipe-guard.js",
+      "before_sha256": "3f5d3d8cf2b4fdd69f94191a099ce0a80aedb9bb4b0f2c280ea15cd2c2e6a498",
+      "after_sha256": "8fa455a27f9b672c73df4a613b9fe5e7b306a5bf24418355e0ecf1f5cd30335e"
+    },
+    {
+      "path": "app/src/main/assets/media-surface.js",
+      "before_sha256": "70c0abfe19de6393b520cecdd822077763702c5a9474c525d8d249fbfe98b5f7",
+      "after_sha256": "36b374ba2dc8a84620b8c972bdd81706826b176151fe68b80227370469918d46"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/data/local/SettingsDataStore.kt",
+      "before_sha256": "570ccbd2a89786e8a36f3c4b5903bd9d147ff50f9ba60698bf584c5fa122328a",
+      "after_sha256": "74ba27fed21af1838e5e8ab891f9f1659e9dbf095223b7a9b9fdace0f8fc8561"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/ui/components/settings/SettingsContent.kt",
+      "before_sha256": "b35816561c48cb8f618d50d200e2aaca48141f01184842ba2602c5455ff4a125",
+      "after_sha256": "f6176d94e99307996e1973605936c5d2582e32da79fb4a345e7c43724560b700"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/ui/screens/MaterialbookWV.kt",
+      "before_sha256": "322e297ef8f632ab20193bfa9da7bd23d990e93e0bf5b7f15f5565cd45b44ac6",
+      "after_sha256": "59d62148b5311e0f6ae816106ec6fe98d8dc50a813fef9979e9571033fd61557"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/ui/viewmodel/SettingsViewModel.kt",
+      "before_sha256": "a9ccdeed4887915c9ef5cc3992e0ef5b8921875208061b540e9fefb6bb2edcf8",
+      "after_sha256": "8e1eecfaf55d492e3b90389f887cb0c0d1145b2e5622eab709e18a8b378e35c0"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/utils/HomeSwipeGuard.kt",
+      "before_sha256": "d2d33a4bdca368e4dde1ac225ae6ace804c090f8509832fdf4c37a2f8214ba90",
+      "after_sha256": "7289f9a272ae9ddcf7620f77c645388cf6ba5c2aebcda0f94445802275085ecf"
+    },
+    {
+      "path": "app/src/main/res/values-ar/brand_strings.xml",
+      "before_sha256": "c1edacaca38c7d0717aa52c01573a47e52d296572dafeffaa7a22878f522fff2",
+      "after_sha256": "46dd8dbc47393a14e6cbe3b8ea747ad7a178a30bc3ecda040bb1f652a7f73a13"
+    },
+    {
+      "path": "app/src/main/res/values-ar/fpro_home_swipe.xml",
+      "before_sha256": null,
+      "after_sha256": "a6f14939fe8f9a892abeb00520ad106b2d2e8a0ec82380ffaad9688e00a8643b"
+    },
+    {
+      "path": "app/src/main/res/values-bn/brand_strings.xml",
+      "before_sha256": "9a4733528b7ba2036088dc4a214ff290b00a747c9fb91bc42692b9e8c99200b0",
+      "after_sha256": "3e5f117e36f42cab19d1ad01ede53ad9244b1cf193d09ae3fa265c69acfe539d"
+    },
+    {
+      "path": "app/src/main/res/values-de/brand_strings.xml",
+      "before_sha256": "e353d6036cdd342eeec84bb6ef5b3c85fbbe26f487fba72cb97859948d99cad3",
+      "after_sha256": "0765c830c210f7e29dfebb2c7e15147075eb8bb72c3029588a31f07783a87e50"
+    },
+    {
+      "path": "app/src/main/res/values-es/brand_strings.xml",
+      "before_sha256": "b41397d10ff2f4da477d3e9a3ce491929f80be31f77e23e5ab5b8554f67dcaac",
+      "after_sha256": "82f7f3ef2e5e5ed7b71f3fae251ef382b5f33b29d8242990e96810e108b379e8"
+    },
+    {
+      "path": "app/src/main/res/values-fr/brand_strings.xml",
+      "before_sha256": "6958456f88e317fea4041a55de60a517cd53646d90b3a9eb3d2f43c832a0e8e5",
+      "after_sha256": "84aa71ae69e67a404f272fc312ad05afe84f4293feacc2ec57e4a5dba24ae2bc"
+    },
+    {
+      "path": "app/src/main/res/values-in/strings.xml",
+      "before_sha256": "918aacea3608aca8193d394c53d7cb01c6f80a30e0899dc46be206f12b67acb7",
+      "after_sha256": "7586a65c4e68fd06beb88c1ee3d973a3d95c4247b46540744b217ececfd023bd"
+    },
+    {
+      "path": "app/src/main/res/values-it/brand_strings.xml",
+      "before_sha256": "85c45b6b0fe8fa25f601289921ce67409b84e0ac0dfe21a2dbd6d2dc38e4c2ac",
+      "after_sha256": "d1b91861b38d9a2405a472d564208481fd3b5d8eea72afbd1a6e55677ece8091"
+    },
+    {
+      "path": "app/src/main/res/values-iw/brand_strings.xml",
+      "before_sha256": "973e36acef45be1c82f6441e045d2c487e47b447658c88d69076dd70ccaeed3d",
+      "after_sha256": "1b36af00355c777af76b009185ac173ca3c829a131dac8285640422c005b6adb"
+    },
+    {
+      "path": "app/src/main/res/values-pl/brand_strings.xml",
+      "before_sha256": "b4defb9b05fb4bee1435343072172ca3e505abdda0145fe2795ff763d14f629e",
+      "after_sha256": "11cffaaa17c8af668318579851b69fed1e4b2230c0d30a995ae9547518f4f31b"
+    },
+    {
+      "path": "app/src/main/res/values-pt/brand_strings.xml",
+      "before_sha256": "3571957052842687f57e2b92f200328e3b9f13eafdcfd9cb31f1ecae8b745e14",
+      "after_sha256": "002459933c3f0ca72216183853879980c91e50672fa9885acb06b12acf2680ee"
+    },
+    {
+      "path": "app/src/main/res/values-zh-rTW/brand_strings.xml",
+      "before_sha256": "234226980461387b8f0344a658aa3c44e268466921ca598b46fecc218ce365b5",
+      "after_sha256": "d7dd00274667092a9deca6d452d88446f10cbe0c71bee40f05ee9b406c1af16f"
+    },
+    {
+      "path": "app/src/main/res/values/brand_strings.xml",
+      "before_sha256": "0a3f184bf2dcf611e7de3c2549fca03210a7bc35ba7d62538d7e7b667071c19a",
+      "after_sha256": "ada9ec955b4dfb85baafb338866982ac7ca7c7d6b7af6b05ff95b246e115b4a7"
+    },
+    {
+      "path": "app/src/main/res/values/fpro_home_swipe.xml",
+      "before_sha256": null,
+      "after_sha256": "2501356da98503b9837f34105ad8dc80a0b3fe856b7689b1090a6685cd11a3fa"
+    }
+  ],
+  "unchanged_critical_files": [
+    {
+      "path": "app/src/main/res/raw/reel_gestures.js",
+      "sha256": "609535f38460801a7f3ef16f9dd70ef98f5b141e4b5b9c48dcb49f1eeb2ca0c1"
+    },
+    {
+      "path": "app/src/main/res/raw/reel_controls.js",
+      "sha256": "6ab4f661fb95a8a44620271e18321524fac33a23b65a597058ff3e22ddc329f7"
+    },
+    {
+      "path": "app/src/main/assets/facebook.js",
+      "sha256": "04cb2dcd8631140316ff83bd13b7a18193f0d1aa6ec68e2ce032a8e4d232ef41"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/MainActivity.kt",
+      "sha256": "082d4ab8d023551464c542753094fab5cbcbced2f98ccf724453a48221323e38"
+    },
+    {
+      "path": "app/src/main/AndroidManifest.xml",
+      "sha256": "0549595effabebe95fa3d414175c03202e5112870407e4efff1e8db38c4eff4f"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/utils/BackgroundAudioWebView.kt",
+      "sha256": "df2792ce001b061318bf1d199805a561028097acf68da6802e0806c935e98758"
+    }
+  ]
+}

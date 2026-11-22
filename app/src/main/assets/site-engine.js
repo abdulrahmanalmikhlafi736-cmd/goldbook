@@ -722,14 +722,22 @@ observer.observe(document.body, { childList: true, subtree: true });
 
   // Mechanism to prevent some parts of the code infinitely triggering the MO, causing the function to loop
   const processedStyles = new WeakSet();
+  const processedStyleText = new WeakMap();
 
-  function processMaterialYouStyles() {
-    document.querySelectorAll('style')?.forEach(style => {
-      if (processedStyles.has(style)) return;
-      processedStyles.add(style);
+  function processMaterialYouStyles(root = document, deep = true) {
+    if(root.nodeType===1 && root.closest('.fpro-video-tools,[id^="fpro"]'))return;
+    const query = selector => {
+      const result=root.nodeType===1 && root.matches(selector)?[root]:[];
+      if(deep)for(const el of root.querySelectorAll(selector))result.push(el);
+      return result.filter(el=>!el.closest('.fpro-video-tools,[id^="fpro"]'));
+    };
+    query('style')?.forEach(style => {
+      let css=style.innerHTML;
+      if(processedStyleText.get(style)===css)return;
+      const before=css;
 
       if (style.innerHTML) {
-        style.innerHTML = style.innerHTML?.replace(backgroundColorRegex, (m, gr, Ar, Ag, Ab, Aa, r, g, b, hex) => {
+        css = css.replace(backgroundColorRegex, (m, gr, Ar, Ag, Ab, Aa, r, g, b, hex) => {
           if ((r && g && b && isFacebookBlue(+r, +g, +b)) ||
           (hex && isFacebookBlue(...[0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16))))) return `background-color:${MATERIALYOU_PRIMARY};`;
           if (Ar && Ag && Ab && isFacebookBlue(+Ar, +Ag, +Ab)) return `background-color: rgba(${MATERIALYOU_PRIMARY_RGB.r}, ${MATERIALYOU_PRIMARY_RGB.g}, ${MATERIALYOU_PRIMARY_RGB.b}, ${+Aa});`;
@@ -741,16 +749,18 @@ observer.observe(document.body, { childList: true, subtree: true });
           return m;
         });
 
-        style.innerHTML = style.innerHTML?.replace(borderColorRegex, (m, gr, Ar, Ag, Ab, Aa, r, g, b, hex) => {
+        css = css.replace(borderColorRegex, (m, gr, Ar, Ag, Ab, Aa, r, g, b, hex) => {
           if ((r && g && b && isFacebookBlue(+r, +g, +b)) ||
           (hex && isFacebookBlue(...[0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16))))) return `border-color:${MATERIALYOU_PRIMARY};`;
           if (Ar && Ag && Ab && isFacebookBlue(+Ar, +Ag, +Ab)) return `border-color: rgba(${MATERIALYOU_PRIMARY_RGB.r}, ${MATERIALYOU_PRIMARY_RGB.g}, ${MATERIALYOU_PRIMARY_RGB.b}, ${+Aa});`;
           return m;
         });
       }
+      if(css!==before)style.innerHTML=css;
+      processedStyleText.set(style,css);
     });
 
-    document.querySelectorAll('[style*="color"]')?.forEach(el => {
+    query('[style*="color"]')?.forEach(el => {
       const style = el.getAttribute('style')?.replace(colorRegex, (m, gr, Ar, Ag, Ab, Aa, r, g, b, hex) => {
         if ((r && g && b && isFacebookBlue(+r, +g, +b)) ||
         (hex && isFacebookBlue(...[0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16)))) || hex === 'e8eaee') return `color:${MATERIALYOU_PRIMARY};`;
@@ -761,7 +771,7 @@ observer.observe(document.body, { childList: true, subtree: true });
       if (style !== el.getAttribute('style')) el.setAttribute('style', style);
     });
 
-    document.querySelectorAll('[style*="background-color"]')?.forEach(el => {
+    query('[style*="background-color"]')?.forEach(el => {
       const style = el.getAttribute('style')?.replace(backgroundColorRegex, (m, gr, Ar, Ag, Ab, Aa, r, g, b, hex) => {
         if ((r && g && b && isFacebookBlue(+r, +g, +b)) ||
         (hex && isFacebookBlue(...[0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16))))) return `background-color:${MATERIALYOU_PRIMARY};`;
@@ -773,7 +783,7 @@ observer.observe(document.body, { childList: true, subtree: true });
       if (style !== el.getAttribute('style')) el.setAttribute('style', style);
     });
 
-    document.querySelectorAll('[style*="background"]')?.forEach(el => {
+    query('[style*="background"]')?.forEach(el => {
       const style = el.getAttribute('style')?.replace(backgroundRegex, (m, gr, Ar, Ag, Ab, Aa, r, g, b, hex) => {
         if ((r && g && b && isFacebookBlue(+r, +g, +b)) ||
         (hex && isFacebookBlue(...[0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16))))) return `background:${MATERIALYOU_PRIMARY};`;
@@ -783,7 +793,7 @@ observer.observe(document.body, { childList: true, subtree: true });
       if (style !== el.getAttribute('style')) el.setAttribute('style', style);
     });
 
-    document.querySelectorAll('[style*="border:"]')?.forEach(el => {
+    query('[style*="border:"]')?.forEach(el => {
       const style = el.getAttribute('style')?.replace(borderRegex, (m, px, gr, Ar, Ag, Ab, Aa, r, g, b, hex) => {
         if ((r && g && b && isFacebookBlue(+r, +g, +b)) ||
         (hex && isFacebookBlue(...[0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16))))) return `border: ${px} solid ${MATERIALYOU_PRIMARY};`;
@@ -794,12 +804,12 @@ observer.observe(document.body, { childList: true, subtree: true });
       if (style !== el.getAttribute('style')) el.setAttribute('style', style);
     });
 
-    document.querySelectorAll('[style*="--nbc"]')?.forEach(el => {
+    query('[style*="--nbc"]')?.forEach(el => {
       if (isFacebookBlue(...[1, 3, 5].map(i => parseInt(el.style.getPropertyValue('--nbc').slice(i, i + 2), 16)))) el.style.setProperty('--nbc', MATERIALYOU_PRIMARY);
     });
 
     // Recolor story ring on the profile page + feed FB logo in light mode
-    document.querySelectorAll('img[src*="vTzapVsBgS_.webp"], img[src*="NtDLSQuICbO.webp"]')?.forEach(img => {
+    query('img[src*="vTzapVsBgS_.webp"], img[src*="NtDLSQuICbO.webp"]')?.forEach(img => {
       if (processedStyles.has(img)) return;
       processedStyles.add(img);
       img.style.cssText += `
@@ -810,7 +820,7 @@ observer.observe(document.body, { childList: true, subtree: true });
     });
 
     // Swap FB logo on the login screen
-    document.querySelectorAll('img[src*="DUiOg0mJTjz.webp"]')?.forEach(img => {
+    query('img[src*="DUiOg0mJTjz.webp"]')?.forEach(img => {
       size = img.style.maxHeight;
       svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="${parseInt(size) * 1.5}px" height="${parseInt(size) * 1.5}px">
                     <circle cx="54" cy="54" r="54" fill="${MATERIALYOU_PRIMARY}" />
@@ -853,13 +863,30 @@ observer.observe(document.body, { childList: true, subtree: true });
 
   materialYouCSS();
 
-  new MutationObserver(() => {
-    processMaterialYouStyles();
+  new MutationObserver(records => {
+    const roots=new Map();
+    const add=(el,deep)=>{
+      if(!el || el.nodeType!==1 || !el.isConnected || el.closest('.fpro-video-tools,[id^="fpro"]'))return;
+      roots.set(el,!!deep || roots.get(el)===true);
+    };
+    for(const r of records){
+      const el=r.target.nodeType===1?r.target:r.target.parentElement;
+      if(!el || el.closest('.fpro-video-tools,[id^="fpro"]'))continue;
+      if(el.matches('style')){add(el,false);continue;}
+      if(r.type==='attributes'){add(el,false);continue;}
+      if(r.type==='childList')for(const node of r.addedNodes)add(node,true);
+    }
+    for(const [root,deep] of roots){
+      let covered=false;
+      for(let parent=root.parentElement;parent;parent=parent.parentElement)if(roots.get(parent)===true){covered=true;break;}
+      if(!covered)processMaterialYouStyles(root,deep);
+    }
   }).observe(document.documentElement, {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['style']
+    characterData: true,
+    attributeFilter: ['style','src']
   });
 })();
 },
@@ -1113,7 +1140,9 @@ apply();new MutationObserver(apply).observe(document.body,{childList:true,subtre
   signature=next;lastConfig={...config};if(active){active.stop();active=null;}
   if(config.siteEngine!=='upstream'||config.enhance===false||!document.body)return;
   active=scope(config);
-  for(const [flag,file] of [['amoled','amoled_black'],['ads','adblock'],['suggested','hide_suggested'],['people','hide_pymk'],['groups','hide_groups'],['reels','hide_reels'],['sticky','sticky_navbar']])if(config[flag])active.mount(file);
+  // Feed-card hiding must not blank an explicitly opened media viewer.
+  const mediaViewer=/\/(?:reels?|watch|videos?)(?:\/|\.php|$)/i.test(location.pathname)||new URLSearchParams(location.search).has('v');
+  for(const [flag,file] of [['amoled','amoled_black'],['ads','adblock'],['suggested','hide_suggested'],['people','hide_pymk'],['groups','hide_groups'],['reels','hide_reels'],['sticky','sticky_navbar']])if(config[flag]&&!(flag==='reels'&&mediaViewer))active.mount(file);
   if(config.stories||config.homeStories&&location.pathname==='/')active.mount('hide_stories');
   if(config.appBanner&&!window.FproPrompt){active.mount('bottom_banner');active.mount('open_app_glyph');}
   if(config.referenceEngine!==false&&config.color!=='طبيعي'&&active.primary){active.mount('material_you');if(config.experimentalColorVars)active.run(()=>{const tokenStyle=document.createElement('style');tokenStyle.id='fpro-upstream-tokens';tokenStyle.textContent=':root{'+['--accent','--primary-blue','--blue-link','--primary-button-background','--primary-deemphasized-button-text'].map(k=>k+':'+active.primary+'!important').join(';')+'}';document.head.append(tokenStyle);});}

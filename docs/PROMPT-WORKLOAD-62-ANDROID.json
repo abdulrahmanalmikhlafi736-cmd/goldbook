@@ -1,0 +1,33 @@
+{
+  "run": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/41175586980",
+  "productionCommit": "8c43e7bf3a6709f218ca285cee74af148c86ac41",
+  "environment": "Android13/API33 x86_64 emulator; real WebView and trusted native down/up input; synthetic 600-card page, not authenticated Facebook",
+  "evidence": {
+    "off": {
+      "queries": 0,
+      "returned": 0,
+      "checked": 0,
+      "elapsedMs": 101.39999999999418,
+      "pointers": 1,
+      "clicks": 1,
+      "eventLagMs": [
+        53
+      ],
+      "hidden": false
+    },
+    "on": {
+      "queries": 0,
+      "returned": 0,
+      "checked": 0,
+      "elapsedMs": 116.89999999999418,
+      "pointers": 2,
+      "clicks": 2,
+      "eventLagMs": [
+        53,
+        27.89999999999418
+      ],
+      "hidden": true
+    }
+  },
+  "interpretation": "ON eliminates ancestor subtree enumeration for this workload and preserves site clicks, hiding, re-show and OFF restoration. elapsedMs includes six scheduled ticks; eventLagMs are two raw samples, not a statistically valid latency comparison. No universal no-flash or Note20 Ultra account claim."
+}

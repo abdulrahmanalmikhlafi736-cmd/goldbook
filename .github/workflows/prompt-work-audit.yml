@@ -1,0 +1,82 @@
+name: Prompt workload Android 13
+on:
+  push:
+    paths: ['app/src/main/assets/app-prompt-engine.js', 'app/src/androidTest/java/com/almekhlafi/FPRO/PromptWorkAuditTest.kt', 'app/build.gradle.kts', '.github/workflows/prompt-work-audit.yml']
+  workflow_dispatch:
+    inputs:
+      optimized:
+        description: Assert optimized workload bounds (false for baseline)
+        default: 'true'
+        type: choice
+        options: ['false', 'true']
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.almekhlafi.FPRO.PromptWorkAuditTest -Pandroid.testInstrumentationRunnerArguments.expectOptimized=${{ inputs.optimized || 'true' }} --stacktrace
+            adb logcat -d -v brief -s FPRO_PROMPT_AUDIT:I '*:S' > prompt-device-telemetry.log
+      - name: Publish test evidence
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          import json
+          # connectedAndroidTest may uninstall the target after execution; read
+          # the tagged device log captured BEFORE the emulator shuts down.
+          evidence = None
+          log = Path('prompt-device-telemetry.log')
+          if log.exists():
+              for line in log.read_text().splitlines():
+                  if 'FPRO_PROMPT_AUDIT' in line and '{' in line:
+                      evidence = json.loads(line[line.index('{'):])
+          if evidence is not None:
+              Path('prompt-work-audit.json').write_text(json.dumps(evidence, indent=2))
+              print('::notice title=Prompt workload telemetry::' + json.dumps(evidence))
+          seen = []
+          for p in Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'):
+              root = ET.parse(p).getroot()
+              for c in root.iter('testcase'):
+                  if c.get('name') != 'promptToggleUnderHeldTouch': continue
+                  ok = not any(c.find(k) is not None for k in ['failure', 'error', 'skipped'])
+                  seen.append(ok)
+                  print('::notice title=Prompt Android13::' + ('PASS' if ok else 'FAIL'))
+                  if not ok:
+                      print('::error::' + ET.tostring(c, encoding='unicode')[:6000].replace('%','%25').replace('\n','%0A'))
+              for e in root.iter('system-out'):
+                  text = e.text or ''
+                  for line in text.splitlines():
+                      if 'FPRO_PROMPT_AUDIT' in line: print('::notice title=Prompt telemetry::' + line.replace('%','%25'))
+          assert seen and all(seen), 'Missing/failed/skipped native test'
+          assert evidence is not None, 'Missing JSON device workload evidence'
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prompt-android13-evidence
+          path: |
+            prompt-work-audit.json
+            prompt-device-telemetry.log
+            app/build/outputs/androidTest-results/
+            app/build/reports/androidTests/

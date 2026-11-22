@@ -1,0 +1,7 @@
+# Owner35 failure: do not repeat fixture-only acceptance
+
+Actual screenshots establish that the sort remains Most relevant. Screenshot1 shows inline post comments and a composer, outside a separate Comments modal;35 opener only searched titled scoped panels. A narrow dedicated-post/composer gate addresses this missing path. Screenshot2 shows the official sort sheet visually, but does not expose role=radio, checked state, action-owner or title semantics. These must be diagnosed, not guessed by position/image or arbitrary MComponent actions.
+
+36 therefore retains35's conservative selection/confirmation requirements and adds a bounded, read-only structural inspector and explicit diagnostic UI. Only numeric categories/counts/presence/geometry are exported, with native re-sanitization. No raw comment text, names, IDs, URLs, action values, cookies or HTML. A one-report native cache uses a main-frame Facebook-only WebMessage listener, accepts no commands and causes no automatic clipboard writes, navigation or dialogs. The user explicitly chooses Copy report.
+
+The diagnosis is not proof of task completion or owner-account success. If the official sheet does not expose the supported semantic controls, it is left unchanged and its structural report identifies that boundary. No private Facebook API, network/token extraction, reaction guessing, refresh controller or broad click fallback. No change to2px progress or approved media features. Native/JS tests are controlled fixtures, not actual authenticated Facebook DOM evidence.

@@ -1,0 +1,59 @@
+{
+  "run": {
+    "id": 42440877915,
+    "html_url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42440877915",
+    "head_sha": "2ff0b33eb5b45e205d7a843a573f4f7e01ea25f3",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "jobs": [
+    {
+      "id": 128609702548,
+      "name": "build",
+      "conclusion": "success",
+      "started_at": "2026-11-08T03:01:00Z",
+      "completed_at": "2026-11-08T03:09:45Z"
+    },
+    {
+      "id": 128611607406,
+      "name": "chromium-fixtures",
+      "conclusion": "success",
+      "started_at": "2026-11-08T03:09:48Z",
+      "completed_at": "2026-11-08T03:12:44Z"
+    },
+    {
+      "id": 128612254615,
+      "name": "candidate",
+      "conclusion": "success",
+      "started_at": "2026-11-08T03:12:46Z",
+      "completed_at": "2026-11-08T03:12:53Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13602180830,
+      "name": "FPRO-2.18.11-media-candidate",
+      "size_in_bytes": 3057336,
+      "expired": false
+    },
+    {
+      "id": 13602130897,
+      "name": "Faceboost-2.18.11-Chromium-evidence",
+      "size_in_bytes": 1067,
+      "expired": false
+    },
+    {
+      "id": 13601299644,
+      "name": "Faceboost-2.18.11-build-inputs",
+      "size_in_bytes": 47042303,
+      "expired": false
+    }
+  ],
+  "localTestCount": 68,
+  "android13InstrumentationTestCount": 14,
+  "limitations": [
+    "Controlled fixtures, not logged-in Facebook acceptance",
+    "Clipboard and package-targeted intent verified; Seal UI not exercised with a real installed Seal",
+    "No guaranteed downloadability or privacy bypass"
+  ]
+}

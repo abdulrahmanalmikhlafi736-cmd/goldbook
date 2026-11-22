@@ -1,0 +1,371 @@
+{
+  "sourceAssetsSHA256": {
+    "feed-return.js": "08c8a0aa952937bc570b87b8f545a4b38f8829327731e65e94371f642c80cfdc",
+    "app-prompt-engine.js": "ab7deec35a6fff5f074b466d38798bba5cc43779f02d48f9e27a3861b351be60",
+    "site-engine.js": "564c772614ad56e7f46416f74bce516da5d1d900fa6b43649af534195d2d0061",
+    "reference-engines.js": "5cbe5d0b8d20622a031b93868f4eceafb90017796267a01f11c106cefe5cd0bc",
+    "audio-mode.js": "e3173b64196d61fb1d14c234c417def0cd0378173f746570cd3b6ad0e66d4519",
+    "facebook.js": "e26a7def667b0695a70e2db3f4782e9df05724976880a45766e7143c82ac916e"
+  },
+  "scope": "Synthetic DOM operation counts with simulated timeupdate at four Hz; NOT real media decode, CPU utilization, GPU, battery, thermal or owner-account measurement.",
+  "rows": [
+    {
+      "name": "idle-tools",
+      "stimulus": "idle",
+      "auditOnlyIgnoreOwnedColorChanges": false,
+      "updates": 12,
+      "nominalCadenceHz": 4,
+      "config": {
+        "siteEngine": "upstream",
+        "enhance": true,
+        "appBanner": true,
+        "textSelection": true,
+        "selectionScope": "posts",
+        "referenceEngine": true,
+        "color": "طبيعي",
+        "downloads": true,
+        "rainbow": true
+      },
+      "queries": 0,
+      "returned": 0,
+      "styles": 0,
+      "rects": 0,
+      "observerCallbacks": 0,
+      "observerRecords": 0,
+      "observers": {},
+      "fullScans": 0,
+      "siteEngine": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 0,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 0,
+        "errors": []
+      }
+    },
+    {
+      "name": "progress-tools",
+      "stimulus": "progress",
+      "auditOnlyIgnoreOwnedColorChanges": false,
+      "updates": 12,
+      "nominalCadenceHz": 4,
+      "config": {
+        "siteEngine": "upstream",
+        "enhance": true,
+        "appBanner": true,
+        "textSelection": true,
+        "selectionScope": "posts",
+        "referenceEngine": true,
+        "color": "طبيعي",
+        "downloads": true,
+        "rainbow": true
+      },
+      "queries": 0,
+      "returned": 0,
+      "styles": 0,
+      "rects": 0,
+      "observerCallbacks": 36,
+      "observerRecords": 180,
+      "observers": {
+        "at eval (app-prompt-engine.js:105:17) | at eval (app-prompt-engine.js:138:3)": {
+          "callbacks": 12,
+          "records": 72
+        },
+        "at eval (site-engine.js:1148:13) | at eval (site-engine.js:1152:3)": {
+          "callbacks": 12,
+          "records": 36
+        },
+        "at eval (facebook.js:1264:17) | at eval (facebook.js:1311:3)": {
+          "callbacks": 12,
+          "records": 72
+        }
+      },
+      "fullScans": 0,
+      "siteEngine": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 0,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 0,
+        "errors": []
+      }
+    },
+    {
+      "name": "site-clock-tools",
+      "stimulus": "site",
+      "auditOnlyIgnoreOwnedColorChanges": false,
+      "updates": 12,
+      "nominalCadenceHz": 4,
+      "config": {
+        "siteEngine": "upstream",
+        "enhance": true,
+        "appBanner": true,
+        "textSelection": true,
+        "selectionScope": "posts",
+        "referenceEngine": true,
+        "color": "طبيعي",
+        "downloads": true,
+        "rainbow": true
+      },
+      "queries": 32,
+      "returned": 4,
+      "styles": 16,
+      "rects": 6,
+      "observerCallbacks": 54,
+      "observerRecords": 74,
+      "observers": {
+        "at eval (app-prompt-engine.js:105:17) | at eval (app-prompt-engine.js:138:3)": {
+          "callbacks": 14,
+          "records": 22
+        },
+        "at eval (site-engine.js:1148:13) | at eval (site-engine.js:1152:3)": {
+          "callbacks": 14,
+          "records": 18
+        },
+        "at eval (facebook.js:1264:17) | at eval (facebook.js:1311:3)": {
+          "callbacks": 14,
+          "records": 22
+        },
+        "at watchCommentRegions (facebook.js:152:39) | at updateSelection (facebook.js:174:3)": {
+          "callbacks": 12,
+          "records": 12
+        }
+      },
+      "fullScans": 2,
+      "siteEngine": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 0,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 0,
+        "errors": []
+      }
+    },
+    {
+      "name": "progress-tools-off",
+      "stimulus": "progress",
+      "auditOnlyIgnoreOwnedColorChanges": false,
+      "updates": 12,
+      "nominalCadenceHz": 4,
+      "config": {
+        "siteEngine": "upstream",
+        "enhance": true,
+        "appBanner": true,
+        "textSelection": true,
+        "selectionScope": "posts",
+        "referenceEngine": true,
+        "color": "طبيعي",
+        "downloads": false,
+        "rainbow": false
+      },
+      "queries": 0,
+      "returned": 0,
+      "styles": 0,
+      "rects": 0,
+      "observerCallbacks": 0,
+      "observerRecords": 0,
+      "observers": {},
+      "fullScans": 0,
+      "siteEngine": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 0,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 0,
+        "errors": []
+      }
+    },
+    {
+      "name": "progress-gold",
+      "stimulus": "progress",
+      "auditOnlyIgnoreOwnedColorChanges": false,
+      "updates": 12,
+      "nominalCadenceHz": 4,
+      "config": {
+        "siteEngine": "upstream",
+        "enhance": true,
+        "appBanner": true,
+        "textSelection": true,
+        "selectionScope": "posts",
+        "referenceEngine": true,
+        "color": "ذهبي",
+        "downloads": true,
+        "rainbow": true
+      },
+      "queries": 0,
+      "returned": 0,
+      "styles": 0,
+      "rects": 0,
+      "observerCallbacks": 48,
+      "observerRecords": 228,
+      "observers": {
+        "at eval (app-prompt-engine.js:105:17) | at eval (app-prompt-engine.js:138:3)": {
+          "callbacks": 12,
+          "records": 72
+        },
+        "at eval (site-engine.js:1148:13) | at eval (site-engine.js:1152:3)": {
+          "callbacks": 12,
+          "records": 36
+        },
+        "at eval (facebook.js:1264:17) | at eval (facebook.js:1311:3)": {
+          "callbacks": 12,
+          "records": 72
+        },
+        "at new MO (site-engine.js:1103:45) | at eval (site-engine.js:866:3)": {
+          "callbacks": 12,
+          "records": 48
+        }
+      },
+      "fullScans": 0,
+      "siteEngine": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 1,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 1,
+        "errors": []
+      }
+    },
+    {
+      "name": "site-clock-gold",
+      "stimulus": "site",
+      "auditOnlyIgnoreOwnedColorChanges": false,
+      "updates": 12,
+      "nominalCadenceHz": 4,
+      "config": {
+        "siteEngine": "upstream",
+        "enhance": true,
+        "appBanner": true,
+        "textSelection": true,
+        "selectionScope": "posts",
+        "referenceEngine": true,
+        "color": "ذهبي",
+        "downloads": true,
+        "rainbow": true
+      },
+      "queries": 32,
+      "returned": 4,
+      "styles": 16,
+      "rects": 6,
+      "observerCallbacks": 68,
+      "observerRecords": 92,
+      "observers": {
+        "at eval (app-prompt-engine.js:105:17) | at eval (app-prompt-engine.js:138:3)": {
+          "callbacks": 14,
+          "records": 22
+        },
+        "at eval (site-engine.js:1148:13) | at eval (site-engine.js:1152:3)": {
+          "callbacks": 14,
+          "records": 18
+        },
+        "at eval (facebook.js:1264:17) | at eval (facebook.js:1311:3)": {
+          "callbacks": 14,
+          "records": 22
+        },
+        "at new MO (site-engine.js:1103:45) | at eval (site-engine.js:866:3)": {
+          "callbacks": 14,
+          "records": 18
+        },
+        "at watchCommentRegions (facebook.js:152:39) | at updateSelection (facebook.js:174:3)": {
+          "callbacks": 12,
+          "records": 12
+        }
+      },
+      "fullScans": 2,
+      "siteEngine": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 1,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 1,
+        "errors": []
+      }
+    },
+    {
+      "name": "progress-adblock",
+      "stimulus": "progress",
+      "auditOnlyIgnoreOwnedColorChanges": false,
+      "updates": 12,
+      "nominalCadenceHz": 4,
+      "config": {
+        "siteEngine": "upstream",
+        "enhance": true,
+        "appBanner": true,
+        "textSelection": true,
+        "selectionScope": "posts",
+        "referenceEngine": true,
+        "color": "طبيعي",
+        "downloads": true,
+        "rainbow": true,
+        "ads": true
+      },
+      "queries": 0,
+      "returned": 0,
+      "styles": 0,
+      "rects": 0,
+      "observerCallbacks": 36,
+      "observerRecords": 180,
+      "observers": {
+        "at eval (app-prompt-engine.js:105:17) | at eval (app-prompt-engine.js:138:3)": {
+          "callbacks": 12,
+          "records": 72
+        },
+        "at eval (site-engine.js:1148:13) | at eval (site-engine.js:1152:3)": {
+          "callbacks": 12,
+          "records": 36
+        },
+        "at eval (facebook.js:1264:17) | at eval (facebook.js:1311:3)": {
+          "callbacks": 12,
+          "records": 72
+        }
+      },
+      "fullScans": 0,
+      "siteEngine": {
+        "engine": "Materialbook/Nobook",
+        "active": true,
+        "observers": 2,
+        "timers": 0,
+        "elements": 0,
+        "childChanges": 0,
+        "errors": []
+      }
+    },
+    {
+      "name": "progress-master-off",
+      "stimulus": "progress",
+      "auditOnlyIgnoreOwnedColorChanges": false,
+      "updates": 12,
+      "nominalCadenceHz": 4,
+      "config": {
+        "siteEngine": "upstream",
+        "enhance": false,
+        "appBanner": true,
+        "textSelection": true,
+        "selectionScope": "posts",
+        "referenceEngine": true,
+        "color": "طبيعي",
+        "downloads": true,
+        "rainbow": true
+      },
+      "queries": 0,
+      "returned": 0,
+      "styles": 0,
+      "rects": 0,
+      "observerCallbacks": 0,
+      "observerRecords": 0,
+      "observers": {},
+      "fullScans": 0,
+      "siteEngine": {
+        "engine": "Materialbook/Nobook",
+        "active": false,
+        "errors": []
+      }
+    }
+  ]
+}

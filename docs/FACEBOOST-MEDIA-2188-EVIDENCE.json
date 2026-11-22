@@ -1,0 +1,65 @@
+{
+  "version": "2.18.8",
+  "version_code": 2180008,
+  "application_id": "com.almekhlafi",
+  "tested_commit": "797ddb8df88b8f26dcf807cbb40ec7c416b18a23",
+  "run_id": 42426818482,
+  "run_url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42426818482",
+  "conclusion": "success",
+  "local_dom_tests": 40,
+  "android_13_controlled_webview_fixtures": 7,
+  "owner_acceptance": {
+    "2.18.7_like": "Explicitly confirmed successful by owner.",
+    "2.18.7_home_swipe": "Still fails, two screenshots supplied.",
+    "2.18.8_home_swipe": "Pending owner confirmation."
+  },
+  "jobs": [
+    {
+      "id": 128566758983,
+      "name": "build",
+      "conclusion": "success",
+      "started_at": "2026-11-07T23:47:23Z",
+      "completed_at": "2026-11-07T23:53:43Z"
+    },
+    {
+      "id": 128568170983,
+      "name": "chromium-fixtures",
+      "conclusion": "success",
+      "started_at": "2026-11-07T23:53:45Z",
+      "completed_at": "2026-11-07T23:56:24Z"
+    },
+    {
+      "id": 128568755312,
+      "name": "candidate",
+      "conclusion": "success",
+      "started_at": "2026-11-07T23:56:26Z",
+      "completed_at": "2026-11-07T23:56:35Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13596490196,
+      "name": "Faceboost-2.18.8-Chromium-evidence",
+      "archive_size_bytes": 694,
+      "expired": false
+    },
+    {
+      "id": 13596465439,
+      "name": "Faceboost-2.18.8-build-inputs",
+      "archive_size_bytes": 47004843,
+      "expired": false
+    },
+    {
+      "id": 13596356384,
+      "name": "FPRO-2.18.8-media-candidate",
+      "archive_size_bytes": 3049707,
+      "expired": false
+    }
+  ],
+  "limits": [
+    "Synthetic-event controlled WebView fixtures, not physical touches or a logged-in account.",
+    "Document-start support proved in this emulator; unsupported WebViews retain late fallback.",
+    "Unknown site listener/DOM/carousel variants still require device acceptance.",
+    "No full inherited unit/lint suite; no local APK certificate inspection."
+  ]
+}

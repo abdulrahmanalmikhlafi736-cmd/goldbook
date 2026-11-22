@@ -1,0 +1,14 @@
+    private fun showDisplayTest() {
+        web.stopLoading()
+        failure = null
+        pageConfirmed = false
+        pageSequence++
+        loadState = "اختبار محلي بلا إنترنت"
+        web.loadDataWithBaseURL("https://fpro.invalid/", """
+            <!doctype html><html dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="margin:0;background:#14b450;color:#101010;font:22px sans-serif;padding:70px 24px;min-height:100vh;box-sizing:border-box">
+            <h1>اختبار عرض WebView</h1><p>هذه صفحة تشخيص محلية وليست فيسبوك. ظهور الخلفية الخضراء وهذا النص يؤكد أن المحرك يرسم المحتوى.</p>
+            <p id="js">JavaScript لم يعمل بعد</p><script>document.getElementById('js').textContent='JavaScript يعمل';document.body.dataset.ready='yes';</script>
+            <a href="https://m.facebook.com/">فتح فيسبوك الحقيقي</a></body></html>
+        """.trimIndent(), "text/html", "UTF-8", null)
+    }

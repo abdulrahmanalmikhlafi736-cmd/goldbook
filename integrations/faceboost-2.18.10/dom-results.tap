@@ -1,0 +1,322 @@
+TAP version 13
+# Subtest: production gesture pair: top double tap enters once and does not seek
+ok 1 - production gesture pair: top double tap enters once and does not seek
+  ---
+  duration_ms: 204.036487
+  type: 'test'
+  ...
+# Subtest: production gesture pair: lower right double tap seeks and never enters fullscreen
+ok 2 - production gesture pair: lower right double tap seeks and never enters fullscreen
+  ---
+  duration_ms: 66.700258
+  type: 'test'
+  ...
+# Subtest: production gesture: swipe and cancelled touch never enter fullscreen
+ok 3 - production gesture: swipe and cancelled touch never enter fullscreen
+  ---
+  duration_ms: 60.923616
+  type: 'test'
+  ...
+# Subtest: no official button means no fake success animation
+ok 4 - no official button means no fake success animation
+  ---
+  duration_ms: 27.834543
+  type: 'test'
+  ...
+# Subtest: fast double tap reaches only the intended click and confirms changed state
+ok 5 - fast double tap reaches only the intended click and confirms changed state
+  ---
+  duration_ms: 39.463447
+  type: 'test'
+  ...
+# Subtest: unconfirmed click gets no success and no duplicate retry
+ok 6 - unconfirmed click gets no success and no duplicate retry
+  ---
+  duration_ms: 32.770721
+  type: 'test'
+  ...
+# Subtest: unlike also waits for official state transition
+ok 7 - unlike also waits for official state transition
+  ---
+  duration_ms: 40.894468
+  type: 'test'
+  ...
+# Subtest: unrelated replay click remains blocked by capture guard
+ok 8 - unrelated replay click remains blocked by capture guard
+  ---
+  duration_ms: 27.553416
+  type: 'test'
+  ...
+# Subtest: ambiguous portal rail is not clicked
+ok 9 - ambiguous portal rail is not clicked
+  ---
+  duration_ms: 40.79091
+  type: 'test'
+  ...
+# Subtest: delayed state update confirms; recycled source never confirms stale action
+ok 10 - delayed state update confirms; recycled source never confirms stale action
+  ---
+  duration_ms: 112.950923
+  type: 'test'
+  ...
+# Subtest: adding an explicit false state is not a successful reaction transition
+ok 11 - adding an explicit false state is not a successful reaction transition
+  ---
+  duration_ms: 78.033407
+  type: 'test'
+  ...
+# Subtest: refreshing a reaction image cannot masquerade as changing Like state
+ok 12 - refreshing a reaction image cannot masquerade as changing Like state
+  ---
+  duration_ms: 35.045127
+  type: 'test'
+  ...
+# Subtest: private video scope excludes another video rail even at identical bounds
+ok 13 - private video scope excludes another video rail even at identical bounds
+  ---
+  duration_ms: 35.623339
+  type: 'test'
+  ...
+# Subtest: offscreen official button is refused
+ok 14 - offscreen official button is refused
+  ---
+  duration_ms: 29.469815
+  type: 'test'
+  ...
+# Subtest: home left swipe is consumed before the page completion handler
+ok 15 - home left swipe is consumed before the page completion handler
+  ---
+  duration_ms: 184.270783
+  type: 'test'
+  ...
+# Subtest: vertical scroll and tiny movement pass unchanged
+ok 16 - vertical scroll and tiny movement pass unchanged
+  ---
+  duration_ms: 66.307459
+  type: 'test'
+  ...
+# Subtest: not active in reels, videos, story composer, messages or filtered root pages
+ok 17 - not active in reels, videos, story composer, messages or filtered root pages
+  ---
+  duration_ms: 121.784378
+  type: 'test'
+  ...
+# Subtest: editable areas retain touch behavior
+ok 18 - editable areas retain touch behavior
+  ---
+  duration_ms: 30.779533
+  type: 'test'
+  ...
+# Subtest: horizontal carousel and system gesture edge are not intercepted
+ok 19 - horizontal carousel and system gesture edge are not intercepted
+  ---
+  duration_ms: 46.602457
+  type: 'test'
+  ...
+# Subtest: route change, multi-touch and active text selection cancel interception
+ok 20 - route change, multi-touch and active text selection cancel interception
+  ---
+  duration_ms: 26.981668
+  type: 'test'
+  ...
+# Subtest: pointer-only touch path is blocked only after direction is established
+ok 21 - pointer-only touch path is blocked only after direction is established
+  ---
+  duration_ms: 22.047036
+  type: 'test'
+  ...
+# Subtest: neutral home video surface is gated but video pages are not
+ok 22 - neutral home video surface is gated but video pages are not
+  ---
+  duration_ms: 22.006861
+  type: 'test'
+  ...
+# Subtest: rightward home swipe is also gated in RTL layouts
+ok 23 - rightward home swipe is also gated in RTL layouts
+  ---
+  duration_ms: 20.542366
+  type: 'test'
+  ...
+# Subtest: a button remains tappable but cannot exempt a whole home swipe
+ok 24 - a button remains tappable but cannot exempt a whole home swipe
+  ---
+  duration_ms: 92.052314
+  type: 'test'
+  ...
+# Subtest: full-height paging shell does not masquerade as a carousel
+ok 25 - full-height paging shell does not masquerade as a carousel
+  ---
+  duration_ms: 53.235532
+  type: 'test'
+  ...
+# Subtest: fullscreen on a home URL is not treated as ordinary home feed
+ok 26 - fullscreen on a home URL is not treated as ordinary home feed
+  ---
+  duration_ms: 11.765654
+  type: 'test'
+  ...
+# Subtest: optional home block defaults on, can turn off and on without page reload
+ok 27 - optional home block defaults on, can turn off and on without page reload
+  ---
+  duration_ms: 21.048616
+  type: 'test'
+  ...
+# Subtest: turning the option off resets a partially blocked page gesture
+ok 28 - turning the option off resets a partially blocked page gesture
+  ---
+  duration_ms: 18.924823
+  type: 'test'
+  ...
+# Subtest: footer stays entirely above viewport/system boundary across viewport sizes
+ok 29 - footer stays entirely above viewport/system boundary across viewport sizes
+  ---
+  duration_ms: 2.046953
+  type: 'test'
+  ...
+# Subtest: native and visual viewport bounds use the smaller CSS area
+ok 30 - native and visual viewport bounds use the smaller CSS area
+  ---
+  duration_ms: 0.524601
+  type: 'test'
+  ...
+# Subtest: fullscreen region is upper 40 percent, lower region and offscreen points excluded
+ok 31 - fullscreen region is upper 40 percent, lower region and offscreen points excluded
+  ---
+  duration_ms: 0.411055
+  type: 'test'
+  ...
+# Subtest: one visible rail, no persistent animation loop at rest
+ok 32 - one visible rail, no persistent animation loop at rest
+  ---
+  duration_ms: 223.913877
+  type: 'test'
+  ...
+# Subtest: remount detached root and detached button host even when hidden=false
+ok 33 - remount detached root and detached button host even when hidden=false
+  ---
+  duration_ms: 160.028877
+  type: 'test'
+  ...
+# Subtest: moving a video retains identity; removal disposes; replacement/recycling attaches immediately
+ok 34 - moving a video retains identity; removal disposes; replacement/recycling attaches immediately
+  ---
+  duration_ms: 60.637847
+  type: 'test'
+  ...
+# Subtest: transparent/offscreen/aria-hidden dialogs do not suppress tools; covering modal does
+ok 35 - transparent/offscreen/aria-hidden dialogs do not suppress tools; covering modal does
+  ---
+  duration_ms: 55.79876
+  type: 'test'
+  ...
+# Subtest: download resolves current recycled source on click, not initial source
+ok 36 - download resolves current recycled source on click, not initial source
+  ---
+  duration_ms: 38.223998
+  type: 'test'
+  ...
+# Subtest: master off disposes, on rebuilds once; progress off releases legacy ownership
+ok 37 - master off disposes, on rebuilds once; progress off releases legacy ownership
+  ---
+  duration_ms: 52.471395
+  type: 'test'
+  ...
+# Subtest: one progress owner for overlapping players
+ok 38 - one progress owner for overlapping players
+  ---
+  duration_ms: 146.391958
+  type: 'test'
+  ...
+# Subtest: duration/live changes and seek affect only the bound video
+ok 39 - duration/live changes and seek affect only the bound video
+  ---
+  duration_ms: 43.000723
+  type: 'test'
+  ...
+# Subtest: top ownership can be disabled and never toggles existing fullscreen
+ok 40 - top ownership can be disabled and never toggles existing fullscreen
+  ---
+  duration_ms: 32.207632
+  type: 'test'
+  ...
+# Subtest: requested lower position: line drops 8 CSS px and ball remains above boundary
+ok 41 - requested lower position: line drops 8 CSS px and ball remains above boundary
+  ---
+  duration_ms: 0.439712
+  type: 'test'
+  ...
+# Subtest: painted fill receives the lower offset rather than inherited old CSS
+ok 42 - painted fill receives the lower offset rather than inherited old CSS
+  ---
+  duration_ms: 92.661541
+  type: 'test'
+  ...
+# Subtest: owned backward drag never leaks even its start to page capture and seeks the bound clip
+ok 43 - owned backward drag never leaks even its start to page capture and seeks the bound clip
+  ---
+  duration_ms: 34.156059
+  type: 'test'
+  ...
+# Subtest: owned pointer stays isolated outside range bounds and clamps forward seek
+ok 44 - owned pointer stays isolated outside range bounds and clamps forward seek
+  ---
+  duration_ms: 28.206734
+  type: 'test'
+  ...
+# Subtest: touch-only range fallback is isolated and cancels cleanly
+ok 45 - touch-only range fallback is isolated and cancels cleanly
+  ---
+  duration_ms: 40.457213
+  type: 'test'
+  ...
+# Subtest: realistic dual pointer plus touch stream is one control intent
+ok 46 - realistic dual pointer plus touch stream is one control intent
+  ---
+  duration_ms: 29.228572
+  type: 'test'
+  ...
+# Subtest: ordinary website ranges are not treated as app-owned controls
+ok 47 - ordinary website ranges are not treated as app-owned controls
+  ---
+  duration_ms: 29.519563
+  type: 'test'
+  ...
+# Subtest: keyboard and accessibility input changes retain existing binding
+ok 48 - keyboard and accessibility input changes retain existing binding
+  ---
+  duration_ms: 36.922931
+  type: 'test'
+  ...
+# Subtest: emoji thumb and track target also route to the owning seek input
+ok 49 - emoji thumb and track target also route to the owning seek input
+  ---
+  duration_ms: 33.591433
+  type: 'test'
+  ...
+# Subtest: home option off does not disable owned seek isolation
+ok 50 - home option off does not disable owned seek isolation
+  ---
+  duration_ms: 51.909426
+  type: 'test'
+  ...
+# Subtest: golden-engine option is backed by its own persisted default-on key and live WebView delivery
+ok 51 - golden-engine option is backed by its own persisted default-on key and live WebView delivery
+  ---
+  duration_ms: 5.760374
+  type: 'test'
+  ...
+# Subtest: all localized app labels are FPRO flame while update package stays unchanged
+ok 52 - all localized app labels are FPRO flame while update package stays unchanged
+  ---
+  duration_ms: 8.137295
+  type: 'test'
+  ...
+1..52
+# tests 52
+# suites 0
+# pass 52
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5000.17893

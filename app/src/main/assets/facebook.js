@@ -1073,10 +1073,11 @@
   // Entry-only, including WebView's native custom-video fullscreen path.
   if(document.fullscreenElement||document.webkitFullscreenElement||window.__fproNativeFullscreen||video.webkitDisplayingFullscreen)return;
   const now=performance.now();if(now-lastFullscreen<450)return;lastFullscreen=now;
-  function failed(){location.href='fpro://fullscreen-error';}
+  function failed(){window.FproFullscreenRotation?.end();location.href='fpro://fullscreen-error';}
   try {
    const enter=video.requestFullscreen || video.webkitRequestFullscreen || video.webkitEnterFullscreen;
    if(!enter){failed();return;}
+   window.FproFullscreenRotation?.begin();
    const result=enter.call(video);
    if(result&&typeof result.catch==='function')result.catch(failed);
   }catch(_){failed();}

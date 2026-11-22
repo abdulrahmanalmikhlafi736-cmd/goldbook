@@ -36,6 +36,7 @@ class Preferences(context: Context) {
     }
     fun scriptConfig(): String = JSONObject().apply {
         put("siteEngine", "upstream")
+        put("rememberPosition", flag("rememberPosition", true))
         listOf("homeStories", "ads", "suggested", "reels", "stories", "people", "groups", "rainbow", "sticky", "reverse", "downloads").forEach { put(it, flag(it)) }
         put("enhance", flag("pageEnhancements"))
         put("doubleTapFullscreen", flag("doubleTapFullscreen", true))

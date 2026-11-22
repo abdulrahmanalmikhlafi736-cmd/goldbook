@@ -1,0 +1,55 @@
+{
+  "tested_commit": "0525d143551b84a6ef758e6ae6c2dd5f1857690b",
+  "baseline": "2.18.8",
+  "candidate": "2.18.9",
+  "pinned_source": "fe8a474b25414b38819b7cf927720899c8c89705",
+  "changed_paths": [
+    {
+      "path": "app/build.gradle.kts",
+      "before_sha256": "9a14f106b83e6e7f7a972aee0380c0f4a5225891769c376df4acdda18c2f4938",
+      "after_sha256": "79582e695a204a0a34449671d44523c157f098fc7653536f2b50064f9fd78516"
+    },
+    {
+      "path": "app/src/androidTest/java/com/almekhlafi/materialbook/ui/screens/MediaSurfaceRegressionTest.kt",
+      "before_sha256": "3078a74c64fe28bdd1e4f13294da3ea1908952d5a342e09cbd32a9fc95eb0e8d",
+      "after_sha256": "31c11c4342d7b279beb6096c630d38569be7563b107e9c6881d85eb0f586955b"
+    },
+    {
+      "path": "app/src/main/assets/home-swipe-guard.js",
+      "before_sha256": "a37a2374e3a15d26462463322d6fc96479617301fe5b9d89b1891376729322e5",
+      "after_sha256": "3f5d3d8cf2b4fdd69f94191a099ce0a80aedb9bb4b0f2c280ea15cd2c2e6a498"
+    },
+    {
+      "path": "app/src/main/assets/media-surface.js",
+      "before_sha256": "951c1a0c8d83ab107ef4306134be0ea2df57ed0e03ac5ac07f3167200810e90c",
+      "after_sha256": "70c0abfe19de6393b520cecdd822077763702c5a9474c525d8d249fbfe98b5f7"
+    }
+  ],
+  "viewport_footer_and_fullscreen_policy_identical": true,
+  "unchanged_critical_files": [
+    {
+      "path": "app/src/main/res/raw/reel_gestures.js",
+      "sha256": "609535f38460801a7f3ef16f9dd70ef98f5b141e4b5b9c48dcb49f1eeb2ca0c1"
+    },
+    {
+      "path": "app/src/main/res/raw/reel_controls.js",
+      "sha256": "6ab4f661fb95a8a44620271e18321524fac33a23b65a597058ff3e22ddc329f7"
+    },
+    {
+      "path": "app/src/main/assets/facebook.js",
+      "sha256": "04cb2dcd8631140316ff83bd13b7a18193f0d1aa6ec68e2ce032a8e4d232ef41"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/ui/screens/MaterialbookWV.kt",
+      "sha256": "322e297ef8f632ab20193bfa9da7bd23d990e93e0bf5b7f15f5565cd45b44ac6"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/MainActivity.kt",
+      "sha256": "082d4ab8d023551464c542753094fab5cbcbced2f98ccf724453a48221323e38"
+    },
+    {
+      "path": "app/src/main/java/com/almekhlafi/materialbook/utils/HomeSwipeGuard.kt",
+      "sha256": "d2d33a4bdca368e4dde1ac225ae6ace804c090f8509832fdf4c37a2f8214ba90"
+    }
+  ]
+}

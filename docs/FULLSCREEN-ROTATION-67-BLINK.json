@@ -1,0 +1,20 @@
+{
+  "provider": "HeadlessChrome/133.0.6943.0",
+  "cases": {
+    "early": {
+      "protectedEvents": [],
+      "afterRelease": [
+        "site"
+      ]
+    },
+    "late": {
+      "protectedEvents": [
+        "site"
+      ],
+      "afterRelease": [
+        "site",
+        "site"
+      ]
+    }
+  }
+}

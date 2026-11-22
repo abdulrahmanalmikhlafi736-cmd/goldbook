@@ -1,0 +1,250 @@
+TAP version 13
+# Subtest: production gesture pair: top double tap enters once and does not seek
+ok 1 - production gesture pair: top double tap enters once and does not seek
+  ---
+  duration_ms: 301.96297
+  type: 'test'
+  ...
+# Subtest: production gesture pair: lower right double tap seeks and never enters fullscreen
+ok 2 - production gesture pair: lower right double tap seeks and never enters fullscreen
+  ---
+  duration_ms: 103.541958
+  type: 'test'
+  ...
+# Subtest: production gesture: swipe and cancelled touch never enter fullscreen
+ok 3 - production gesture: swipe and cancelled touch never enter fullscreen
+  ---
+  duration_ms: 71.990672
+  type: 'test'
+  ...
+# Subtest: no official button means no fake success animation
+ok 4 - no official button means no fake success animation
+  ---
+  duration_ms: 52.070562
+  type: 'test'
+  ...
+# Subtest: fast double tap reaches only the intended click and confirms changed state
+ok 5 - fast double tap reaches only the intended click and confirms changed state
+  ---
+  duration_ms: 60.145608
+  type: 'test'
+  ...
+# Subtest: unconfirmed click gets no success and no duplicate retry
+ok 6 - unconfirmed click gets no success and no duplicate retry
+  ---
+  duration_ms: 46.495729
+  type: 'test'
+  ...
+# Subtest: unlike also waits for official state transition
+ok 7 - unlike also waits for official state transition
+  ---
+  duration_ms: 60.224799
+  type: 'test'
+  ...
+# Subtest: unrelated replay click remains blocked by capture guard
+ok 8 - unrelated replay click remains blocked by capture guard
+  ---
+  duration_ms: 28.749063
+  type: 'test'
+  ...
+# Subtest: ambiguous portal rail is not clicked
+ok 9 - ambiguous portal rail is not clicked
+  ---
+  duration_ms: 82.714669
+  type: 'test'
+  ...
+# Subtest: delayed state update confirms; recycled source never confirms stale action
+ok 10 - delayed state update confirms; recycled source never confirms stale action
+  ---
+  duration_ms: 183.316509
+  type: 'test'
+  ...
+# Subtest: adding an explicit false state is not a successful reaction transition
+ok 11 - adding an explicit false state is not a successful reaction transition
+  ---
+  duration_ms: 47.77766
+  type: 'test'
+  ...
+# Subtest: refreshing a reaction image cannot masquerade as changing Like state
+ok 12 - refreshing a reaction image cannot masquerade as changing Like state
+  ---
+  duration_ms: 32.745728
+  type: 'test'
+  ...
+# Subtest: private video scope excludes another video rail even at identical bounds
+ok 13 - private video scope excludes another video rail even at identical bounds
+  ---
+  duration_ms: 56.440837
+  type: 'test'
+  ...
+# Subtest: offscreen official button is refused
+ok 14 - offscreen official button is refused
+  ---
+  duration_ms: 46.227606
+  type: 'test'
+  ...
+# Subtest: home left swipe is consumed before the page completion handler
+ok 15 - home left swipe is consumed before the page completion handler
+  ---
+  duration_ms: 221.579571
+  type: 'test'
+  ...
+# Subtest: vertical scroll and tiny movement pass unchanged
+ok 16 - vertical scroll and tiny movement pass unchanged
+  ---
+  duration_ms: 71.872548
+  type: 'test'
+  ...
+# Subtest: not active in reels, videos, story composer, messages or filtered root pages
+ok 17 - not active in reels, videos, story composer, messages or filtered root pages
+  ---
+  duration_ms: 148.885767
+  type: 'test'
+  ...
+# Subtest: editable areas retain touch behavior
+ok 18 - editable areas retain touch behavior
+  ---
+  duration_ms: 36.567361
+  type: 'test'
+  ...
+# Subtest: horizontal carousel and system gesture edge are not intercepted
+ok 19 - horizontal carousel and system gesture edge are not intercepted
+  ---
+  duration_ms: 34.536378
+  type: 'test'
+  ...
+# Subtest: route change, multi-touch and active text selection cancel interception
+ok 20 - route change, multi-touch and active text selection cancel interception
+  ---
+  duration_ms: 67.931722
+  type: 'test'
+  ...
+# Subtest: pointer-only touch path is blocked only after direction is established
+ok 21 - pointer-only touch path is blocked only after direction is established
+  ---
+  duration_ms: 24.742214
+  type: 'test'
+  ...
+# Subtest: neutral home video surface is gated but video pages are not
+ok 22 - neutral home video surface is gated but video pages are not
+  ---
+  duration_ms: 22.739649
+  type: 'test'
+  ...
+# Subtest: rightward home swipe is also gated in RTL layouts
+ok 23 - rightward home swipe is also gated in RTL layouts
+  ---
+  duration_ms: 21.760524
+  type: 'test'
+  ...
+# Subtest: a button remains tappable but cannot exempt a whole home swipe
+ok 24 - a button remains tappable but cannot exempt a whole home swipe
+  ---
+  duration_ms: 48.256058
+  type: 'test'
+  ...
+# Subtest: full-height paging shell does not masquerade as a carousel
+ok 25 - full-height paging shell does not masquerade as a carousel
+  ---
+  duration_ms: 33.98196
+  type: 'test'
+  ...
+# Subtest: fullscreen on a home URL is not treated as ordinary home feed
+ok 26 - fullscreen on a home URL is not treated as ordinary home feed
+  ---
+  duration_ms: 98.581707
+  type: 'test'
+  ...
+# Subtest: footer stays entirely above viewport/system boundary across viewport sizes
+ok 27 - footer stays entirely above viewport/system boundary across viewport sizes
+  ---
+  duration_ms: 1.731039
+  type: 'test'
+  ...
+# Subtest: native and visual viewport bounds use the smaller CSS area
+ok 28 - native and visual viewport bounds use the smaller CSS area
+  ---
+  duration_ms: 0.512641
+  type: 'test'
+  ...
+# Subtest: fullscreen region is upper 40 percent, lower region and offscreen points excluded
+ok 29 - fullscreen region is upper 40 percent, lower region and offscreen points excluded
+  ---
+  duration_ms: 0.289521
+  type: 'test'
+  ...
+# Subtest: one visible rail, no persistent animation loop at rest
+ok 30 - one visible rail, no persistent animation loop at rest
+  ---
+  duration_ms: 277.605572
+  type: 'test'
+  ...
+# Subtest: remount detached root and detached button host even when hidden=false
+ok 31 - remount detached root and detached button host even when hidden=false
+  ---
+  duration_ms: 109.442656
+  type: 'test'
+  ...
+# Subtest: moving a video retains identity; removal disposes; replacement/recycling attaches immediately
+ok 32 - moving a video retains identity; removal disposes; replacement/recycling attaches immediately
+  ---
+  duration_ms: 151.635454
+  type: 'test'
+  ...
+# Subtest: transparent/offscreen/aria-hidden dialogs do not suppress tools; covering modal does
+ok 33 - transparent/offscreen/aria-hidden dialogs do not suppress tools; covering modal does
+  ---
+  duration_ms: 84.785488
+  type: 'test'
+  ...
+# Subtest: download resolves current recycled source on click, not initial source
+ok 34 - download resolves current recycled source on click, not initial source
+  ---
+  duration_ms: 86.630058
+  type: 'test'
+  ...
+# Subtest: master off disposes, on rebuilds once; progress off releases legacy ownership
+ok 35 - master off disposes, on rebuilds once; progress off releases legacy ownership
+  ---
+  duration_ms: 58.897725
+  type: 'test'
+  ...
+# Subtest: one progress owner for overlapping players
+ok 36 - one progress owner for overlapping players
+  ---
+  duration_ms: 54.70331
+  type: 'test'
+  ...
+# Subtest: duration/live changes and seek affect only the bound video
+ok 37 - duration/live changes and seek affect only the bound video
+  ---
+  duration_ms: 49.310295
+  type: 'test'
+  ...
+# Subtest: top ownership can be disabled and never toggles existing fullscreen
+ok 38 - top ownership can be disabled and never toggles existing fullscreen
+  ---
+  duration_ms: 27.513185
+  type: 'test'
+  ...
+# Subtest: requested lower position: line drops 8 CSS px and ball remains above boundary
+ok 39 - requested lower position: line drops 8 CSS px and ball remains above boundary
+  ---
+  duration_ms: 0.443188
+  type: 'test'
+  ...
+# Subtest: painted fill receives the lower offset rather than inherited old CSS
+ok 40 - painted fill receives the lower offset rather than inherited old CSS
+  ---
+  duration_ms: 105.478721
+  type: 'test'
+  ...
+1..40
+# tests 40
+# suites 0
+# pass 40
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5649.982245

@@ -1,0 +1,59 @@
+{
+  "run": {
+    "id": 42446563402,
+    "html_url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42446563402",
+    "head_sha": "40067d27674580bea2db691b33a9efd2b9870607",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "jobs": [
+    {
+      "id": 128626613771,
+      "name": "build",
+      "conclusion": "success",
+      "started_at": "2026-11-08T04:22:40Z",
+      "completed_at": "2026-11-08T04:31:34Z"
+    },
+    {
+      "id": 128628421263,
+      "name": "chromium-fixtures",
+      "conclusion": "success",
+      "started_at": "2026-11-08T04:31:36Z",
+      "completed_at": "2026-11-08T04:34:41Z"
+    },
+    {
+      "id": 128629046086,
+      "name": "candidate",
+      "conclusion": "success",
+      "started_at": "2026-11-08T04:34:43Z",
+      "completed_at": "2026-11-08T04:34:49Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13604211042,
+      "name": "Faceboost-2.18.13-Chromium-evidence",
+      "size_in_bytes": 1353,
+      "expired": false
+    },
+    {
+      "id": 13604190837,
+      "name": "Faceboost-2.18.13-build-inputs",
+      "size_in_bytes": 47058517,
+      "expired": false
+    },
+    {
+      "id": 13603524832,
+      "name": "FPRO-2.18.13-media-candidate",
+      "size_in_bytes": 3061877,
+      "expired": false
+    }
+  ],
+  "localTestsPassed": 88,
+  "android13InstrumentationTestsPassed": 20,
+  "limitations": [
+    "Controlled official Share/Copy fixtures, not logged-in Facebook account acceptance",
+    "No installed Seal UI exercised by the tests",
+    "Cannot guarantee all layouts, flash-free UI, zero lag or downloadability"
+  ]
+}

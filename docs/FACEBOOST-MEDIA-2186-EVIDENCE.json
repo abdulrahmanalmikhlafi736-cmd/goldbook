@@ -1,0 +1,57 @@
+{
+  "run": {
+    "id": 42421690589,
+    "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42421690589",
+    "headSha": "fff6816039d785425429faa9250d3d4cba4e4eac",
+    "conclusion": "success"
+  },
+  "jobs": [
+    {
+      "id": 128551341715,
+      "name": "build",
+      "conclusion": "success"
+    },
+    {
+      "id": 128553306982,
+      "name": "chromium-fixtures",
+      "conclusion": "success"
+    },
+    {
+      "id": 128553933919,
+      "name": "candidate",
+      "conclusion": "success"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13594450272,
+      "name": "FPRO-2.18.6-media-candidate",
+      "archiveBytes": 3046841
+    },
+    {
+      "id": 13594102842,
+      "name": "Faceboost-2.18.6-build-inputs",
+      "archiveBytes": 46991002
+    },
+    {
+      "id": 13593514524,
+      "name": "Faceboost-2.18.6-Chromium-evidence",
+      "archiveBytes": 535
+    }
+  ],
+  "domTests": {
+    "total": 20,
+    "passed": 20,
+    "likeTestsCharacterizeExistingBugNotFix": true
+  },
+  "chromiumFixtureGate": {
+    "requiredTests": 4,
+    "success": true,
+    "accountAcceptance": false
+  },
+  "ownerAccepted2185": {
+    "displayConcept": true,
+    "upperDoubleTap": "owner reports 100% success"
+  },
+  "scope": "Lower visual rail/ball by 8 CSS px; no production like or fullscreen behavior change."
+}

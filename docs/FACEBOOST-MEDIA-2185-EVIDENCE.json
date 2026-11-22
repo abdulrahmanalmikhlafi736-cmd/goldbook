@@ -1,0 +1,56 @@
+{
+  "newProjectBase": "abdulrahmanalmikhlafi736-cmd/faceboost-review@fe8a474b25414b38819b7cf927720899c8c89705",
+  "overlayCommit": "77c7c55e42749bdedf96cdc096b3624f842f932d",
+  "run": {
+    "id": 42415712438,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42415712438"
+  },
+  "jobs": [
+    {
+      "id": 128533221905,
+      "name": "build",
+      "conclusion": "success"
+    },
+    {
+      "id": 128535211827,
+      "name": "chromium-fixtures",
+      "conclusion": "success"
+    },
+    {
+      "id": 128536004378,
+      "name": "candidate",
+      "conclusion": "success"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13591787458,
+      "name": "FPRO-2.18.5-media-candidate",
+      "archiveBytes": 3046470
+    },
+    {
+      "id": 13591507528,
+      "name": "Faceboost-2.18.5-build-inputs",
+      "archiveBytes": 46990605
+    },
+    {
+      "id": 13591488187,
+      "name": "Faceboost-2.18.5-Chromium-evidence",
+      "archiveBytes": 537
+    }
+  ],
+  "localEvidence": {
+    "domAndProductionGestureTests": 15,
+    "passed": 15,
+    "separateSyntheticStressTransitions": 150
+  },
+  "limitations": [
+    "Four Android tests use controlled Chromium fixtures, not signed-in Facebook or trusted native-touch acceptance.",
+    "No full inherited unit/lint suite was run in this scoped pipeline.",
+    "Artifact archive size is not asserted to be exact APK size.",
+    "Installed 2.18.4 signing certificate was not available to compare.",
+    "Existing security/update/selection issues outside requested media scope remain unchanged."
+  ]
+}

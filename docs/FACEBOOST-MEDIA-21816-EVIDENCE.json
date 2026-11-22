@@ -1,0 +1,68 @@
+{
+  "version": "2.18.16",
+  "versionCode": 2180016,
+  "package": "com.almekhlafi",
+  "appCommit": "f8ace5827216ef78ba7cdb370ac659a6063b574f",
+  "sourceCommit": "fe8a474b25414b38819b7cf927720899c8c89705",
+  "workflow": {
+    "id": 42456171788,
+    "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42456171788",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "build",
+        "id": 128655600601,
+        "conclusion": "success"
+      },
+      {
+        "name": "chromium-fixtures",
+        "id": 128657245369,
+        "conclusion": "success"
+      },
+      {
+        "name": "candidate",
+        "id": 128657868643,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "tests": {
+    "localPassed": 132,
+    "localFailed": 0,
+    "localSkipped": 0,
+    "android13Passed": 25,
+    "android13Failed": 0,
+    "nativeGate": "Exact OK (25 tests) required; failure/crash markers rejected"
+  },
+  "artifacts": [
+    {
+      "id": 13608371132,
+      "name": "FPRO-2.18.16-media-candidate",
+      "size_in_bytes": 3068371,
+      "artifactArchiveDigest": "sha256:69e34e5d2a2375cc1c14b380b5223986a5669128e7993a02e919234285a62cf4",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42456171788/artifacts/13608371132"
+    },
+    {
+      "id": 13608031876,
+      "name": "Faceboost-2.18.16-build-inputs",
+      "size_in_bytes": 47080730,
+      "artifactArchiveDigest": "sha256:9c938c4c35916d28880b8558a6c57cc27d20521fdef316afca747be8e5b8489d",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42456171788/artifacts/13608031876"
+    },
+    {
+      "id": 13607488411,
+      "name": "Faceboost-2.18.16-Chromium-evidence",
+      "size_in_bytes": 1588,
+      "artifactArchiveDigest": "sha256:73ae8aea8d88d94bd3bcd8f8fbed82af5765cc87f719e2c98c6b3b776f3be604",
+      "url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42456171788/artifacts/13607488411"
+    }
+  ],
+  "confirmedFix": "Remove playback/CDN fallback from video button and native video receiver; preserve separate explicit image action.",
+  "notEstablished": "The same Useful Scripts-style videoFBID reader already existed in 2.18.15. Its absence/failure in owner mobile layout is not diagnosed or proven fixed by this change. No live account or installed Seal UI proof.",
+  "downloadVerification": "Artifact metadata/digests from GitHub API; archive digest is NOT APK checksum. APK bytes not independently downloaded here because sandbox excludes Azure artifact redirect host.",
+  "subsequentOwnerFeedback": {
+    "outcome": "failed to obtain post link",
+    "evidence": "Owner screenshot shows Share-not-found / no URL sent.",
+    "followUp": "Owner explicitly approved local structural diagnostic 2.18.17; no returned report yet."
+  }
+}

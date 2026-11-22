@@ -1,0 +1,65 @@
+{
+  "version": "2.18.9",
+  "version_code": 2180009,
+  "application_id": "com.almekhlafi",
+  "tested_commit": "0525d143551b84a6ef758e6ae6c2dd5f1857690b",
+  "run_id": 42428432190,
+  "run_url": "https://github.com/abdulrahmanalmikhlafi736-cmd/goldbook/actions/runs/42428432190",
+  "conclusion": "success",
+  "local_dom_tests": 47,
+  "android_13_controlled_webview_fixtures": 8,
+  "owner_acceptance": {
+    "2.18.7_like": "Confirmed successful.",
+    "2.18.8_home_swipe": "Failed including backward seek drag, screenshots supplied.",
+    "2.18.9": "Pending phone/account verification."
+  },
+  "jobs": [
+    {
+      "id": 128571709174,
+      "name": "build",
+      "conclusion": "success",
+      "started_at": "2026-11-08T00:09:03Z",
+      "completed_at": "2026-11-08T00:17:45Z"
+    },
+    {
+      "id": 128573773033,
+      "name": "chromium-fixtures",
+      "conclusion": "success",
+      "started_at": "2026-11-08T00:17:47Z",
+      "completed_at": "2026-11-08T00:20:28Z"
+    },
+    {
+      "id": 128574406267,
+      "name": "candidate",
+      "conclusion": "success",
+      "started_at": "2026-11-08T00:20:30Z",
+      "completed_at": "2026-11-08T00:20:39Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13597190914,
+      "name": "FPRO-2.18.9-media-candidate",
+      "archive_size_bytes": 3050827,
+      "expired": false
+    },
+    {
+      "id": 13597165871,
+      "name": "Faceboost-2.18.9-Chromium-evidence",
+      "archive_size_bytes": 737,
+      "expired": false
+    },
+    {
+      "id": 13596945558,
+      "name": "Faceboost-2.18.9-build-inputs",
+      "archive_size_bytes": 47008827,
+      "expired": false
+    }
+  ],
+  "limits": [
+    "Synthetic controlled events, not trusted physical finger motion or account acceptance.",
+    "Only owned seek controls gain complete sequence isolation; general home policy is retained.",
+    "Unsupported WebViews have late injection fallback without guaranteed early precedence.",
+    "No complete inherited unit/lint suite, heat measurement, universal no-lag guarantee or local APK certificate inspection."
+  ]
+}

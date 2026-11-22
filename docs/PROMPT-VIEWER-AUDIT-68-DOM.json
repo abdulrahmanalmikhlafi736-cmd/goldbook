@@ -1,0 +1,10 @@
+{
+  "audit": "known-defect-not-fix",
+  "case": "large labelled owner with shadow media",
+  "before": "block",
+  "on": "none",
+  "off": "block",
+  "ctaHidden": true,
+  "retained": 2,
+  "samePlayer": true
+}

@@ -1,0 +1,30 @@
+{
+  "productionChangedFilesComparedWithAccepted2185": [
+    "app/build.gradle.kts",
+    "app/src/main/assets/media-surface.js"
+  ],
+  "allChangedFiles": [
+    "app/build.gradle.kts",
+    "app/src/androidTest/java/com/almekhlafi/materialbook/ui/screens/MediaSurfaceRegressionTest.kt",
+    "app/src/main/assets/media-surface.js"
+  ],
+  "dropCssPixels": 8,
+  "unchanged": [
+    {
+      "file": "app/src/main/assets/facebook.js",
+      "sha256": "04cb2dcd8631140316ff83bd13b7a18193f0d1aa6ec68e2ce032a8e4d232ef41"
+    },
+    {
+      "file": "app/src/main/res/raw/reel_gestures.js",
+      "sha256": "91ac7a129d3eb4155350fd8f738fc23379562c26f696ff8df699be1d9226a9a8"
+    },
+    {
+      "file": "app/src/main/res/raw/reel_controls.js",
+      "sha256": "6ab4f661fb95a8a44620271e18321524fac33a23b65a597058ff3e22ddc329f7"
+    },
+    {
+      "file": "app/src/main/java/com/almekhlafi/materialbook/MainActivity.kt",
+      "sha256": "082d4ab8d023551464c542753094fab5cbcbced2f98ccf724453a48221323e38"
+    }
+  ]
+}
